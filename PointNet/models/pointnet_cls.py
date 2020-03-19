@@ -154,6 +154,25 @@ def get_loss(pred, label, end_points, reg_weight=0.001):
     return classify_loss + mat_diff_loss * reg_weight
 
 
+def get_loss_weight(pred, label, end_points, classweight, reg_weight=0.001):
+    """ pred: B*NUM_CLASSES,
+        label: B, """
+    loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=pred, labels=label)
+    loss = tf.multiply(loss, classweight)
+    classify_loss = tf.reduce_mean(loss)
+    tf.summary.scalar('classify loss', classify_loss)
+
+    # Enforce the transformation as orthogonal matrix
+    transform = end_points['transform']  # BxKxK
+    K = transform.get_shape()[1].value
+    mat_diff = tf.matmul(transform, tf.transpose(transform, perm=[0, 2, 1]))
+    mat_diff -= tf.constant(np.eye(K), dtype=tf.float32)
+    mat_diff_loss = tf.nn.l2_loss(mat_diff)
+    tf.summary.scalar('mat loss', mat_diff_loss)
+
+    return classify_loss + mat_diff_loss * reg_weight
+
+
 if __name__ == '__main__':
     with tf.Graph().as_default():
         inputs = tf.zeros((32, 1024, 3))
