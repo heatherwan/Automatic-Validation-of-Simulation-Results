@@ -31,9 +31,9 @@ class Parameters:
         self.keep_prob_2 = 0.55
         self.batchSize = 32
         self.testBatchSize = 1
-        self.max_epoch = 30
+        self.max_epoch = 100
         self.learningRate = 1e-3
         self.weighting_scheme = 'weighted'
         self.weight_scaler = 4  # 50
-        self.expName = f'exp03_point{self.pointNumber}_nn{self.neighborNumber}_cheby_{self.chebyshev_1_Order}' \
+        self.expName = f'exp103_point{self.pointNumber}_nn{self.neighborNumber}_cheby_{self.chebyshev_1_Order}' \
                        f'_{self.chebyshev_2_Order}_dim{self.dim}'  # save model path
