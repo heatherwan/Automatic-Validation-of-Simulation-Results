@@ -16,7 +16,7 @@ start_time = time.time()
 
 # ===============================Hyper parameters========================
 para = Parameters()
-print(para)
+print(f'This is experiment: {para.expName}')
 # =======================================================================
 
 pointNumber = para.pointNumber

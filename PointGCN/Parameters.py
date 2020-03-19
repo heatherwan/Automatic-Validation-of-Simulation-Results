@@ -14,12 +14,11 @@ class Parameters:
         if not os.path.isdir(self.graphDir):
             os.mkdir(self.graphDir)
 
-
-        self.trainDataset = 'traindataset_dim4_480.hdf5'
-        self.testDataset = 'testdataset_dim4_160.hdf5'
+        self.trainDataset = 'traindataset_dim4_480_3cat.hdf5'
+        self.testDataset = 'testdataset_dim4_160_3cat.hdf5'
         self.samplingType = 'farthest_sampling'
         self.neighborNumber = 4
-        self.outputClassN = 4
+        self.outputClassN = 3
         self.pointNumber = 1024
         self.dim = 4
         self.gcn_1_filter_n = 1000
@@ -32,9 +31,9 @@ class Parameters:
         self.keep_prob_2 = 0.55
         self.batchSize = 32
         self.testBatchSize = 1
-        self.max_epoch = 20
-        self.learningRate = 12e-4
+        self.max_epoch = 30
+        self.learningRate = 1e-3
         self.weighting_scheme = 'weighted'
-        self.weight_scaler = 40  # 50
-        self.expName = f'exp01_point{self.pointNumber}_nn{self.neighborNumber}_cheby_{self.chebyshev_1_Order}' \
+        self.weight_scaler = 4  # 50
+        self.expName = f'exp03_point{self.pointNumber}_nn{self.neighborNumber}_cheby_{self.chebyshev_1_Order}' \
                        f'_{self.chebyshev_2_Order}_dim{self.dim}'  # save model path

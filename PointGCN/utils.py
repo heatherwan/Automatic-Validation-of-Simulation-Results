@@ -95,12 +95,12 @@ def weight_dict_fc(trainLabel, para):
 
     from sklearn.preprocessing import label_binarize
     y_total = label_binarize(trainLabel, classes=[i for i in range(para.outputClassN)])
-    class_distribution_class = np.sum(y_total, axis=0)
+    class_distribution_class = np.sum(y_total, axis=0)  # get count for each class
     class_distribution_class = [float(i) for i in class_distribution_class]
-    class_distribution_class = class_distribution_class / np.sum(class_distribution_class)
+    class_distribution_class = class_distribution_class / np.sum(class_distribution_class)  # get ratio for each class
     inverse_dist = 1 / class_distribution_class
     norm_inv_dist = inverse_dist / np.sum(inverse_dist)
-    weights = norm_inv_dist * para.weight_scaler + 1
+    weights = norm_inv_dist * para.weight_scaler + 1  # scalar should be reconsider
     weight_dict = dict()
     for classID, value in enumerate(weights):
         weight_dict.update({classID: value})
