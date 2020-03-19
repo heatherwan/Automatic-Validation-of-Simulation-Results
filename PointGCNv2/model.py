@@ -4,6 +4,7 @@ from layers import gcnLayer, globalPooling, fullyConnected
 from utils import get_mini_batch, add_noise, weights_calculation, uniform_weight
 from sklearn.utils import shuffle
 from sklearn.preprocessing import label_binarize
+import sys
 
 
 # ===========================Hyper parameter=====================
@@ -76,7 +77,7 @@ def model_architecture(para):
         shape = variable.get_shape()
         variable_parametes = 1
         for dim in shape:
-            variable_parametes *= dim.value
+            variable_parametes *= dim
         total_parameters += variable_parametes
     print('Total parameters number is {}'.format(total_parameters))
 
