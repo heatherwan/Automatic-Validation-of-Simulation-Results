@@ -13,6 +13,8 @@ class Parameters:
 
         if not os.path.isdir(self.logDir):
             os.mkdir(self.logDir)
+            os.mkdir(os.path.join(self.logDir, 'train'))
+            os.mkdir(os.path.join(self.logDir, 'test'))
         else:
             shutil.move(os.path.join(self.logDir, 'train'), os.path.join(self.logDir, 'trainold'))
             shutil.move(os.path.join(self.logDir, 'test'), os.path.join(self.logDir, 'testold'))
