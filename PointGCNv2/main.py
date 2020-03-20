@@ -11,19 +11,36 @@ from utils import weight_dict_fc
 from sklearn.metrics import confusion_matrix
 
 
-# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-gpus = tf.config.experimental.list_physical_devices('GPU')
-for gpu in gpus:
-    tf.config.experimental.set_memory_growth(gpu, True)
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+# gpus = tf.config.experimental.list_physical_devices('GPU')
+# for gpu in gpus:
+#     tf.config.experimental.set_memory_growth(gpu, True)
 start_time = time.time()
 
 # ===============================Hyper parameters========================
 para = Parameters()
 print(f'This is experiment: {para.expName}')
-# =======================================================================
+
 
 pointNumber = para.pointNumber
 neighborNumber = para.neighborNumber
+# ===============================Log setting=============================
+LOG_DIR = para.logDir
+LOG_MODEL = para.modelDir
+LOG_FOUT = open(os.path.join(LOG_DIR, f'{para.expName}.txt'), 'w')
+# write parameters in log file
+LOG_FOUT.write(str(para.__dict__) + '\n')
+# =======================================================================
+
+
+def log_string(out_str):
+    if isinstance(out_str, np.ndarray):
+        np.savetxt(LOG_FOUT, out_str, fmt='%3d')
+    else:
+        LOG_FOUT.write(out_str + '\n')
+    LOG_FOUT.flush()
+    print(out_str)
+
 
 with tf.Graph().as_default():  # for define a new graph to put in every element
     # ===============================Build model=============================
@@ -49,28 +66,26 @@ with tf.Graph().as_default():  # for define a new graph to put in every element
     test_mean_acc_record = []
 
     for epoch in range(para.max_epoch):
-        print(f'====================epoch {epoch}====================')
+        log_string(f'====================epoch {epoch}====================')
         if epoch % 20 == 0:
             learningRate = learningRate / 2  # 1.7
         learningRate = np.max([learningRate, 10e-6])
-        print(f'learningRate:\t{learningRate}')
+        log_string(f'learningRate:\t{learningRate}')
 
         inputtrainall = np.dstack((inputTrain, trainsf))
 
         train_average_loss, train_average_acc, loss_reg_average = trainOneEpoch(inputtrainall, scaledLaplacianTrain,
                                                                                 trainLabel, para, sess, trainOperation,
                                                                                 weight_dict, learningRate)
+        log_string('Train result:')
+        log_string(f'mean loss: {loss_reg_average}')
+        log_string(f'accuracy: {train_average_acc}')
 
         save = saver.save(sess, save_model_path)
-        print(f'====================train result====================')
-        print(f'average loss:\t{train_average_loss}\n'
-              f'l2 loss:\t{loss_reg_average}\n'
-              f'accuracy:\t{train_average_acc}\n')
-        inputtestall = np.dstack((inputTest, testsf))
 
+        inputtestall = np.dstack((inputTest, testsf))  # add the safety factor
         test_average_loss, test_average_acc, test_predict = evaluateOneEpoch(inputtestall, scaledLaplacianTest,
                                                                              testLabel, para, sess, trainOperation)
-
         # calculate mean class accuracy
         test_predict = np.asarray(test_predict)
         test_predict = test_predict.flatten()
@@ -78,25 +93,13 @@ with tf.Graph().as_default():  # for define a new graph to put in every element
         normalized_confusion = confusion_mat.astype('float') / confusion_mat.sum(axis=1)
         class_acc = np.diag(normalized_confusion)
         mean_class_acc = np.mean(class_acc)
-        print(f'====================test result====================')
-        print(f'average loss: \t{test_average_loss}\n'
-              f'accuracy: \t{test_average_acc}\n'
-              f'average class accuracy: \t{mean_class_acc}')
-        print(confusion_mat)
-        test_confusionM.append(confusion_mat)
-        test_acc_record.append(test_average_acc)
-        test_mean_acc_record.append(mean_class_acc)
-
-    # save log
-    log_Dir = para.logDir
-    fileName = para.expName
-    with open(log_Dir + '/' + fileName + '_confusion_mat', 'wb') as handle:
-        pickle.dump(test_confusionM, handle)
-    with open(log_Dir + '/' + fileName + '_overall_acc_record', 'wb') as handle:
-        pickle.dump(test_acc_record, handle)
-    with open(log_Dir + '/' + fileName + '_mean_class_acc_record', 'wb') as handle:
-        pickle.dump(test_mean_acc_record, handle)
+        log_string('Test result:')
+        log_string(f'average loss: {test_average_loss}')
+        log_string(f'accuracy: {test_average_acc}')
+        log_string(f'mean class accuracy: {mean_class_acc}')
+        log_string(normalized_confusion)
 
 end_time = time.time()
 run_time = (end_time - start_time) / 3600
 print(f'running time:\t{run_time} hrs')
+LOG_FOUT.close()

@@ -34,20 +34,20 @@ def model_architecture(para):
     gcn_2 = gcnLayer(gcn_1_output, scaledLaplacian, pointNumber=para.pointNumber, inputFeatureN=para.gcn_1_filter_n,
                      outputFeatureN=para.gcn_2_filter_n,
                      chebyshev_order=para.chebyshev_2_Order)
-    gcn_2_output = tf.nn.dropout(gcn_2, rate=1 - (keep_prob_1))
+    gcn_2_output = tf.nn.dropout(gcn_2, rate=1 - keep_prob_1)
     gcn_2_pooling = globalPooling(gcn_2_output, featureNumber=para.gcn_2_filter_n)
     print("The output of the second gcn layer is {}".format(gcn_2_pooling))
 
     # concatenate global features
     globalFeatures = tf.concat([gcn_1_pooling, gcn_2_pooling], axis=1)
-    globalFeatures = tf.nn.dropout(globalFeatures, rate=1 - (keep_prob_2))
+    globalFeatures = tf.nn.dropout(globalFeatures, rate=1 - keep_prob_2)
     print("The global feature is {}".format(globalFeatures))
     globalFeatureN = (para.gcn_1_filter_n + para.gcn_2_filter_n) * 2
 
     # fully connected layer 1
     fc_layer_1 = fullyConnected(globalFeatures, inputFeatureN=globalFeatureN, outputFeatureN=para.fc_1_n)
     fc_layer_1 = tf.nn.relu(fc_layer_1)
-    fc_layer_1 = tf.nn.dropout(fc_layer_1, rate=1 - (keep_prob_2))
+    fc_layer_1 = tf.nn.dropout(fc_layer_1, rate=1 - keep_prob_2)
     print("The output of the first fc layer is {}".format(fc_layer_1))
 
     # fully connected layer 2

@@ -9,7 +9,7 @@ class Parameters:
         self.graphDir = os.path.join(os.getcwd(), 'graph')
         if not os.path.isdir(self.logDir):
             os.mkdir(self.logDir)
-        if not os.path.isdir(self.logDir):
+        if not os.path.isdir(self.modelDir):
             os.mkdir(self.modelDir)
         if not os.path.isdir(self.graphDir):
             os.mkdir(self.graphDir)
@@ -35,5 +35,6 @@ class Parameters:
         self.learningRate = 1e-3
         self.weighting_scheme = 'weighted'
         self.weight_scaler = 4  # 50
-        self.expName = f'exp103_point{self.pointNumber}_nn{self.neighborNumber}_cheby_{self.chebyshev_1_Order}' \
-                       f'_{self.chebyshev_2_Order}_dim{self.dim}'  # save model path
+        self.expCount = '001'
+        self.expName = f'exp{self.expCount}_point{self.pointNumber}_nn{self.neighborNumber}_cheby_{self.chebyshev_1_Order}' \
+                       f'_{self.chebyshev_2_Order}_out{self.outputClassN}'  # save model path
