@@ -1,4 +1,5 @@
 import os
+import shutil
 
 
 class Parameters:
@@ -12,6 +13,10 @@ class Parameters:
 
         if not os.path.isdir(self.logDir):
             os.mkdir(self.logDir)
+        else:
+            shutil.move(os.path.join(self.logDir, 'train'), os.path.join(self.logDir, 'trainold'))
+            shutil.move(os.path.join(self.logDir, 'test'), os.path.join(self.logDir, 'testold'))
+
         if not os.path.isdir(self.logmodelDir):
             os.mkdir(self.logmodelDir)
         self.TRAIN_FILES = os.path.join(self.dataDir, 'traindataset_dim4_480.hdf5')
