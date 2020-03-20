@@ -6,7 +6,6 @@ class Parameters:
     def __init__(self):
         self.gpu = '-1'
         self.model = 'pointnet_cls'
-        self.log_dir = 'log'
         self.logmodelDir = os.path.join(os.getcwd(), 'logmodel')
         self.logDir = os.path.join(os.getcwd(), 'log')
         self.dataDir = os.path.join(os.getcwd(), 'datasets')
@@ -16,8 +15,8 @@ class Parameters:
             os.mkdir(os.path.join(self.logDir, 'train'))
             os.mkdir(os.path.join(self.logDir, 'test'))
         else:
-            shutil.move(os.path.join(self.logDir, 'train'), os.path.join(self.logDir, 'trainold'))
-            shutil.move(os.path.join(self.logDir, 'test'), os.path.join(self.logDir, 'testold'))
+            shutil.move(os.path.join(self.logDir, 'train/.'), os.path.join(self.logDir, 'trainold'))
+            shutil.move(os.path.join(self.logDir, 'test/.'), os.path.join(self.logDir, 'testold'))
 
         if not os.path.isdir(self.logmodelDir):
             os.mkdir(self.logmodelDir)

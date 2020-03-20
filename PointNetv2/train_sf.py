@@ -33,7 +33,7 @@ DECAY_STEP = para.decay_step
 DECAY_RATE = para.decay_rate
 
 MODEL = importlib.import_module(para.model)  # import network module
-LOG_DIR = para.log_dir
+LOG_DIR = para.logDir
 LOG_MODEL = para.logmodelDir
 # log file
 LOG_FOUT = open(os.path.join(LOG_DIR, f'{para.expName}.txt'), 'w')
