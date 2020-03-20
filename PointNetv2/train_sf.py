@@ -1,18 +1,25 @@
-import provider
-import argparse
-import numpy as np
-import tensorflow as tf
-import socket
 import importlib
 import os
+import socket
 import sys
+
+import numpy as np
+import tensorflow as tf
 from sklearn.metrics import confusion_matrix
+
+import provider
+import time
 from Parameters import Parameters
-import collections
 
 para = Parameters()
 
-os.environ["CUDA_VISIBLE_DEVICES"] = para.gpu
+if para.gpu:
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
+else:
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
 
 BATCH_SIZE = para.batchSize
 testBatch = para.testBatchSize
@@ -286,5 +293,10 @@ def eval_one_epoch(sess, ops, test_writer):
 
 
 if __name__ == "__main__":
+    start_time = time.time()
     train()
+    end_time = time.time()
+    run_time = (end_time - start_time) / 3600
+    log_string(f'running time:\t{run_time} hrs')
+
     LOG_FOUT.close()
