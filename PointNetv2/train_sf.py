@@ -125,7 +125,8 @@ def train():
         merged = tf.compat.v1.summary.merge_all()
         train_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, 'train'),
                                                        sess.graph)
-
+        test_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, 'test'),
+                                                      sess.graph)
         # Init variables
         init = tf.compat.v1.global_variables_initializer()
         # To fix the bug introduced in TF 0.12.1 as in
@@ -149,7 +150,7 @@ def train():
             sys.stdout.flush()
 
             train_one_epoch(sess, ops, train_writer)
-            eval_one_epoch(sess, ops)
+            eval_one_epoch(sess, ops, test_writer)
 
             # Save the variables to disk.
             if epoch % 10 == 0:
@@ -235,7 +236,7 @@ def train_one_epoch(sess, ops, train_writer):
     log_string(confusion_matrix(current_label[:len(total_pred)], total_pred))
 
 
-def eval_one_epoch(sess, ops):
+def eval_one_epoch(sess, ops, test_writer):
     """ ops: dict mapping from string to tf ops """
     is_training = False
     total_correct = 0
@@ -264,6 +265,7 @@ def eval_one_epoch(sess, ops):
                      ops['weights']: batchWeight}
         summary, step, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
                                                       ops['loss'], ops['pred']], feed_dict=feed_dict)
+        test_writer.add_summary(summary, step)
         pred_val = np.argmax(pred_val, 1)
         correct = np.sum(pred_val == current_label[start_idx:end_idx])
         total_correct += correct
