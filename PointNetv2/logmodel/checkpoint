@@ -1,2 +1,0 @@
-model_checkpoint_path: "/tf/pointnet/Automatic-Validation-of-Simulation-Results/PointNetv2/logmodel/exp103_point1024_batch32_dim4_weighted.ckpt"
-all_model_checkpoint_paths: "/tf/pointnet/Automatic-Validation-of-Simulation-Results/PointNetv2/logmodel/exp103_point1024_batch32_dim4_weighted.ckpt"

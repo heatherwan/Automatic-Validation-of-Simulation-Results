@@ -124,7 +124,7 @@ def train():
         # merged = tf.merge_all_summaries()
         merged = tf.compat.v1.summary.merge_all()
         train_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, 'train'),
-                                             sess.graph)
+                                                       sess.graph)
 
         # Init variables
         init = tf.compat.v1.global_variables_initializer()

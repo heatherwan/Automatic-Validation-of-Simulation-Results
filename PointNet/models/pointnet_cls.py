@@ -99,6 +99,7 @@ def get_model_sf(point_cloud, point_cloud_sf, is_training, bn_decay=None):
     end_points['transform'] = transform
     net_transformed = tf.matmul(tf.squeeze(net, axis=[2]), transform)
     point_feat = tf.expand_dims(net_transformed, [2])
+    # after first transformNet add the fourth dimension
     point_cloud_sf = tf.expand_dims(point_cloud_sf, -1)
     point_cloud_sf = tf.expand_dims(point_cloud_sf, [2])
     # print(point_cloud.shape)
