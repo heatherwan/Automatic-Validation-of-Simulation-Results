@@ -15,8 +15,10 @@ class Parameters:
             os.mkdir(os.path.join(self.logDir, 'train'))
             os.mkdir(os.path.join(self.logDir, 'test'))
         else:
-            shutil.move(os.path.join(self.logDir, 'train/.'), os.path.join(self.logDir, 'trainold'))
-            shutil.move(os.path.join(self.logDir, 'test/.'), os.path.join(self.logDir, 'testold'))
+            for file in os.listdir(os.path.join(self.logDir, 'train')):
+                shutil.move(os.path.join(self.logDir, 'train', file), os.path.join(self.logDir, 'trainold', file))
+            for file in os.listdir(os.path.join(self.logDir, 'test')):
+                shutil.move(os.path.join(self.logDir, 'test', file), os.path.join(self.logDir, 'testold', file))
 
         if not os.path.isdir(self.logmodelDir):
             os.mkdir(self.logmodelDir)
