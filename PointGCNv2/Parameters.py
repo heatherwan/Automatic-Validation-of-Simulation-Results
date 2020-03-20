@@ -3,6 +3,8 @@ import os
 
 class Parameters:
     def __init__(self):
+        self.gpu = False
+
         self.modelDir = os.path.join(os.getcwd(), 'model')
         self.logDir = os.path.join(os.getcwd(), 'log')
         self.dataDir = os.path.join(os.getcwd(), 'data')

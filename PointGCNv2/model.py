@@ -12,7 +12,7 @@ def model_architecture(para):
     inputPC = tf.compat.v1.placeholder(tf.float32, [None, para.pointNumber, para.dim])
     inputGraph = tf.compat.v1.placeholder(tf.float32, [None, para.pointNumber * para.pointNumber])
     outputLabel = tf.compat.v1.placeholder(tf.float32, [None, para.outputClassN])
-
+    batch = tf.Variable(0)
     scaledLaplacian = tf.reshape(inputGraph, [-1, para.pointNumber, para.pointNumber])
 
     weights = tf.compat.v1.placeholder(tf.float32, [None])
@@ -69,7 +69,7 @@ def model_architecture(para):
     acc = tf.cast(correct_prediction, tf.float32)
     acc = tf.reduce_mean(input_tensor=acc)
 
-    train = tf.compat.v1.train.AdamOptimizer(learning_rate=lr).minimize(loss_total)
+    train = tf.compat.v1.train.AdamOptimizer(learning_rate=lr).minimize(loss_total, global_step=batch)
 
     total_parameters = 0
     for variable in tf.compat.v1.trainable_variables():
@@ -81,17 +81,20 @@ def model_architecture(para):
         total_parameters += variable_parametes
     print('Total parameters number is {}'.format(total_parameters))
 
+    merged = tf.compat.v1.summary.merge_all()
+
     trainOperation = {'train': train, 'loss_total': loss_total, 'loss': loss, 'acc': acc, 'loss_reg': loss_reg,
-                     'inputPC': inputPC,
-                     'inputGraph': inputGraph, 'outputLabel': outputLabel, 'weights': weights,
-                     'predictLabels': predictLabels,
-                     'keep_prob_1': keep_prob_1, 'keep_prob_2': keep_prob_2, 'lr': lr}
+                      'inputPC': inputPC,
+                      'inputGraph': inputGraph, 'outputLabel': outputLabel, 'weights': weights,
+                      'predictLabels': predictLabels,
+                      'keep_prob_1': keep_prob_1, 'keep_prob_2': keep_prob_2, 'lr': lr,
+                      'merged': merged, 'step': batch}
 
     return trainOperation
 
 
-def trainOneEpoch(inputCoor, inputGraph, inputLabel, para, sess, trainOperaion, weight_dict, learningRate):
-
+def trainOneEpoch(inputCoor, inputGraph, inputLabel, para, sess, trainOperaion, weight_dict, learningRate,
+                  train_writer):
     graphTrain_1 = inputGraph.tocsr()
     labelBinarize = label_binarize(inputLabel, classes=[j for j in range(para.outputClassN)])
     # shuffle arrays in a consistent way
@@ -116,10 +119,11 @@ def trainOneEpoch(inputCoor, inputGraph, inputLabel, para, sess, trainOperaion, 
                      trainOperaion['weights']: batchWeight,
                      trainOperaion['keep_prob_1']: para.keep_prob_1, trainOperaion['keep_prob_2']: para.keep_prob_2}
 
-        opt, loss_train, acc_train, loss_reg_train = sess.run(
-            [trainOperaion['train'], trainOperaion['loss_total'], trainOperaion['acc'], trainOperaion['loss_reg']],
+        summary, step, opt, loss_train, acc_train, loss_reg_train = sess.run(
+            [trainOperaion['merged'], trainOperaion['step'], trainOperaion['train'],
+             trainOperaion['loss_total'], trainOperaion['acc'], trainOperaion['loss_reg']],
             feed_dict=feed_dict)
-
+        train_writer.add_summary(summary, step)
         batch_loss.append(loss_train)
         batch_acc.append(acc_train)
         batch_reg.append(loss_reg_train)
@@ -131,8 +135,7 @@ def trainOneEpoch(inputCoor, inputGraph, inputLabel, para, sess, trainOperaion, 
     return train_average_loss, train_average_acc, loss_reg_average
 
 
-def evaluateOneEpoch(inputCoor, inputGraph, inputLabel, para, sess, trainOperaion):
-
+def evaluateOneEpoch(inputCoor, inputGraph, inputLabel, para, sess, trainOperaion, test_writer):
     xTest, graphTest, labelTest = inputCoor, inputGraph, inputLabel
     graphTest = graphTest.tocsr()
     labelBinarize = label_binarize(labelTest, classes=[i for i in range(para.outputClassN)])
@@ -153,8 +156,12 @@ def evaluateOneEpoch(inputCoor, inputGraph, inputLabel, para, sess, trainOperaio
                      trainOperaion['outputLabel']: batchLabel, trainOperaion['weights']: batchWeight,
                      trainOperaion['keep_prob_1']: 1.0, trainOperaion['keep_prob_2']: 1.0}
 
-        predict, loss_test, acc_test = sess.run(
-            [trainOperaion['predictLabels'], trainOperaion['loss'], trainOperaion['acc']], feed_dict=feed_dict)
+        summary, step, predict, loss_test, acc_test = sess.run(
+            [trainOperaion['merged'], trainOperaion['step'], trainOperaion['predictLabels'],
+             trainOperaion['loss'], trainOperaion['acc']],
+            feed_dict=feed_dict)
+
+        test_writer.add_summary(summary, step)
         test_loss.append(loss_test)
         test_acc.append(acc_test)
         test_predict.append(predict)
