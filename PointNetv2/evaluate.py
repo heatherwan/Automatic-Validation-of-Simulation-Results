@@ -24,7 +24,8 @@ NUM_POINT = para.pointNumber
 
 
 MODEL = importlib.import_module(para.model)  # import network module
-LOG_MODEL = os.path.join(para.logmodelDir, f'{para.expName}.ckpt')
+LOG_MODEL = para.logmodelDir
+
 # log file
 LOG_FOUT = open(os.path.join(para.evallog, f'{para.expName}_testresult.txt'), 'w')
 LOG_FOUT.write(str(para.__dict__) + '\n')
@@ -64,7 +65,7 @@ def evaluate(num_votes):
     sess = tf.compat.v1.Session(config=config)
 
     # Restore variables from disk.
-    saver.restore(sess, LOG_MODEL)
+    saver.restore(sess, os.path.join(LOG_MODEL, f"{para.expName}.ckpt"))
     log_string("Model restored.")
 
     ops = {'pointclouds_pl': pointclouds_pl,
