@@ -4,7 +4,7 @@ import sys
 import socket
 
 import numpy as np
-import scipy.misc
+import imageio
 import tensorflow as tf
 
 import provider
@@ -110,7 +110,7 @@ def weights_calculation(batch_labels, weight_dict):
 
 # since the paras in training is with batch size 32, the evaluation should have the same shape.
 # So it is better to have the testing as the multiply of batch size 32
-def eval_one_epoch(sess, ops, num_votes=1, topk=1):
+def eval_one_epoch(sess, ops, num_votes=1):
     error_cnt = 0
     is_training = False
     total_correct = 0
@@ -119,11 +119,9 @@ def eval_one_epoch(sess, ops, num_votes=1, topk=1):
     total_seen_class = [0 for _ in range(NUM_CLASSES)]
     total_correct_class = [0 for _ in range(NUM_CLASSES)]
     fout = open(os.path.join(EVAL, 'pred_label.txt'), 'w')
+    fout.write('predict, real\n')
 
     # load data
-    # current_data, current_label = provider.loadDataFile_sf(para.TEST_FILES)
-    # current_data = current_data[:, 0:NUM_POINT, :]
-    # current_label = np.squeeze(current_label)
     current_data, current_sf, current_label = provider.loadDataFile_sf(para.TEST_FILES)
     current_data = current_data[:, 0:NUM_POINT, :]
     current_sf = current_sf[:, 0:NUM_POINT]
@@ -174,10 +172,10 @@ def eval_one_epoch(sess, ops, num_votes=1, topk=1):
             fout.write('%d, %d\n' % (pred_val[i - start_idx], l))
 
             if pred_val[i - start_idx] != l:  # ERROR CASE, DUMP!
-                img_filename = '%d_label_%s_pred_%s.jpg' % (error_cnt, l, [pred_val[i - start_idx]])
+                img_filename = 'no_%d_label_%s_pred_%s.jpg' % (i, l, pred_val[i - start_idx])
                 img_filename = os.path.join(para.evallog, img_filename)
-                output_img = pc_util.point_cloud_three_views(np.squeeze(current_data[i, :, :-1]))
-                scipy.misc.imsave(img_filename, output_img)
+                output_img = pc_util.point_cloud_three_views(np.squeeze(current_data[i, :, :]))
+                imageio.imwrite(img_filename, output_img)
                 error_cnt += 1
 
     log_string('eval mean loss: %f' % (loss_sum / float(total_seen)))
