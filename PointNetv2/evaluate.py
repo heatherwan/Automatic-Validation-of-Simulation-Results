@@ -10,7 +10,7 @@ import provider
 from Parameters import Parameters
 from utils import pc_util
 
-para = Parameters()
+para = Parameters(evaluation=True)
 if para.gpu:
     gpus = tf.config.experimental.list_physical_devices('GPU')
     for gpu in gpus:

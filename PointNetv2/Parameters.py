@@ -9,7 +9,7 @@ sys.path.append(os.path.join(BASE_DIR, 'models'))
 
 
 class Parameters:
-    def __init__(self):
+    def __init__(self, evaluation=False):
         # ==============Network setting===========================
         self.gpu = False
         self.model = 'pointnet_cls'
@@ -18,36 +18,36 @@ class Parameters:
         self.dim = 4
         self.batchSize = 32
         self.testBatchSize = 32
-        self.max_epoch = 200
+        self.max_epoch = 5
         self.learningRate = 2e-3
         self.momentum = 0.9
         self.optimizer = 'adam'  # or momentum
         self.decay_step = 20000  # 1 epoch 1000 step
         self.decay_rate = 0.7
         self.weighting_scheme = 'weighted'
-        self.weight_scaler = 4  # 50
+        self.weight_scaler = 0  # 50
 
         # ==============Files setting===========================
         self.logmodelDir = os.path.join(os.getcwd(), 'logmodel')
         if not os.path.isdir(self.logmodelDir):
             os.mkdir(self.logmodelDir)
-
-        self.logDir = os.path.join(os.getcwd(), 'log')
-        if not os.path.isdir(self.logDir):
-            os.mkdir(self.logDir)
-            os.mkdir(os.path.join(self.logDir, 'train'))
-            os.mkdir(os.path.join(self.logDir, 'test'))
-            os.mkdir(os.path.join(self.logDir, 'trainold'))
-            os.mkdir(os.path.join(self.logDir, 'testold'))
+        if not evaluation:
+            self.logDir = os.path.join(os.getcwd(), 'log')
+            if not os.path.isdir(self.logDir):
+                os.mkdir(self.logDir)
+                os.mkdir(os.path.join(self.logDir, 'train'))
+                os.mkdir(os.path.join(self.logDir, 'test'))
+                os.mkdir(os.path.join(self.logDir, 'trainold'))
+                os.mkdir(os.path.join(self.logDir, 'testold'))
+            else:
+                for file in os.listdir(os.path.join(self.logDir, 'train')):
+                    shutil.move(os.path.join(self.logDir, 'train', file), os.path.join(self.logDir, 'trainold', file))
+                for file in os.listdir(os.path.join(self.logDir, 'test')):
+                    shutil.move(os.path.join(self.logDir, 'test', file), os.path.join(self.logDir, 'testold', file))
         else:
-            for file in os.listdir(os.path.join(self.logDir, 'train')):
-                shutil.move(os.path.join(self.logDir, 'train', file), os.path.join(self.logDir, 'trainold', file))
-            for file in os.listdir(os.path.join(self.logDir, 'test')):
-                shutil.move(os.path.join(self.logDir, 'test', file), os.path.join(self.logDir, 'testold', file))
-
-        self.evallog = os.path.join(os.getcwd(), 'evallog')
-        if not os.path.isdir(self.evallog):
-            os.mkdir(self.evallog)
+            self.evallog = os.path.join(os.getcwd(), 'evallog')
+            if not os.path.isdir(self.evallog):
+                os.mkdir(self.evallog)
 
         self.dataDir = os.path.join(os.getcwd(), 'datasets')
         self.TRAIN_FILES = os.path.join(self.dataDir, 'traindataset_dim4_480.hdf5')
