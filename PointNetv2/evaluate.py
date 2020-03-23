@@ -47,12 +47,12 @@ def log_string(out_str):
 def evaluate(num_votes):
 
     with tf.device(''):
-        pointclouds_pl, labels_pl = MODEL.placeholder_inputs(BATCH_SIZE, NUM_POINT)
+        pointclouds_pl, pointclouds_sf_pl, labels_pl = MODEL.placeholder_inputs_sf(BATCH_SIZE, NUM_POINT)
         is_training_pl = tf.compat.v1.placeholder(tf.bool, shape=())
         weights = tf.compat.v1.placeholder(tf.float32, [None])
 
         # simple model
-        pred, end_points = MODEL.get_model(pointclouds_pl, is_training_pl)
+        pred, end_points = MODEL.get_model_sf(pointclouds_pl, pointclouds_sf_pl, is_training_pl)
         if para.weighting_scheme == 'weighted':
             loss = MODEL.get_loss_weight(pred, labels_pl, end_points, weights)
         else:
@@ -74,6 +74,7 @@ def evaluate(num_votes):
     log_string("Model restored.")
 
     ops = {'pointclouds_pl': pointclouds_pl,
+           'pointclouds_sf_pl': pointclouds_sf_pl,
            'labels_pl': labels_pl,
            'is_training_pl': is_training_pl,
            'pred': pred,
@@ -120,8 +121,12 @@ def eval_one_epoch(sess, ops, num_votes=1, topk=1):
     fout = open(os.path.join(EVAL, 'pred_label.txt'), 'w')
 
     # load data
-    current_data, current_label = provider.loadDataFile_sf(para.TEST_FILES)
+    # current_data, current_label = provider.loadDataFile_sf(para.TEST_FILES)
+    # current_data = current_data[:, 0:NUM_POINT, :]
+    # current_label = np.squeeze(current_label)
+    current_data, current_sf, current_label = provider.loadDataFile_sf(para.TEST_FILES)
     current_data = current_data[:, 0:NUM_POINT, :]
+    current_sf = current_sf[:, 0:NUM_POINT]
     current_label = np.squeeze(current_label)
     print(current_data.shape)
     weight_dict = weight_dict_fc(current_label, para)
@@ -143,6 +148,7 @@ def eval_one_epoch(sess, ops, num_votes=1, topk=1):
             rotated_data = provider.rotate_point_cloud_by_angle(current_data[start_idx:end_idx, :, :],
                                                                 vote_idx / float(num_votes) * np.pi * 2)
             feed_dict = {ops['pointclouds_pl']: rotated_data,
+                         ops['pointclouds_sf_pl']: current_sf[start_idx:end_idx, :],
                          ops['labels_pl']: current_label[start_idx:end_idx],
                          ops['is_training_pl']: is_training,
                          ops['weights']: batchWeight}
