@@ -9,7 +9,7 @@ import sys
 
 # Point cloud IO
 import numpy as np
-from plyfile import PlyData, PlyElement
+#from plyfile import PlyData, PlyElement
 
 # Draw point cloud
 from utils.eulerangles import euler2mat
