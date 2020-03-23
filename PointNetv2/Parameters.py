@@ -11,7 +11,7 @@ sys.path.append(os.path.join(BASE_DIR, 'models'))
 class Parameters:
     def __init__(self, evaluation=False):
         # ==============Network setting===========================
-        self.gpu = False
+        self.gpu = True
         self.model = 'pointnet_cls'
         self.outputClassN = 4
         self.pointNumber = 1024
