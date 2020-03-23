@@ -119,7 +119,7 @@ def eval_one_epoch(sess, ops, num_votes=1):
     total_seen_class = [0 for _ in range(NUM_CLASSES)]
     total_correct_class = [0 for _ in range(NUM_CLASSES)]
     fout = open(os.path.join(EVAL, 'pred_label.txt'), 'w')
-    fout.write('predict, real\n')
+    fout.write('no, predict, real\n')
 
     # load data
     current_data, current_sf, current_label = provider.loadDataFile_sf(para.TEST_FILES)
@@ -169,7 +169,7 @@ def eval_one_epoch(sess, ops, num_votes=1):
             l = current_label[i]
             total_seen_class[l] += 1
             total_correct_class[l] += (pred_val[i - start_idx] == l)
-            fout.write('%d, %d\n' % (pred_val[i - start_idx], l))
+            fout.write('no_%d %d, %d\n' % (i, pred_val[i - start_idx], l))
 
             if pred_val[i - start_idx] != l:  # ERROR CASE, DUMP!
                 img_filename = 'no_%d_label_%s_pred_%s.jpg' % (i, l, pred_val[i - start_idx])
