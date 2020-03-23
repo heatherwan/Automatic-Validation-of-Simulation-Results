@@ -10,7 +10,10 @@ from sklearn.metrics import confusion_matrix
 import provider
 import time
 from Parameters import Parameters
-
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(BASE_DIR)
+sys.path.append(os.path.join(BASE_DIR, 'models'))
+sys.path.append(os.path.join(BASE_DIR, 'utils'))
 para = Parameters()
 
 if para.gpu:
@@ -161,7 +164,7 @@ def train():
 
             # Save the variables to disk.
             if epoch % 10 == 0:
-                save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName}.ckpt"))
+                save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}.ckpt"))
                 log_string("Model saved in file: %s" % save_path)
 
 

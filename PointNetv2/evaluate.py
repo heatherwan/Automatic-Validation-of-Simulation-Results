@@ -1,5 +1,6 @@
 import importlib
 import os
+import sys
 import socket
 
 import numpy as np
@@ -18,6 +19,9 @@ if para.gpu:
 else:
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(BASE_DIR)
+
 BATCH_SIZE = para.batchSize
 NUM_CLASSES = para.outputClassN
 NUM_POINT = para.pointNumber
@@ -25,9 +29,10 @@ NUM_POINT = para.pointNumber
 
 MODEL = importlib.import_module(para.model)  # import network module
 LOG_MODEL = para.logmodelDir
+EVAL = para.evallog
 
 # log file
-LOG_FOUT = open(os.path.join(para.evallog, f'{para.expName}_testresult.txt'), 'w')
+LOG_FOUT = open(os.path.join(EVAL, f'{para.expName}_testresult.txt'), 'w')
 LOG_FOUT.write(str(para.__dict__) + '\n')
 
 HOSTNAME = socket.gethostname()
@@ -65,7 +70,7 @@ def evaluate(num_votes):
     sess = tf.compat.v1.Session(config=config)
 
     # Restore variables from disk.
-    saver.restore(sess, os.path.join(LOG_MODEL, f"{para.expName}.ckpt"))
+    saver.restore(sess, f"{LOG_MODEL}/{para.expName[:6]}.ckpt")
     log_string("Model restored.")
 
     ops = {'pointclouds_pl': pointclouds_pl,
@@ -112,7 +117,7 @@ def eval_one_epoch(sess, ops, num_votes=1, topk=1):
     loss_sum = 0
     total_seen_class = [0 for _ in range(NUM_CLASSES)]
     total_correct_class = [0 for _ in range(NUM_CLASSES)]
-    fout = open(os.path.join(para.evallog, 'pred_label.txt'), 'w')
+    fout = open(os.path.join(EVAL, 'pred_label.txt'), 'w')
 
     # load data
     current_data, current_label = provider.loadDataFile(para.TEST_FILES)
