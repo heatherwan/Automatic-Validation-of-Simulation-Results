@@ -120,7 +120,7 @@ def eval_one_epoch(sess, ops, num_votes=1, topk=1):
     fout = open(os.path.join(EVAL, 'pred_label.txt'), 'w')
 
     # load data
-    current_data, current_label = provider.loadDataFile(para.TEST_FILES)
+    current_data, current_label = provider.loadDataFile_sf(para.TEST_FILES)
     current_data = current_data[:, 0:NUM_POINT, :]
     current_label = np.squeeze(current_label)
     print(current_data.shape)
