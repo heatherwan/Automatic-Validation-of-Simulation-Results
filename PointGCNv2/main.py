@@ -98,7 +98,7 @@ with tf.Graph().as_default():  # for define a new graph to put in every element
         confusion_mat = confusion_matrix(testLabel[0:len(test_predict)], test_predict)
         print(confusion_mat)
         print(confusion_mat.sum(axis=1))
-        normalized_confusion = confusion_mat.astype('float') / confusion_mat.sum(axis=1)
+        normalized_confusion = confusion_mat.astype('float') / confusion_mat.sum(axis=1, keepdims=True)
         print(normalized_confusion)
         class_acc = np.diag(normalized_confusion)
         mean_class_acc = np.mean(class_acc)
