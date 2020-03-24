@@ -1,0 +1,9 @@
+{'gpu': True, 'model': 'pointnet_cls', 'outputClassN': 4, 'pointNumber': 512, 'dim': 4, 'batchSize': 32, 'testBatchSize': 32, 'max_epoch': 200, 'learningRate': 0.002, 'momentum': 0.9, 'optimizer': 'adam', 'decay_step': 20000, 'decay_rate': 0.7, 'weighting_scheme': 'weighted', 'weight_scaler': 4, 'logmodelDir': 'logmodel', 'evallog': 'evallog', 'dataDir': '/tf/pointnet/Automatic-Validation-of-Simulation-Results/PointNetv2/datasets', 'TRAIN_FILES': '/tf/pointnet/Automatic-Validation-of-Simulation-Results/PointNetv2/datasets/traindataset_dim4_480_512.hdf5', 'TEST_FILES': '/tf/pointnet/Automatic-Validation-of-Simulation-Results/PointNetv2/datasets/testdataset_dim4_160_512.hdf5', 'expName': 'exp200_point512_batch32_out4_weighted4', 'classes': {1: 'EM1', 2: 'EM3', 3: 'EM4', 0: 'Good'}}
+Model restored.
+eval mean loss: 3.211838
+eval accuracy: 0.631250
+eval avg class acc: 0.485720
+       EM1:	0.167
+       EM3:	0.148
+       EM4:	0.784
+      Good:	0.844
