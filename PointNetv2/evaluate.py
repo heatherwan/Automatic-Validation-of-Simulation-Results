@@ -26,7 +26,6 @@ BATCH_SIZE = para.batchSize
 NUM_CLASSES = para.outputClassN
 NUM_POINT = para.pointNumber
 
-
 MODEL = importlib.import_module(para.model)  # import network module
 LOG_MODEL = para.logmodelDir
 EVAL = para.evallog
@@ -45,7 +44,6 @@ def log_string(out_str):
 
 
 def evaluate(num_votes):
-
     with tf.device(''):
         pointclouds_pl, pointclouds_sf_pl, labels_pl = MODEL.placeholder_inputs_sf(BATCH_SIZE, NUM_POINT)
         is_training_pl = tf.compat.v1.placeholder(tf.bool, shape=())
@@ -171,12 +169,12 @@ def eval_one_epoch(sess, ops, num_votes=1):
             total_correct_class[l] += (pred_val[i - start_idx] == l)
             fout.write('%d %d %d\n' % (i, pred_val[i - start_idx], l))
 
-            if pred_val[i - start_idx] != l:  # ERROR CASE, DUMP!
-                img_filename = 'no_%d_label_%s_pred_%s.jpg' % (i, l, pred_val[i - start_idx])
-                img_filename = os.path.join(para.evallog, img_filename)
-                output_img = pc_util.point_cloud_three_views(np.squeeze(current_data[i, :, :]))
-                imageio.imwrite(img_filename, output_img)
-                error_cnt += 1
+            # if pred_val[i - start_idx] != l:  # ERROR CASE, DUMP!
+            #     img_filename = 'no_%d_label_%s_pred_%s.jpg' % (i, l, pred_val[i - start_idx])
+            #     img_filename = os.path.join(para.evallog, img_filename)
+            #     output_img = pc_util.point_cloud_three_views(np.squeeze(current_data[i, :, :]))
+            #     imageio.imwrite(img_filename, output_img)
+            #     error_cnt += 1
 
     log_string('eval mean loss: %f' % (loss_sum / float(total_seen)))
     log_string('eval accuracy: %f' % (total_correct / float(total_seen)))
