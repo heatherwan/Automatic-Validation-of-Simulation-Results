@@ -1,6 +1,7 @@
 import os
 import shutil
 import sys
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 
@@ -48,18 +49,18 @@ class Parameters:
             self.evallog = 'evallog'
             if not os.path.isdir(self.evallog):
                 os.mkdir(self.evallog)
-        self.dataDir = os.path.join(BASE_DIR, 'data')
-        self.modelDir = os.path.join(BASE_DIR, 'model')
-        self.logDir = os.path.join(BASE_DIR, 'log')
-        self.graphDir = os.path.join(BASE_DIR, 'graph')
+        self.dataDir = 'data'
+        self.modelDir = 'model'
+        self.logDir = 'log'
+        self.graphDir = 'graph'
         if not os.path.isdir(self.logDir):
             os.mkdir(self.logDir)
         if not os.path.isdir(self.modelDir):
             os.mkdir(self.modelDir)
         if not os.path.isdir(self.graphDir):
             os.mkdir(self.graphDir)
-        self.trainDataset = os.path.join(self.dataDir, 'traindataset_dim4_480.hdf5')
-        self.testDataset = os.path.join(self.dataDir, 'testdataset_dim4_160.hdf5')
+        self.trainDataset = 'traindataset_dim4_480.hdf5'
+        self.testDataset = 'testdataset_dim4_160.hdf5'
         self.expCount = '011'
         self.expName = f'exp{self.expCount}_point{self.pointNumber}_nn{self.neighborNumber}_cheby_{self.chebyshev_1_Order}' \
                        f'_{self.chebyshev_2_Order}_out{self.outputClassN}'  # save model path

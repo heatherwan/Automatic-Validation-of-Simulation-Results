@@ -1,16 +1,20 @@
 import os
+import sys
 import socket
 
 import numpy as np
 import tensorflow as tf
+from sklearn.metrics import confusion_matrix
 
 from Parameters import Parameters
 from model import model_architecture, evaluateOneEpoch
 from read_data import load_data, prepareData
-from utils import weight_dict_fc
-from sklearn.metrics import confusion_matrix
 
-para = Parameters(evaluation=False)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(BASE_DIR)
+
+para = Parameters(evaluation=True)
+
 print(f'This is experiment: {para.expName}')
 if para.gpu:
     gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -34,12 +38,15 @@ HOSTNAME = socket.gethostname()
 
 
 def log_string(out_str):
-    LOG_FOUT.write(out_str + '\n')
+    if isinstance(out_str, np.ndarray):
+        np.savetxt(LOG_FOUT, out_str, fmt='%.2f')
+    else:
+        LOG_FOUT.write(out_str + '\n')
     LOG_FOUT.flush()
     print(out_str)
 
 
-def evaluate(num_votes):
+def evaluate():
     with tf.Graph().as_default():  # for define a new graph to put in every element
         # ===============================Build model=============================
         trainOperation = model_architecture(para)
@@ -53,17 +60,19 @@ def evaluate(num_votes):
         # ===============================Train model ================================
         init = tf.compat.v1.global_variables_initializer()
         sess = tf.compat.v1.Session()
-
+        test_writer = tf.compat.v1.summary.FileWriter(os.path.join(para.logDir, 'test'),
+                                                      sess.graph)
         sess.run(init)
         saver = tf.compat.v1.train.Saver()
-        saver.restore(sess, f"{LOG_MODEL}/{para.expName}.ckpt")
+        saver.restore(sess, f"{LOG_MODEL}/{para.expName[:6]}.ckpt")
         log_string("Model restored.")
 
         inputtestall = np.dstack((inputTest, testsf))  # add the safety factor
         fout = open(os.path.join(EVAL, 'pred_label.txt'), 'w')
         fout.write('no predict real\n')
         test_average_loss, test_average_acc, test_predict = evaluateOneEpoch(inputtestall, scaledLaplacianTest,
-                                                                             testLabel, para, sess, trainOperation)
+                                                                             testLabel, para, sess, trainOperation,
+                                                                             test_writer)
         # calculate mean class accuracy and log result
         test_predict = np.asarray(test_predict)
         test_predict = test_predict.flatten()
@@ -82,8 +91,7 @@ def evaluate(num_votes):
             log_string('%10s:\t%0.3f' % (name, class_acc[i]))
 
 
-
 if __name__ == '__main__':
     with tf.Graph().as_default():
-        evaluate(num_votes=1)
+        evaluate()
     LOG_FOUT.close()
