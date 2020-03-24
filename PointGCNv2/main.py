@@ -13,7 +13,7 @@ from utils import weight_dict_fc
 start_time = time.time()
 
 # ===============================Hyper parameters========================
-para = Parameters()
+para = Parameters(evaluation=False)
 print(f'This is experiment: {para.expName}')
 if para.gpu:
     gpus = tf.config.experimental.list_physical_devices('GPU')
