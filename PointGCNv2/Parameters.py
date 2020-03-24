@@ -3,12 +3,12 @@ import shutil
 import sys
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
-sys.path.append(os.path.join(BASE_DIR, 'models'))
 
 
 class Parameters:
     def __init__(self, evaluation):
         # ==============Network setting===========================
+        self.classes = {1: 'EM1_contact', 2: 'EM3_radius', 3: 'EM4_hole', 0: 'Good'}
         self.gpu = False
         self.samplingType = 'farthest_sampling'
         self.neighborNumber = 4
