@@ -60,11 +60,11 @@ def model_architecture(para):
     loss = tf.nn.softmax_cross_entropy_with_logits(logits=fc_layer_2, labels=tf.stop_gradient(outputLabel))
     loss = tf.multiply(loss, weights)
     loss = tf.reduce_mean(input_tensor=loss)
-    tf.compat.v1.summary.scalar('classify loss', loss)
 
     vars = tf.compat.v1.trainable_variables()
     loss_reg = tf.add_n([tf.nn.l2_loss(v) for v in vars if 'bias' and 'Variable:0' not in v.name]) * 8e-6  # best: 8 #last: 10
     loss_total = loss + loss_reg
+    tf.compat.v1.summary.scalar('classify loss', loss_total)
 
     correct_prediction = tf.equal(predictLabels, tf.argmax(input=outputLabel, axis=1))
     acc = tf.cast(correct_prediction, tf.float32)

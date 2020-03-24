@@ -90,19 +90,23 @@ with tf.Graph().as_default():  # for define a new graph to put in every element
 
         inputtestall = np.dstack((inputTest, testsf))  # add the safety factor
         test_average_loss, test_average_acc, test_predict = evaluateOneEpoch(inputtestall, scaledLaplacianTest,
-                                                                             testLabel, para, sess, trainOperation, test_writer)
+                                                                             testLabel, para, sess, trainOperation,
+                                                                             test_writer)
         # calculate mean class accuracy and log result
         test_predict = np.asarray(test_predict)
         test_predict = test_predict.flatten()
         confusion_mat = confusion_matrix(testLabel[0:len(test_predict)], test_predict)
+        print(confusion_mat)
+        print(confusion_mat.sum(axis=1))
         normalized_confusion = confusion_mat.astype('float') / confusion_mat.sum(axis=1)
+        print(normalized_confusion)
         class_acc = np.diag(normalized_confusion)
         mean_class_acc = np.mean(class_acc)
         log_string('Test result:')
         log_string(f'average loss: {test_average_loss}')
         log_string(f'accuracy: {test_average_acc}')
         log_string(f'mean class accuracy: {mean_class_acc}')
-        log_string(normalized_confusion)
+        log_string(confusion_mat)
 
 end_time = time.time()
 run_time = (end_time - start_time) / 3600

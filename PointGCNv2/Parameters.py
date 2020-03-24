@@ -1,26 +1,18 @@
 import os
+import shutil
+import sys
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(BASE_DIR)
+sys.path.append(os.path.join(BASE_DIR, 'models'))
 
 
 class Parameters:
-    def __init__(self):
+    def __init__(self, evaluation):
+        # ==============Network setting===========================
         self.gpu = False
-
-        self.modelDir = os.path.join(os.getcwd(), 'model')
-        self.logDir = os.path.join(os.getcwd(), 'log')
-        self.dataDir = os.path.join(os.getcwd(), 'data')
-        self.graphDir = os.path.join(os.getcwd(), 'graph')
-        if not os.path.isdir(self.logDir):
-            os.mkdir(self.logDir)
-        if not os.path.isdir(self.modelDir):
-            os.mkdir(self.modelDir)
-        if not os.path.isdir(self.graphDir):
-            os.mkdir(self.graphDir)
-
-        self.trainDataset = 'traindataset_dim4_480_3cat.hdf5'
-        self.testDataset = 'testdataset_dim4_160_3cat.hdf5'
         self.samplingType = 'farthest_sampling'
         self.neighborNumber = 4
-        self.outputClassN = 3
+        self.outputClassN = 4
         self.pointNumber = 1024
         self.dim = 4
         self.gcn_1_filter_n = 1000
@@ -33,10 +25,41 @@ class Parameters:
         self.keep_prob_2 = 0.55
         self.batchSize = 32
         self.testBatchSize = 1
-        self.max_epoch = 100
+        self.max_epoch = 10
         self.learningRate = 1e-3
         self.weighting_scheme = 'weighted'
         self.weight_scaler = 4  # 50
-        self.expCount = '001'
+
+        # ==============Files setting===========================
+        if not evaluation:
+            self.logDir = 'log'
+            if not os.path.isdir(self.logDir):
+                os.mkdir(self.logDir)
+                os.mkdir(os.path.join(self.logDir, 'train'))
+                os.mkdir(os.path.join(self.logDir, 'test'))
+                os.mkdir(os.path.join(self.logDir, 'trainold'))
+                os.mkdir(os.path.join(self.logDir, 'testold'))
+            else:
+                for file in os.listdir(os.path.join(self.logDir, 'train')):
+                    shutil.move(os.path.join(self.logDir, 'train', file), os.path.join(self.logDir, 'trainold', file))
+                for file in os.listdir(os.path.join(self.logDir, 'test')):
+                    shutil.move(os.path.join(self.logDir, 'test', file), os.path.join(self.logDir, 'testold', file))
+        else:
+            self.evallog = 'evallog'
+            if not os.path.isdir(self.evallog):
+                os.mkdir(self.evallog)
+        self.dataDir = os.path.join(BASE_DIR, 'datasets')
+        self.modelDir = os.path.join(BASE_DIR, 'model')
+        self.logDir = os.path.join(BASE_DIR, 'log')
+        self.graphDir = os.path.join(BASE_DIR, 'graph')
+        if not os.path.isdir(self.logDir):
+            os.mkdir(self.logDir)
+        if not os.path.isdir(self.modelDir):
+            os.mkdir(self.modelDir)
+        if not os.path.isdir(self.graphDir):
+            os.mkdir(self.graphDir)
+        self.trainDataset = os.path.join(self.dataDir, 'traindataset_dim4_480.hdf5')
+        self.testDataset = os.path.join(self.dataDir, 'testdataset_dim4_160.hdf5')
+        self.expCount = '011'
         self.expName = f'exp{self.expCount}_point{self.pointNumber}_nn{self.neighborNumber}_cheby_{self.chebyshev_1_Order}' \
                        f'_{self.chebyshev_2_Order}_out{self.outputClassN}'  # save model path
