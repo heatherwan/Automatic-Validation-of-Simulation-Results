@@ -14,7 +14,7 @@ from scipy.spatial import cKDTree
 import pickle
 from Parameters import Parameters
 
-para = Parameters()
+para = Parameters(evaluation=False)
 
 
 def farthestSampling(file_name, NUM_POINT):
