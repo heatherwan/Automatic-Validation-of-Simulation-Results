@@ -28,31 +28,6 @@ class Parameters:
         self.weight_scaler = 4  # 50
 
         # ==============Files setting===========================
-        # self.logmodelDir = os.path.join(os.getcwd(), 'logmodel')
-        # if not os.path.isdir(self.logmodelDir):
-        #     os.mkdir(self.logmodelDir)
-        # if not evaluation:
-        #     self.logDir = os.path.join(os.getcwd(), 'log')
-        #     if not os.path.isdir(self.logDir):
-        #         os.mkdir(self.logDir)
-        #         os.mkdir(os.path.join(self.logDir, 'train'))
-        #         os.mkdir(os.path.join(self.logDir, 'test'))
-        #         os.mkdir(os.path.join(self.logDir, 'trainold'))
-        #         os.mkdir(os.path.join(self.logDir, 'testold'))
-        #     else:
-        #         for file in os.listdir(os.path.join(self.logDir, 'train')):
-        #             shutil.move(os.path.join(self.logDir, 'train', file), os.path.join(self.logDir, 'trainold', file))
-        #         for file in os.listdir(os.path.join(self.logDir, 'test')):
-        #             shutil.move(os.path.join(self.logDir, 'test', file), os.path.join(self.logDir, 'testold', file))
-        # else:
-        #     self.evallog = os.path.join(os.getcwd(), 'evallog')
-        #     if not os.path.isdir(self.evallog):
-        #         os.mkdir(self.evallog)
-        #
-        # self.dataDir = os.path.join(os.getcwd(), 'datasets')
-        # self.TRAIN_FILES = os.path.join(self.dataDir, 'traindataset_dim4_480.hdf5')
-        # self.TEST_FILES = os.path.join(self.dataDir, 'testdataset_dim4_160.hdf5')
-
         self.logmodelDir = 'logmodel'
         if not os.path.isdir(self.logmodelDir):
             os.mkdir(self.logmodelDir)
@@ -81,4 +56,4 @@ class Parameters:
         self.expName = f'exp203_point{self.pointNumber}_batch{self.batchSize}_out{self.outputClassN}' \
                        f'_weighted{self.weight_scaler}'  # save model path
 
-        self.classes = {1: 'EM1', 2: 'EM3', 3: 'EM4', 0: 'Good'}
+        self.classes = {1: 'EM1_contact', 2: 'EM3_radius', 3: 'EM4_hole', 0: 'Good'}
