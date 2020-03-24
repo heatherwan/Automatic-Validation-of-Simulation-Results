@@ -64,7 +64,7 @@ with tf.Graph().as_default():  # for define a new graph to put in every element
     saver = tf.compat.v1.train.Saver()
     learningRate = para.learningRate
 
-    save_model_path = os.path.join(para.modelDir, para.expName[:6])
+    save_model_path = os.path.join(para.modelDir, para.expName[:6], '.ckpt')
     weight_dict = weight_dict_fc(trainLabel, para)
     test_confusionM = []
     test_acc_record = []
