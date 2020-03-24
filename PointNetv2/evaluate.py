@@ -169,7 +169,7 @@ def eval_one_epoch(sess, ops, num_votes=1):
             l = current_label[i]
             total_seen_class[l] += 1
             total_correct_class[l] += (pred_val[i - start_idx] == l)
-            fout.write('no_%d %d %d\n' % (i, pred_val[i - start_idx], l))
+            fout.write('%d %d %d\n' % (i, pred_val[i - start_idx], l))
 
             if pred_val[i - start_idx] != l:  # ERROR CASE, DUMP!
                 img_filename = 'no_%d_label_%s_pred_%s.jpg' % (i, l, pred_val[i - start_idx])
