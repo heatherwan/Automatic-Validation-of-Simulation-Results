@@ -48,7 +48,7 @@ class Parameters:
             self.evallog = 'evallog'
             if not os.path.isdir(self.evallog):
                 os.mkdir(self.evallog)
-        self.dataDir = os.path.join(BASE_DIR, 'datasets')
+        self.dataDir = os.path.join(BASE_DIR, 'data')
         self.modelDir = os.path.join(BASE_DIR, 'model')
         self.logDir = os.path.join(BASE_DIR, 'log')
         self.graphDir = os.path.join(BASE_DIR, 'graph')
