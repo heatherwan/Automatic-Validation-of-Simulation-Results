@@ -35,7 +35,7 @@ LOG_FOUT.write(str(para.__dict__) + '\n')
 
 def log_string(out_str):
     if isinstance(out_str, np.ndarray):
-        np.savetxt(LOG_FOUT, out_str, fmt='%3d')
+        np.savetxt(LOG_FOUT, out_str, fmt='%.2f')
     else:
         LOG_FOUT.write(out_str + '\n')
     LOG_FOUT.flush()
@@ -96,19 +96,16 @@ with tf.Graph().as_default():  # for define a new graph to put in every element
         test_predict = np.asarray(test_predict)
         test_predict = test_predict.flatten()
         confusion_mat = confusion_matrix(testLabel[0:len(test_predict)], test_predict)
-        print(confusion_mat)
-        print(confusion_mat.sum(axis=1))
         normalized_confusion = confusion_mat.astype('float') / confusion_mat.sum(axis=1, keepdims=True)
-        print(normalized_confusion)
         class_acc = np.diag(normalized_confusion)
         mean_class_acc = np.mean(class_acc)
         log_string('Test result:')
         log_string(f'average loss: {test_average_loss}')
         log_string(f'accuracy: {test_average_acc}')
         log_string(f'mean class accuracy: {mean_class_acc}')
-        log_string(confusion_mat)
+        log_string(normalized_confusion)
 
 end_time = time.time()
-run_time = (end_time - start_time) / 3600
-log_string(f'running time:\t{run_time} hrs')
+run_time = (end_time - start_time) / 60
+log_string(f'running time:\t{run_time} min')
 LOG_FOUT.close()
