@@ -88,7 +88,7 @@ def get_bn_decay(batch):
 def train():
     with tf.Graph().as_default():
         with tf.device(''):
-            pointclouds_pl, pointclouds_sf_pl, labels_pl = MODEL.placeholder_inputs_sf(BATCH_SIZE, NUM_POINT)
+            pointclouds_pl, pointclouds_other_pl, labels_pl = MODEL.placeholder_inputs_other(BATCH_SIZE, NUM_POINT)
             is_training_pl = tf.compat.v1.placeholder(tf.bool, shape=())
             weights = tf.compat.v1.placeholder(tf.float32, [None])
             print(is_training_pl)
@@ -100,7 +100,7 @@ def train():
             tf.compat.v1.summary.scalar('bn_decay', bn_decay)
 
             # Get model and loss
-            pred, end_points = MODEL.get_model_sf(pointclouds_pl, pointclouds_sf_pl, is_training_pl, bn_decay=bn_decay)
+            pred, end_points = MODEL.get_model_other(pointclouds_pl, pointclouds_other_pl, is_training_pl, bn_decay=bn_decay)
             if para.weighting_scheme == 'weighted':
                 loss = MODEL.get_loss_weight(pred, labels_pl, end_points, weights)
             else:
@@ -145,7 +145,7 @@ def train():
         sess.run(init, {is_training_pl: True})
 
         ops = {'pointclouds_pl': pointclouds_pl,
-               'pointclouds_sf_pl': pointclouds_sf_pl,
+               'pointclouds_other_pl': pointclouds_other_pl,
                'labels_pl': labels_pl,
                'is_training_pl': is_training_pl,
                'pred': pred,
@@ -196,11 +196,11 @@ def train_one_epoch(sess, ops, train_writer):
     """ ops: dict mapping from string to tf ops """
     is_training = True
 
-    current_data, current_sf, current_label = provider.loadDataFile_sf(TRAIN_FILES)
+    current_data, current_other, current_label = provider.loadDataFile_other(TRAIN_FILES)
     current_data = current_data[:, 0:NUM_POINT, :]
-    current_sf = current_sf[:, 0:NUM_POINT]
-    current_data, current_sf, current_label, _ = provider.shuffle_data_sf(current_data, current_sf,
-                                                                          np.squeeze(current_label))
+    current_other = current_other[:, 0:NUM_POINT]
+    current_data, current_other, current_label, _ = provider.shuffle_data_other(current_data, current_other,
+                                                                             np.squeeze(current_label))
     current_label = np.squeeze(current_label)
     # ===================implement weight here ==================
     weight_dict = weight_dict_fc(current_label, para)
@@ -226,7 +226,7 @@ def train_one_epoch(sess, ops, train_writer):
         rotated_data = provider.rotate_point_cloud(current_data[start_idx:end_idx, :, :])
         jittered_data = provider.jitter_point_cloud(rotated_data)
         feed_dict = {ops['pointclouds_pl']: jittered_data,
-                     ops['pointclouds_sf_pl']: current_sf[start_idx:end_idx, :],
+                     ops['pointclouds_other_pl']: current_other[start_idx:end_idx, :],
                      ops['labels_pl']: current_label[start_idx:end_idx],
                      ops['is_training_pl']: is_training,
                      ops['weights']: batchWeight}
@@ -256,9 +256,9 @@ def eval_one_epoch(sess, ops, test_writer):
     total_correct_class = [0 for _ in range(NUM_CLASSES)]
     total_pred = []
 
-    current_data, current_sf, current_label = provider.loadDataFile_sf(TEST_FILES)
+    current_data, current_other, current_label = provider.loadDataFile_other(TEST_FILES)
     current_data = current_data[:, 0:NUM_POINT, :]
-    current_sf = current_sf[:, 0:NUM_POINT]
+    current_other = current_other[:, 0:NUM_POINT]
     current_label = np.squeeze(current_label)
     weight_dict = weight_dict_fc(current_label, para)
     file_size = current_data.shape[0]
@@ -269,7 +269,7 @@ def eval_one_epoch(sess, ops, test_writer):
         end_idx = (batch_idx + 1) * testBatch
         batchWeight = weights_calculation(current_label[start_idx:end_idx], weight_dict)
         feed_dict = {ops['pointclouds_pl']: current_data[start_idx:end_idx, :, :],
-                     ops['pointclouds_sf_pl']: current_sf[start_idx:end_idx, :],
+                     ops['pointclouds_other_pl']: current_other[start_idx:end_idx, :],
                      ops['labels_pl']: current_label[start_idx:end_idx],
                      ops['is_training_pl']: is_training,
                      ops['weights']: batchWeight}

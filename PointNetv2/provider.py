@@ -17,18 +17,18 @@ def shuffle_data(data, labels):
     return data[idx, ...], labels[idx], idx
 
 
-def shuffle_data_sf(data, sf, labels):
+def shuffle_data_other(data, other, labels):
     """ Shuffle data and labels.
         Input:
           data: B,N,... numpy array
-          sf: B,1,... numpy array
+          other: B,1,... numpy array
           label: B,... numpy array
         Return:
-          shuffled data, sf, label and shuffle indices
+          shuffled data, other, label and shuffle indices
     """
     idx = np.arange(len(labels))
     np.random.shuffle(idx)
-    return data[idx, ...], sf[idx, ...], labels[idx], idx
+    return data[idx, ...], other[idx, ...], labels[idx], idx
 
 
 def rotate_point_cloud(batch_data):
@@ -100,16 +100,16 @@ def loadDataFile(filename):
     return load_h5(filename)
 
 
-def load_h5_sf(h5_filename):
+def load_h5_other(h5_filename):
     f = h5py.File(h5_filename)
     data = f["data"][:]
-    sf = f["sf"][:]
+    other = f["other"][:]
     label = f["label"][:]
-    return data, sf, label
+    return data, other, label
 
 
-def loadDataFile_sf(filename):
-    return load_h5_sf(filename)
+def loadDataFile_other(filename):
+    return load_h5_other(filename)
 
 
 def load_h5_data_label_seg(h5_filename):

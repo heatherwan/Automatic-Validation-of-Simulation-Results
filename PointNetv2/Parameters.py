@@ -15,7 +15,7 @@ class Parameters:
         self.model = 'pointnet_cls'
         self.outputClassN = 4
         self.pointNumber = 1024
-        self.dim = 4
+        self.dim = 5  # 3 coordinate, 1 safety factor, 1 distance from Min SF
         self.batchSize = 32
         self.testBatchSize = 32
         self.max_epoch = 2
@@ -50,10 +50,10 @@ class Parameters:
                 os.mkdir(self.evallog)
 
         self.dataDir = os.path.join(BASE_DIR, 'datasets')
-        self.TRAIN_FILES = os.path.join(self.dataDir, 'traindataset_dim4_480.hdf5')
-        self.TEST_FILES = os.path.join(self.dataDir, 'testdataset_dim4_160.hdf5')
+        self.TRAIN_FILES = os.path.join(self.dataDir, 'traindataset_dim4_480_1024_dist.hdf5')
+        self.TEST_FILES = os.path.join(self.dataDir, 'testdataset_dim4_160_1024_dist.hdf5')
 
-        self.expName = f'exp203_point{self.pointNumber}_batch{self.batchSize}_out{self.outputClassN}' \
+        self.expName = f'exp111_point{self.pointNumber}_batch{self.batchSize}_out{self.outputClassN}' \
                        f'_weighted{self.weight_scaler}'  # save model path
 
         self.classes = {1: 'EM1_contact', 2: 'EM3_radius', 3: 'EM4_hole', 0: 'Good'}

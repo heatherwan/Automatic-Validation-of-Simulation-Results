@@ -2,6 +2,8 @@ from utils import tf_util
 from models.transform_nets import input_transform_net, feature_transform_net
 import tensorflow as tf
 import numpy as np
+from Parameters import Parameters
+para = Parameters()
 
 
 def placeholder_inputs(batch_size, num_point):
@@ -10,11 +12,11 @@ def placeholder_inputs(batch_size, num_point):
     return pointclouds_pl, labels_pl
 
 
-def placeholder_inputs_sf(batch_size, num_point):
+def placeholder_inputs_other(batch_size, num_point):
     pointclouds_pl = tf.compat.v1.placeholder(tf.float32, shape=(batch_size, num_point, 3))
-    pointclouds_sf_pl = tf.compat.v1.placeholder(tf.float32, shape=(batch_size, num_point))
+    pointclouds_other_pl = tf.compat.v1.placeholder(tf.float32, shape=(batch_size, num_point, para.dim-3))
     labels_pl = tf.compat.v1.placeholder(tf.int32, shape=batch_size)
-    return pointclouds_pl, pointclouds_sf_pl, labels_pl
+    return pointclouds_pl, pointclouds_other_pl, labels_pl
 
 
 def get_model(point_cloud, is_training, bn_decay=None):
@@ -74,7 +76,7 @@ def get_model(point_cloud, is_training, bn_decay=None):
     return net, end_points
 
 
-def get_model_sf(point_cloud, point_cloud_sf, is_training, bn_decay=None):
+def get_model_other(point_cloud, point_cloud_other, is_training, bn_decay=None):
     """ Classification PointNet, input is BxNx3 and BxNx1, output Bx4 """
     batch_size = point_cloud.get_shape()[0]  # .value
     num_point = point_cloud.get_shape()[1]  # .value 
@@ -84,8 +86,12 @@ def get_model_sf(point_cloud, point_cloud_sf, is_training, bn_decay=None):
         transform = input_transform_net(point_cloud, is_training, bn_decay, K=3)
     point_cloud_transformed = tf.matmul(point_cloud, transform)
     input_image = tf.expand_dims(point_cloud_transformed, -1)
-
-    net = tf_util.conv2d(input_image, 64, [1, 3],
+    point_cloud_other = tf.expand_dims(point_cloud_other, -1)
+    # print('pointcloud shape: ', input_image.shape)
+    # print('othershape: ', point_cloud_other.shape)
+    concat_other = tf.concat(axis=2, values=[input_image, point_cloud_other])
+    # print('all shape: ', concat_other.shape)
+    net = tf_util.conv2d(concat_other, 64, [1, 5],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
                          scope='conv1', bn_decay=bn_decay)
@@ -99,13 +105,8 @@ def get_model_sf(point_cloud, point_cloud_sf, is_training, bn_decay=None):
     end_points['transform'] = transform
     net_transformed = tf.matmul(tf.squeeze(net, axis=[2]), transform)
     point_feat = tf.expand_dims(net_transformed, [2])
-    point_cloud_sf = tf.expand_dims(point_cloud_sf, -1)
-    point_cloud_sf = tf.expand_dims(point_cloud_sf, [2])
-    # print(point_cloud.shape)
-    # print(point_cloud_sf.shape)
-    concat_sf = tf.concat(axis=3, values=[point_feat, point_cloud_sf])
 
-    net = tf_util.conv2d(concat_sf, 64, [1, 1],  # 64 is the output #neuron
+    net = tf_util.conv2d(point_feat, 64, [1, 1],  # 64 is the output #neuron
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
                          scope='conv3', bn_decay=bn_decay)
