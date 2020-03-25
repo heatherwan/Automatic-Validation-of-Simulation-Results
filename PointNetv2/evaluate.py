@@ -171,7 +171,7 @@ def eval_one_epoch(sess, ops, num_votes=1):
             total_correct_class[l] += (pred_val[i - start_idx] == l)
             fout.write('%d %d %d\n' % (i, pred_val[i - start_idx], l))
         print(pred_val)
-        pred_label.append(pred_val)
+        pred_label.extend(pred_val)
         print(pred_label)
     log_string('eval mean loss: %f' % (loss_sum / float(total_seen)))
     log_string('eval accuracy: %f' % (total_correct / float(total_seen)))
