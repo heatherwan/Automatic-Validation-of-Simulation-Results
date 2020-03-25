@@ -170,12 +170,10 @@ def eval_one_epoch(sess, ops, num_votes=1):
             total_seen_class[l] += 1
             total_correct_class[l] += (pred_val[i - start_idx] == l)
             fout.write('%d %d %d\n' % (i, pred_val[i - start_idx], l))
-        print(pred_val)
         pred_label.extend(pred_val)
-        print(pred_label)
-    log_string('eval mean loss: %f' % (loss_sum / float(total_seen)))
-    log_string('eval accuracy: %f' % (total_correct / float(total_seen)))
-    log_string('eval avg class acc: %f' % (
+    log_string('mean loss: %f' % (loss_sum / float(total_seen)))
+    log_string('acc: %f' % (total_correct / float(total_seen)))
+    log_string('avg class acc: %f' % (
         np.mean(np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float))))
     confusion_mat = confusion_matrix(pred_label, current_label)
     log_string(confusion_mat)
