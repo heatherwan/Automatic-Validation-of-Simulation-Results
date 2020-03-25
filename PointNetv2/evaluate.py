@@ -170,14 +170,9 @@ def eval_one_epoch(sess, ops, num_votes=1):
             total_seen_class[l] += 1
             total_correct_class[l] += (pred_val[i - start_idx] == l)
             fout.write('%d %d %d\n' % (i, pred_val[i - start_idx], l))
-
-            # if pred_val[i - start_idx] != l:  # ERROR CASE, DUMP!
-            #     img_filename = 'no_%d_label_%s_pred_%s.jpg' % (i, l, pred_val[i - start_idx])
-            #     img_filename = os.path.join(para.evallog, img_filename)
-            #     output_img = pc_util.point_cloud_three_views(np.squeeze(current_data[i, :, :]))
-            #     imageio.imwrite(img_filename, output_img)
-            #     error_cnt += 1
+        print(pred_val)
         pred_label.append(pred_val)
+        print(pred_label)
     log_string('eval mean loss: %f' % (loss_sum / float(total_seen)))
     log_string('eval accuracy: %f' % (total_correct / float(total_seen)))
     log_string('eval avg class acc: %f' % (
