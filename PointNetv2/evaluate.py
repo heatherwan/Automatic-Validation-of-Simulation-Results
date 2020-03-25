@@ -182,7 +182,7 @@ def eval_one_epoch(sess, ops, num_votes=1):
     log_string('eval accuracy: %f' % (total_correct / float(total_seen)))
     log_string('eval avg class acc: %f' % (
         np.mean(np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float))))
-    confusion_mat = confusion_matrix(pred_val, current_label)
+    confusion_mat = confusion_matrix(pred_label, current_label)
     log_string(confusion_mat)
     class_accuracies = np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float)
     for i, name in para.classes.items():
