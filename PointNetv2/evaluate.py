@@ -4,12 +4,11 @@ import sys
 import socket
 
 import numpy as np
-import imageio
 import tensorflow as tf
 
 import provider
 from Parameters import Parameters
-from utils import pc_util
+from sklearn.metrics import confusion_matrix
 
 para = Parameters(evaluation=True)
 if para.gpu:
@@ -38,7 +37,10 @@ HOSTNAME = socket.gethostname()
 
 
 def log_string(out_str):
-    LOG_FOUT.write(out_str + '\n')
+    if isinstance(out_str, np.ndarray):
+        np.savetxt(LOG_FOUT, out_str, fmt='%3d')
+    else:
+        LOG_FOUT.write(out_str + '\n')
     LOG_FOUT.flush()
     print(out_str)
 
@@ -130,7 +132,7 @@ def eval_one_epoch(sess, ops, num_votes=1):
     file_size = current_data.shape[0]
     num_batches = file_size // BATCH_SIZE
     print(file_size)
-
+    pred_label = []
     for batch_idx in range(num_batches):
         start_idx = batch_idx * BATCH_SIZE
         end_idx = (batch_idx + 1) * BATCH_SIZE
@@ -175,12 +177,13 @@ def eval_one_epoch(sess, ops, num_votes=1):
             #     output_img = pc_util.point_cloud_three_views(np.squeeze(current_data[i, :, :]))
             #     imageio.imwrite(img_filename, output_img)
             #     error_cnt += 1
-
+        pred_label.append(pred_val)
     log_string('eval mean loss: %f' % (loss_sum / float(total_seen)))
     log_string('eval accuracy: %f' % (total_correct / float(total_seen)))
     log_string('eval avg class acc: %f' % (
         np.mean(np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float))))
-
+    confusion_mat = confusion_matrix(pred_val, current_label)
+    log_string(confusion_mat)
     class_accuracies = np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float)
     for i, name in para.classes.items():
         log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
