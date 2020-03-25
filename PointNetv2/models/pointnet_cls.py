@@ -86,12 +86,8 @@ def get_model_other(point_cloud, point_cloud_other, is_training, bn_decay=None):
         transform = input_transform_net(point_cloud, is_training, bn_decay, K=3)
     point_cloud_transformed = tf.matmul(point_cloud, transform)
     input_image = tf.expand_dims(point_cloud_transformed, -1)
-    point_cloud_other = tf.expand_dims(point_cloud_other, -1)
-    # print('pointcloud shape: ', input_image.shape)
-    # print('othershape: ', point_cloud_other.shape)
-    concat_other = tf.concat(axis=2, values=[input_image, point_cloud_other])
-    # print('all shape: ', concat_other.shape)
-    net = tf_util.conv2d(concat_other, 64, [1, 5],
+
+    net = tf_util.conv2d(input_image, 64, [1, 3],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
                          scope='conv1', bn_decay=bn_decay)
@@ -105,8 +101,12 @@ def get_model_other(point_cloud, point_cloud_other, is_training, bn_decay=None):
     end_points['transform'] = transform
     net_transformed = tf.matmul(tf.squeeze(net, axis=[2]), transform)
     point_feat = tf.expand_dims(net_transformed, [2])
-
-    net = tf_util.conv2d(point_feat, 64, [1, 1],  # 64 is the output #neuron
+    point_cloud_other = tf.expand_dims(point_cloud_other, [2])
+    # print('pointcloud shape: ', point_feat.shape)
+    # print('othershape: ', point_cloud_other.shape)
+    concat_other = tf.concat(axis=3, values=[point_feat, point_cloud_other])
+    # print('all shape: ', concat_other.shape)
+    net = tf_util.conv2d(concat_other, 64, [1, 1],  # 64 is the output #neuron
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
                          scope='conv3', bn_decay=bn_decay)
