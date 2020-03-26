@@ -171,6 +171,7 @@ def train():
             if loss < min_loss:
                 save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}.ckpt"))
                 log_string("Model saved in file: %s" % save_path)
+                min_loss = loss
 
 
 def weight_dict_fc(trainLabel, para):
