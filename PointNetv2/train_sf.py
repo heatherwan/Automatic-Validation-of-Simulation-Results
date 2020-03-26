@@ -10,6 +10,7 @@ from sklearn.metrics import confusion_matrix
 import provider
 import time
 from Parameters import Parameters
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 sys.path.append(os.path.join(BASE_DIR, 'models'))
@@ -22,7 +23,6 @@ if para.gpu:
         tf.config.experimental.set_memory_growth(gpu, True)
 else:
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
 
 BATCH_SIZE = para.batchSize
 testBatch = para.testBatchSize
@@ -55,6 +55,7 @@ TEST_FILES = para.TEST_FILES
 
 
 def log_string(out_str):
+    # for cnfusion matrix
     if isinstance(out_str, np.ndarray):
         np.savetxt(LOG_FOUT, out_str, fmt='%3d')
     else:
@@ -100,7 +101,8 @@ def train():
             tf.compat.v1.summary.scalar('bn_decay', bn_decay)
 
             # Get model and loss
-            pred, end_points = MODEL.get_model_other(pointclouds_pl, pointclouds_other_pl, is_training_pl, bn_decay=bn_decay)
+            pred, end_points = MODEL.get_model_other(pointclouds_pl, pointclouds_other_pl, is_training_pl,
+                                                     bn_decay=bn_decay)
             if para.weighting_scheme == 'weighted':
                 loss = MODEL.get_loss_weight(pred, labels_pl, end_points, weights)
             else:
@@ -154,16 +156,19 @@ def train():
                'merged': merged,
                'step': batch,
                'weights': weights}
-
+        min_loss = np.inf
         for epoch in range(MAX_EPOCH):
             log_string('**** EPOCH %03d ****' % (epoch))
             sys.stdout.flush()
 
-            train_one_epoch(sess, ops, train_writer)
+            loss = train_one_epoch(sess, ops, train_writer)
             eval_one_epoch(sess, ops, test_writer)
 
             # Save the variables to disk.
-            if epoch % 10 == 0:
+            # if epoch % 10 == 0:
+            #     save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}.ckpt"))
+            #     log_string("Model saved in file: %s" % save_path)
+            if loss < min_loss:
                 save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}.ckpt"))
                 log_string("Model saved in file: %s" % save_path)
 
@@ -200,7 +205,7 @@ def train_one_epoch(sess, ops, train_writer):
     current_data = current_data[:, 0:NUM_POINT, :]
     current_other = current_other[:, 0:NUM_POINT]
     current_data, current_other, current_label, _ = provider.shuffle_data_other(current_data, current_other,
-                                                                             np.squeeze(current_label))
+                                                                                np.squeeze(current_label))
     current_label = np.squeeze(current_label)
     # ===================implement weight here ==================
     weight_dict = weight_dict_fc(current_label, para)
@@ -244,6 +249,7 @@ def train_one_epoch(sess, ops, train_writer):
     log_string('mean loss: %f' % (loss_sum / float(num_batches)))
     log_string('accuracy: %f' % (total_correct / float(total_seen)))
     log_string(confusion_matrix(current_label[:len(total_pred)], total_pred))
+    return loss_sum / float(num_batches)
 
 
 def eval_one_epoch(sess, ops, test_writer):
