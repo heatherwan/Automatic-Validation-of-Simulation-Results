@@ -45,7 +45,7 @@ def log_string(out_str):
     print(out_str)
 
 
-def evaluate(num_votes):
+def evaluate():
     with tf.device(''):
         pointclouds_pl, pointclouds_other_pl, labels_pl = MODEL.placeholder_inputs_other(BATCH_SIZE, NUM_POINT)
         is_training_pl = tf.compat.v1.placeholder(tf.bool, shape=())
@@ -81,7 +81,7 @@ def evaluate(num_votes):
            'loss': loss,
            'weights': weights}
 
-    eval_one_epoch(sess, ops, num_votes)
+    eval_one_epoch(sess, ops)
 
 
 def weight_dict_fc(trainLabel, para):
@@ -110,8 +110,7 @@ def weights_calculation(batch_labels, weight_dict):
 
 # since the paras in training is with batch size 32, the evaluation should have the same shape.
 # So it is better to have the testing as the multiply of batch size 32
-def eval_one_epoch(sess, ops, num_votes=1):
-    error_cnt = 0
+def eval_one_epoch(sess, ops):
     is_training = False
     total_correct = 0
     total_seen = 0
@@ -139,31 +138,24 @@ def eval_one_epoch(sess, ops, num_votes=1):
         cur_batch_size = end_idx - start_idx
         batchWeight = weights_calculation(current_label[start_idx:end_idx], weight_dict)
         # Aggregating BEG
-        batch_loss_sum = 0  # sum of losses for the batch
-        batch_pred_sum = np.zeros((cur_batch_size, NUM_CLASSES))  # score for classes
-        batch_pred_classes = np.zeros((cur_batch_size, NUM_CLASSES))  # 0/1 for classes
-        for vote_idx in range(num_votes):
-            rotated_data = provider.rotate_point_cloud_by_angle(current_data[start_idx:end_idx, :, :],
-                                                                vote_idx / float(num_votes) * np.pi * 2)
-            feed_dict = {ops['pointclouds_pl']: rotated_data,
-                         ops['pointclouds_other_pl']: current_other[start_idx:end_idx, :],
-                         ops['labels_pl']: current_label[start_idx:end_idx],
-                         ops['is_training_pl']: is_training,
-                         ops['weights']: batchWeight}
-            loss_val, pred_val = sess.run([ops['loss'], ops['pred']], feed_dict=feed_dict)
-            batch_pred_sum += pred_val
-            batch_pred_val = np.argmax(pred_val, 1)
-            for el_idx in range(cur_batch_size):
-                batch_pred_classes[el_idx, batch_pred_val[el_idx]] += 1
-            batch_loss_sum += (loss_val * cur_batch_size / float(num_votes))
+        # batch_loss_sum = 0  # sum of losses for the batch
+        # batch_pred_sum = np.zeros((cur_batch_size, NUM_CLASSES))  # score for classes
+        # batch_pred_classes = np.zeros((cur_batch_size, NUM_CLASSES))  # 0/1 for classes
 
-        pred_val = np.argmax(batch_pred_sum, 1)
-        # Aggregating END
-
+        # rotated_data = provider.rotate_point_cloud_by_angle(current_data[start_idx:end_idx, :, :],
+        #                                                     vote_idx / float(num_votes) * np.pi * 2)
+        feed_dict = {ops['pointclouds_pl']: current_data[start_idx:end_idx, :, :],
+                     ops['pointclouds_other_pl']: current_other[start_idx:end_idx, :, :],
+                     ops['labels_pl']: current_label[start_idx:end_idx],
+                     ops['is_training_pl']: is_training,
+                     ops['weights']: batchWeight}
+        loss_val, pred_val = sess.run([ops['loss'], ops['pred']], feed_dict=feed_dict)
+        # batch_pred_sum += pred_val
+        pred_val = np.argmax(pred_val, 1)  # get the predict class number
         correct_count = np.sum(pred_val == current_label[start_idx:end_idx])
         total_correct += correct_count
         total_seen += cur_batch_size
-        loss_sum += batch_loss_sum
+        loss_sum += (loss_val * BATCH_SIZE)
 
         for i in range(start_idx, end_idx):
             l = current_label[i]
@@ -171,6 +163,7 @@ def eval_one_epoch(sess, ops, num_votes=1):
             total_correct_class[l] += (pred_val[i - start_idx] == l)
             fout.write('%d %d %d\n' % (i, pred_val[i - start_idx], l))
         pred_label.extend(pred_val)
+
     log_string('mean loss: %f' % (loss_sum / float(total_seen)))
     log_string('acc: %f' % (total_correct / float(total_seen)))
     log_string('avg class acc: %f' % (
@@ -184,5 +177,5 @@ def eval_one_epoch(sess, ops, num_votes=1):
 
 if __name__ == '__main__':
     with tf.Graph().as_default():
-        evaluate(num_votes=1)
+        evaluate()
     LOG_FOUT.close()

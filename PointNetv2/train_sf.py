@@ -204,7 +204,7 @@ def train_one_epoch(sess, ops, train_writer):
 
     current_data, current_other, current_label = provider.loadDataFile_other(TRAIN_FILES)
     current_data = current_data[:, 0:NUM_POINT, :]
-    current_other = current_other[:, 0:NUM_POINT]
+    current_other = current_other[:, 0:NUM_POINT, :]
     current_data, current_other, current_label, _ = provider.shuffle_data_other(current_data, current_other,
                                                                                 np.squeeze(current_label))
     current_label = np.squeeze(current_label)
@@ -232,7 +232,7 @@ def train_one_epoch(sess, ops, train_writer):
         rotated_data = provider.rotate_point_cloud(current_data[start_idx:end_idx, :, :])
         jittered_data = provider.jitter_point_cloud(rotated_data)
         feed_dict = {ops['pointclouds_pl']: jittered_data,
-                     ops['pointclouds_other_pl']: current_other[start_idx:end_idx, :],
+                     ops['pointclouds_other_pl']: current_other[start_idx:end_idx, :, :],
                      ops['labels_pl']: current_label[start_idx:end_idx],
                      ops['is_training_pl']: is_training,
                      ops['weights']: batchWeight}
@@ -276,7 +276,7 @@ def eval_one_epoch(sess, ops, test_writer):
         end_idx = (batch_idx + 1) * testBatch
         batchWeight = weights_calculation(current_label[start_idx:end_idx], weight_dict)
         feed_dict = {ops['pointclouds_pl']: current_data[start_idx:end_idx, :, :],
-                     ops['pointclouds_other_pl']: current_other[start_idx:end_idx, :],
+                     ops['pointclouds_other_pl']: current_other[start_idx:end_idx, :, :],
                      ops['labels_pl']: current_label[start_idx:end_idx],
                      ops['is_training_pl']: is_training,
                      ops['weights']: batchWeight}
