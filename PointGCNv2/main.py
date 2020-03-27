@@ -74,6 +74,7 @@ def train():
         save_model_path = os.path.join(para.modelDir, para.expName[:6], '.ckpt')
         weight_dict = utils.weight_dict_fc(trainLabel, para)
 
+        minloss = np.inf
         for epoch in range(para.max_epoch):
             log_string(f'====================epoch {epoch}====================')
             if epoch % 20 == 0:
@@ -90,11 +91,15 @@ def train():
                                                                         trainOperation,
                                                                         weight_dict, learningRate,
                                                                         train_writer)
+            if minloss > train_average_loss:
+                save = saver.save(sess, save_model_path)
+                minloss = train_average_loss
+
             log_string('Train result:')
             log_string(f'mean loss: {train_average_loss:.3f}')
             log_string(f'accuracy: {train_average_acc:.3f}')
 
-            save = saver.save(sess, save_model_path)
+
 
             inputtestall = np.dstack((inputTest, testother))  # add the safety factor
             test_average_loss, test_average_acc, test_predict = model.evaluateOneEpoch(inputtestall,
