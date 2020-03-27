@@ -157,7 +157,7 @@ def evaluateOneEpoch(inputCoor, inputGraph, inputLabel, para, sess, trainOperati
             [trainOperation['merged'], trainOperation['step'], trainOperation['predictLabels'],
              trainOperation['loss'], trainOperation['acc']],
             feed_dict=feed_dict)
-
+        print(predict)
         test_writer.add_summary(summary, step)
         test_loss.append(loss_test)
         test_acc.append(acc_test)
