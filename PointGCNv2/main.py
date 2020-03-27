@@ -106,8 +106,6 @@ def train():
             # calculate mean class accuracy and log result
             test_predict = np.asarray(test_predict)
             test_predict = test_predict.flatten()
-            print(test_predict)
-            print(testLabel[0:len(test_predict)])
             confusion_mat = confusion_matrix(testLabel[0:len(test_predict)], test_predict)
             normalized_confusion = confusion_mat.astype('float') / confusion_mat.sum(axis=1, keepdims=True)
             class_acc = np.diag(normalized_confusion)
