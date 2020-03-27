@@ -3,7 +3,6 @@ import sys
 import shutil
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
 sys.path.append(BASE_DIR)
 sys.path.append(os.path.join(BASE_DIR, 'models'))
 
@@ -11,7 +10,7 @@ sys.path.append(os.path.join(BASE_DIR, 'models'))
 class Parameters:
     def __init__(self, evaluation=False):
         # ==============Network setting===========================
-        self.gpu = False
+        self.gpu = True
         self.model = 'pointnet_cls'
         self.outputClassN = 4
         self.pointNumber = 1024
@@ -24,8 +23,7 @@ class Parameters:
         self.optimizer = 'adam'  # or momentum
         self.decay_step = 20000  # 1 epoch 1000 step
         self.decay_rate = 0.7
-        self.weighting_scheme = 'weighted'
-        self.weight_scaler = 4  # 50
+        self.weight_scaler = 4  # 0 = no weight
 
         # ==============Files setting===========================
         self.logmodelDir = 'logmodel'
@@ -57,3 +55,4 @@ class Parameters:
                        f'_weighted{self.weight_scaler}'  # save model path
 
         self.classes = {1: 'EM1_contact', 2: 'EM3_radius', 3: 'EM4_hole', 0: 'Good'}
+        # self.classes = {1: 'EM13_contactradius', 2: 'EM4_hole', 0: 'Good'}

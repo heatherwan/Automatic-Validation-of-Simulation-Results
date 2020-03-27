@@ -1,27 +1,18 @@
-import os
-import sys
-import numpy as np
 import h5py
+import numpy as np
+from sklearn.preprocessing import label_binarize
 
+from Parameters import Parameters
 
-def shuffle_data(data, labels):
-    """ Shuffle data and labels.
-        Input:
-          data: B,N,... numpy array
-          label: B,... numpy array
-        Return:
-          shuffled data, label and shuffle indices
-    """
-    idx = np.arange(len(labels))
-    np.random.shuffle(idx)
-    return data[idx, ...], labels[idx], idx
+para = Parameters()
+h5py.get_config().default_file_mode = 'r'
 
 
 def shuffle_data_other(data, other, labels):
     """ Shuffle data and labels.
         Input:
           data: B,N,... numpy array
-          other: B,1,... numpy array
+          other: B,additional features,... numpy array
           label: B,... numpy array
         Return:
           shuffled data, other, label and shuffle indices
@@ -85,21 +76,6 @@ def jitter_point_cloud(batch_data, sigma=0.01, clip=0.05):
     return jittered_data
 
 
-def getDataFiles(list_filename):
-    return [line.rstrip() for line in open(list_filename)]
-
-
-def load_h5(h5_filename):
-    f = h5py.File(h5_filename)
-    data = f["data"][:]
-    label = f["label"][:]
-    return data, label
-
-
-def loadDataFile(filename):
-    return load_h5(filename)
-
-
 def load_h5_other(h5_filename):
     f = h5py.File(h5_filename)
     data = f["data"][:]
@@ -112,6 +88,7 @@ def loadDataFile_other(filename):
     return load_h5_other(filename)
 
 
+# for segmentation
 def load_h5_data_label_seg(h5_filename):
     f = h5py.File(h5_filename)
     data = f["data"][:]
@@ -122,3 +99,24 @@ def load_h5_data_label_seg(h5_filename):
 
 def loadDataFile_with_seg(filename):
     return load_h5_data_label_seg(filename)
+
+
+def weight_dict_fc(trainLabel):
+    y_total = label_binarize(trainLabel, classes=[i for i in range(para.outputClassN)])
+    class_distribution_class = np.sum(y_total, axis=0)  # get count for each class
+    class_distribution_class = [float(i) for i in class_distribution_class]
+    class_distribution_class = class_distribution_class / np.sum(class_distribution_class)  # get ratio for each class
+    inverse_dist = 1 / class_distribution_class
+    norm_inv_dist = inverse_dist / np.sum(inverse_dist)
+    weights = norm_inv_dist * para.weight_scaler + 1  # scalar should be reconsider
+    weight_dict = dict()
+    for classID, value in enumerate(weights):
+        weight_dict.update({classID: value})
+    return weight_dict
+
+
+def weights_calculation(batch_labels, weight_dict):
+    weights = []
+    for i in batch_labels:
+        weights.append(weight_dict[i])
+    return weights

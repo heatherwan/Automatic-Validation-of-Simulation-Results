@@ -2,21 +2,29 @@ import importlib
 import os
 import socket
 import sys
+import time
 
 import numpy as np
 import tensorflow as tf
 from sklearn.metrics import confusion_matrix
 
 import provider
-import time
 from Parameters import Parameters
 
+# ===============get basic folder=====================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 sys.path.append(os.path.join(BASE_DIR, 'models'))
-sys.path.append(os.path.join(BASE_DIR, 'utils'))
 para = Parameters()
 
+# log
+MODEL = importlib.import_module(para.model)  # import network module
+LOG_DIR = para.logDir
+LOG_MODEL = para.logmodelDir
+LOG_FOUT = open(os.path.join(LOG_DIR, f'{para.expName}.txt'), 'w')
+LOG_FOUT.write(str(para.__dict__) + '\n')
+
+# set parameters
 if para.gpu:
     gpus = tf.config.experimental.list_physical_devices('GPU')
     for gpu in gpus:
@@ -34,28 +42,18 @@ MOMENTUM = para.momentum
 OPTIMIZER = para.optimizer
 DECAY_STEP = para.decay_step
 DECAY_RATE = para.decay_rate
-
-MODEL = importlib.import_module(para.model)  # import network module
-LOG_DIR = para.logDir
-LOG_MODEL = para.logmodelDir
-# log file
-LOG_FOUT = open(os.path.join(LOG_DIR, f'{para.expName}.txt'), 'w')
-# write parameters in log file
-
-LOG_FOUT.write(str(para.__dict__) + '\n')
-
+TRAIN_FILES = para.TRAIN_FILES
+TEST_FILES = para.TEST_FILES
 BN_INIT_DECAY = 0.5
 BN_DECAY_DECAY_RATE = 0.5
 BN_DECAY_DECAY_STEP = float(DECAY_STEP)
 BN_DECAY_CLIP = 0.99
 
 HOSTNAME = socket.gethostname()
-TRAIN_FILES = para.TRAIN_FILES
-TEST_FILES = para.TEST_FILES
 
 
 def log_string(out_str):
-    # for cnfusion matrix
+    # for confusion matrix
     if isinstance(out_str, np.ndarray):
         np.savetxt(LOG_FOUT, out_str, fmt='%3d')
     else:
@@ -103,10 +101,8 @@ def train():
             # Get model and loss
             pred, end_points = MODEL.get_model_other(pointclouds_pl, pointclouds_other_pl, is_training_pl,
                                                      bn_decay=bn_decay)
-            if para.weighting_scheme == 'weighted':
-                loss = MODEL.get_loss_weight(pred, labels_pl, end_points, weights)
-            else:
-                loss = MODEL.get_loss(pred, labels_pl, end_points)
+            loss = MODEL.get_loss_weight(pred, labels_pl, end_points, weights)
+
             tf.compat.v1.summary.scalar('loss', loss)
 
             correct = tf.equal(tf.argmax(input=pred, axis=1), tf.cast(labels_pl, dtype=tf.int64))
@@ -133,7 +129,6 @@ def train():
         sess = tf.compat.v1.Session(config=config)
 
         # Add summary writers
-        # merged = tf.merge_all_summaries()
         merged = tf.compat.v1.summary.merge_all()
         train_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, 'train'),
                                                        sess.graph)
@@ -141,9 +136,7 @@ def train():
                                                       sess.graph)
         # Init variables
         init = tf.compat.v1.global_variables_initializer()
-        # To fix the bug introduced in TF 0.12.1 as in
-        # http://stackoverflow.com/questions/41543774/invalidargumenterror-for-tensor-bool-tensorflow-0-12-1
-        # sess.run(init)
+
         sess.run(init, {is_training_pl: True})
 
         ops = {'pointclouds_pl': pointclouds_pl,
@@ -156,6 +149,7 @@ def train():
                'merged': merged,
                'step': batch,
                'weights': weights}
+
         min_loss = np.inf
         for epoch in range(MAX_EPOCH):
             log_string('**** EPOCH %03d ****' % (epoch))
@@ -164,38 +158,10 @@ def train():
             loss = train_one_epoch(sess, ops, train_writer)
             eval_one_epoch(sess, ops, test_writer)
 
-            # Save the variables to disk.
-            # if epoch % 10 == 0:
-            #     save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}.ckpt"))
-            #     log_string("Model saved in file: %s" % save_path)
-            if loss < min_loss:
+            if loss < min_loss:  # save the min loss model
                 save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}.ckpt"))
                 log_string("Model saved in file: %s" % save_path)
                 min_loss = loss
-
-
-def weight_dict_fc(trainLabel, para):
-    from sklearn.preprocessing import label_binarize
-    y_total = label_binarize(trainLabel, classes=[i for i in range(para.outputClassN)])
-    class_distribution_class = np.sum(y_total, axis=0)  # get count for each class
-    class_distribution_class = [float(i) for i in class_distribution_class]
-    class_distribution_class = class_distribution_class / np.sum(class_distribution_class)  # get ratio for each class
-    inverse_dist = 1 / class_distribution_class
-    norm_inv_dist = inverse_dist / np.sum(inverse_dist)
-    weights = norm_inv_dist * para.weight_scaler + 1  # scalar should be reconsider
-    weight_dict = dict()
-    for classID, value in enumerate(weights):
-        weight_dict.update({classID: value})
-    return weight_dict
-
-
-def weights_calculation(batch_labels, weight_dict):
-    weights = []
-    # batch_labels = np.argmax(batch_labels, axis=1)
-
-    for i in batch_labels:
-        weights.append(weight_dict[i])
-    return weights
 
 
 def train_one_epoch(sess, ops, train_writer):
@@ -208,15 +174,12 @@ def train_one_epoch(sess, ops, train_writer):
     current_data, current_other, current_label, _ = provider.shuffle_data_other(current_data, current_other,
                                                                                 np.squeeze(current_label))
     current_label = np.squeeze(current_label)
-    # ===================implement weight here ==================
-    weight_dict = weight_dict_fc(current_label, para)
-
-    # ===========================================================
+    # get weight for each class
+    weight_dict = provider.weight_dict_fc(current_label)
+    # set batch
     file_size = current_data.shape[0]
-    # counter = collections.Counter(current_label)
-    # print(counter)
     num_batches = file_size // BATCH_SIZE
-
+    # set variable for statistics
     total_correct = 0
     total_seen = 0
     total_pred = []
@@ -226,7 +189,7 @@ def train_one_epoch(sess, ops, train_writer):
         start_idx = batch_idx * BATCH_SIZE
         end_idx = (batch_idx + 1) * BATCH_SIZE
 
-        batchWeight = weights_calculation(current_label[start_idx:end_idx], weight_dict)
+        batchWeight = provider.weights_calculation(current_label[start_idx:end_idx], weight_dict)
 
         # Augment batched point clouds by rotation and jittering
         rotated_data = provider.rotate_point_cloud(current_data[start_idx:end_idx, :, :])
@@ -239,7 +202,7 @@ def train_one_epoch(sess, ops, train_writer):
         summary, step, _, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
                                                          ops['train_op'], ops['loss'], ops['pred']],
                                                         feed_dict=feed_dict)
-        train_writer.add_summary(summary, step)
+        train_writer.add_summary(summary, step)  # tensorboard
         pred_val = np.argmax(pred_val, 1)
         correct = np.sum(pred_val == current_label[start_idx:end_idx])
         total_correct += correct
@@ -247,8 +210,8 @@ def train_one_epoch(sess, ops, train_writer):
         loss_sum += loss_val
         total_pred.extend(pred_val)
     log_string('Train result:')
-    log_string('mean loss: %f' % (loss_sum / float(num_batches)))
-    log_string('accuracy: %f' % (total_correct / float(total_seen)))
+    log_string(f'mean loss: {loss_sum / float(num_batches):.3f}')
+    log_string(f'accuracy: {total_correct / float(total_seen):.3f}')
     log_string(confusion_matrix(current_label[:len(total_pred)], total_pred))
     return loss_sum / float(num_batches)
 
@@ -267,14 +230,14 @@ def eval_one_epoch(sess, ops, test_writer):
     current_data = current_data[:, 0:NUM_POINT, :]
     current_other = current_other[:, 0:NUM_POINT]
     current_label = np.squeeze(current_label)
-    weight_dict = weight_dict_fc(current_label, para)
+    weight_dict = provider.weight_dict_fc(current_label)
     file_size = current_data.shape[0]
     num_batches = file_size // testBatch
 
     for batch_idx in range(num_batches):
         start_idx = batch_idx * testBatch
         end_idx = (batch_idx + 1) * testBatch
-        batchWeight = weights_calculation(current_label[start_idx:end_idx], weight_dict)
+        batchWeight = provider.weights_calculation(current_label[start_idx:end_idx], weight_dict)
         feed_dict = {ops['pointclouds_pl']: current_data[start_idx:end_idx, :, :],
                      ops['pointclouds_other_pl']: current_other[start_idx:end_idx, :, :],
                      ops['labels_pl']: current_label[start_idx:end_idx],
@@ -295,10 +258,10 @@ def eval_one_epoch(sess, ops, test_writer):
         total_pred.extend(pred_val)
 
     log_string('Test result:')
-    log_string('eval mean loss: %f' % (loss_sum / float(total_seen)))
-    log_string('eval accuracy: %f' % (total_correct / float(total_seen)))
-    log_string('eval avg class acc: %f' % (
-        np.mean(np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float))))
+    log_string(f'mean loss: {(loss_sum / float(total_seen)):.3f}')
+    log_string(f'acc: {(total_correct / float(total_seen)):.3f}')
+    avg_class_acc = np.mean(np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float))
+    log_string(f'avg class acc: {avg_class_acc:.3f}')
     log_string(confusion_matrix(current_label[:len(total_pred)], total_pred))
 
 
@@ -306,7 +269,7 @@ if __name__ == "__main__":
     start_time = time.time()
     train()
     end_time = time.time()
-    run_time = (end_time - start_time) / 3600
-    log_string(f'running time:\t{run_time} hrs')
+    run_time = (end_time - start_time) / 60
+    log_string(f'running time:\t{run_time} mins')
 
     LOG_FOUT.close()

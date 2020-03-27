@@ -1,14 +1,15 @@
 import importlib
 import os
-import sys
 import socket
+import sys
+import time
 
 import numpy as np
 import tensorflow as tf
+from sklearn.metrics import confusion_matrix
 
 import provider
 from Parameters import Parameters
-from sklearn.metrics import confusion_matrix
 
 para = Parameters(evaluation=True)
 if para.gpu:
@@ -53,10 +54,7 @@ def evaluate():
 
         # simple model
         pred, end_points = MODEL.get_model_other(pointclouds_pl, pointclouds_other_pl, is_training_pl)
-        if para.weighting_scheme == 'weighted':
-            loss = MODEL.get_loss_weight(pred, labels_pl, end_points, weights)
-        else:
-            loss = MODEL.get_loss(pred, labels_pl, end_points)
+        loss = MODEL.get_loss_weight(pred, labels_pl, end_points, weights)
         tf.compat.v1.summary.scalar('loss', loss)
 
         # Add ops to save and restore all the variables.
@@ -84,30 +82,6 @@ def evaluate():
     eval_one_epoch(sess, ops)
 
 
-def weight_dict_fc(trainLabel, para):
-    from sklearn.preprocessing import label_binarize
-    y_total = label_binarize(trainLabel, classes=[i for i in range(para.outputClassN)])
-    class_distribution_class = np.sum(y_total, axis=0)  # get count for each class
-    class_distribution_class = [float(i) for i in class_distribution_class]
-    class_distribution_class = class_distribution_class / np.sum(class_distribution_class)  # get ratio for each class
-    inverse_dist = 1 / class_distribution_class
-    norm_inv_dist = inverse_dist / np.sum(inverse_dist)
-    weights = norm_inv_dist * para.weight_scaler + 1  # scalar should be reconsider
-    weight_dict = dict()
-    for classID, value in enumerate(weights):
-        weight_dict.update({classID: value})
-    return weight_dict
-
-
-def weights_calculation(batch_labels, weight_dict):
-    weights = []
-    # batch_labels = np.argmax(batch_labels, axis=1)
-
-    for i in batch_labels:
-        weights.append(weight_dict[i])
-    return weights
-
-
 # since the paras in training is with batch size 32, the evaluation should have the same shape.
 # So it is better to have the testing as the multiply of batch size 32
 def eval_one_epoch(sess, ops):
@@ -126,7 +100,7 @@ def eval_one_epoch(sess, ops):
     current_other = current_other[:, 0:NUM_POINT]
     current_label = np.squeeze(current_label)
     print(current_data.shape)
-    weight_dict = weight_dict_fc(current_label, para)
+    weight_dict = provider.weight_dict_fc(current_label)
 
     file_size = current_data.shape[0]
     num_batches = file_size // BATCH_SIZE
@@ -136,21 +110,14 @@ def eval_one_epoch(sess, ops):
         start_idx = batch_idx * BATCH_SIZE
         end_idx = (batch_idx + 1) * BATCH_SIZE
         cur_batch_size = end_idx - start_idx
-        batchWeight = weights_calculation(current_label[start_idx:end_idx], weight_dict)
-        # Aggregating BEG
-        # batch_loss_sum = 0  # sum of losses for the batch
-        # batch_pred_sum = np.zeros((cur_batch_size, NUM_CLASSES))  # score for classes
-        # batch_pred_classes = np.zeros((cur_batch_size, NUM_CLASSES))  # 0/1 for classes
+        batchWeight = provider.weights_calculation(current_label[start_idx:end_idx], weight_dict)
 
-        # rotated_data = provider.rotate_point_cloud_by_angle(current_data[start_idx:end_idx, :, :],
-        #                                                     vote_idx / float(num_votes) * np.pi * 2)
         feed_dict = {ops['pointclouds_pl']: current_data[start_idx:end_idx, :, :],
                      ops['pointclouds_other_pl']: current_other[start_idx:end_idx, :, :],
                      ops['labels_pl']: current_label[start_idx:end_idx],
                      ops['is_training_pl']: is_training,
                      ops['weights']: batchWeight}
         loss_val, pred_val = sess.run([ops['loss'], ops['pred']], feed_dict=feed_dict)
-        # batch_pred_sum += pred_val
         pred_val = np.argmax(pred_val, 1)  # get the predict class number
         correct_count = np.sum(pred_val == current_label[start_idx:end_idx])
         total_correct += correct_count
@@ -164,12 +131,11 @@ def eval_one_epoch(sess, ops):
             fout.write('%d %d %d\n' % (i, pred_val[i - start_idx], l))
         pred_label.extend(pred_val)
 
-    log_string('mean loss: %f' % (loss_sum / float(total_seen)))
-    log_string('acc: %f' % (total_correct / float(total_seen)))
-    log_string('avg class acc: %f' % (
-        np.mean(np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float))))
-    confusion_mat = confusion_matrix(pred_label, current_label)
-    log_string(confusion_mat)
+    log_string(f'mean loss: {(loss_sum / float(total_seen)):.3f}')
+    log_string(f'acc: {(total_correct / float(total_seen)):.3f}')
+    avg_class_acc = np.mean(np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float))
+    log_string(f'avg class acc: {avg_class_acc:.3f}')
+    log_string(confusion_matrix(pred_label, current_label))
     class_accuracies = np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float)
     for i, name in para.classes.items():
         log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
@@ -177,5 +143,9 @@ def eval_one_epoch(sess, ops):
 
 if __name__ == '__main__':
     with tf.Graph().as_default():
+        start_time = time.time()
         evaluate()
+        end_time = time.time()
+        run_time = (end_time - start_time) / 60
+        log_string(f'running time:\t{run_time} mins')
     LOG_FOUT.close()

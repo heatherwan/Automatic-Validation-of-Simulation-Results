@@ -1,8 +1,10 @@
-from utils import tf_util
-from models.transform_nets import input_transform_net, feature_transform_net
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
+
 from Parameters import Parameters
+from models.transform_nets import input_transform_net, feature_transform_net
+from utils import tf_util
+
 para = Parameters()
 
 
@@ -81,12 +83,13 @@ def get_model_other(point_cloud, point_cloud_other, is_training, bn_decay=None):
     batch_size = point_cloud.get_shape()[0]  # .value
     num_point = point_cloud.get_shape()[1]  # .value 
     end_points = {}
-
+    # transform net for input x,y,z
     with tf.compat.v1.variable_scope('transform_net1') as sc:
         transform = input_transform_net(point_cloud, is_training, bn_decay, K=3)
     point_cloud_transformed = tf.matmul(point_cloud, transform)
     input_image = tf.expand_dims(point_cloud_transformed, -1)
 
+    # First MLP layers
     net = tf_util.conv2d(input_image, 64, [1, 3],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
@@ -96,16 +99,18 @@ def get_model_other(point_cloud, point_cloud_other, is_training, bn_decay=None):
                          bn=True, is_training=is_training,
                          scope='conv2', bn_decay=bn_decay)
 
+    # transform net for the features
     with tf.compat.v1.variable_scope('transform_net2') as sc:
         transform = feature_transform_net(net, is_training, bn_decay, K=64)
     end_points['transform'] = transform
     net_transformed = tf.matmul(tf.squeeze(net, axis=[2]), transform)
     point_feat = tf.expand_dims(net_transformed, [2])
+
+    # add the additional features to the second MLP layers
     point_cloud_other = tf.expand_dims(point_cloud_other, [2])
-    # print('pointcloud shape: ', point_feat.shape)
-    # print('othershape: ', point_cloud_other.shape)
     concat_other = tf.concat(axis=3, values=[point_feat, point_cloud_other])
-    # print('all shape: ', concat_other.shape)
+
+    # second MLP layers
     net = tf_util.conv2d(concat_other, 64, [1, 1],  # 64 is the output #neuron
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
@@ -137,41 +142,24 @@ def get_model_other(point_cloud, point_cloud_other, is_training, bn_decay=None):
     return net, end_points
 
 
-def get_loss(pred, label, end_points, reg_weight=0.001):
-    """ pred: B*NUM_CLASSES,
-        label: B, """
-    loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=pred, labels=label)
-    classify_loss = tf.reduce_mean(input_tensor=loss)
-    tf.compat.v1.summary.scalar('classify loss', classify_loss)
-
-    # Enforce the transformation as orthogonal matrix
-    transform = end_points['transform']  # BxKxK
-    K = transform.get_shape()[1]  # .value
-    mat_diff = tf.matmul(transform, tf.transpose(a=transform, perm=[0, 2, 1]))
-    mat_diff -= tf.constant(np.eye(K), dtype=tf.float32)
-    mat_diff_loss = tf.nn.l2_loss(mat_diff)
-    tf.compat.v1.summary.scalar('mat loss', mat_diff_loss)
-
-    return classify_loss + mat_diff_loss * reg_weight
-
-
 def get_loss_weight(pred, label, end_points, classweight, reg_weight=0.001):
-    """ pred: B*NUM_CLASSES,
-        label: B, """
+    """ pred:   Batchsize*NUM_CLASSES,   probabilities for each class for B objects
+        label:  Batchsize,               real label for B object
+    """
     loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=pred, labels=label)
-    loss = tf.multiply(loss, classweight)
-    classify_loss = tf.reduce_mean(input_tensor=loss)
-    tf.compat.v1.summary.scalar('classify loss', classify_loss)
+    loss = tf.multiply(loss, classweight)  # multiply class weight with loss for each object
+    mean_classify_loss = tf.reduce_mean(input_tensor=loss)
+    tf.compat.v1.summary.scalar('classify loss', mean_classify_loss)
 
-    # Enforce the transformation as orthogonal matrix
+    # Enforce the transformation as orthogonal matrix,
     transform = end_points['transform']  # BxKxK
     K = transform.get_shape()[1]  # .value
     mat_diff = tf.matmul(transform, tf.transpose(a=transform, perm=[0, 2, 1]))
     mat_diff -= tf.constant(np.eye(K), dtype=tf.float32)
-    mat_diff_loss = tf.nn.l2_loss(mat_diff)
+    mat_diff_loss = tf.nn.l2_loss(mat_diff)  # mat_diff = I-AA.T transform net close to orthogonal  AA.T == I
     tf.compat.v1.summary.scalar('mat loss', mat_diff_loss)
 
-    return classify_loss + mat_diff_loss * reg_weight
+    return mean_classify_loss + mat_diff_loss * reg_weight
 
 
 if __name__ == '__main__':
