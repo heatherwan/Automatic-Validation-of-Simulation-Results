@@ -152,7 +152,7 @@ def evaluateOneEpoch(inputCoor, inputGraph, inputLabel, para, sess, trainOperati
 
         feed_dict = {trainOperation['inputPC']: batchCoor, trainOperation['inputGraph']: batchGraph,
                      trainOperation['outputLabel']: batchLabel, trainOperation['weights']: batchWeight,
-                     trainOperation['dropout_prob_1']: 1.0, trainOperation['dropout_prob_2']: 1.0}
+                     trainOperation['dropout_prob_1']: 0, trainOperation['dropout_prob_2']: 0}
 
         summary, step, predict, loss_test, acc_test = sess.run(
             [trainOperation['merged'], trainOperation['step'], trainOperation['predictLabels'],
