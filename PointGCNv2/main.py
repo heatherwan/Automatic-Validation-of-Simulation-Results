@@ -6,6 +6,7 @@ Created on Fri Mar 27 14:39:59 2020
 @author: wantinglin
 """
 import os
+import sys
 import time
 
 import numpy as np
@@ -16,6 +17,9 @@ import model
 import read_data
 import utils
 from Parameters import Parameters
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(BASE_DIR)
 
 # ===============================Hyper parameters========================
 para = Parameters(evaluation=False)
