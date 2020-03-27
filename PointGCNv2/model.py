@@ -155,7 +155,7 @@ def evaluateOneEpoch(inputCoor, inputGraph, inputLabel, para, sess, trainOperati
 
         summary, step, predict, loss_test, acc_test = sess.run(
             [trainOperation['merged'], trainOperation['step'], trainOperation['predictLabels'],
-             trainOperation['loss_total'], trainOperation['acc']],
+             trainOperation['loss'], trainOperation['acc']],
             feed_dict=feed_dict)
 
         test_writer.add_summary(summary, step)
