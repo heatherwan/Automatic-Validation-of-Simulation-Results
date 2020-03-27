@@ -6,9 +6,9 @@ import numpy as np
 import tensorflow as tf
 from sklearn.metrics import confusion_matrix
 
+import read_data
+import model
 from Parameters import Parameters
-from model import model_architecture, evaluateOneEpoch
-from read_data import load_data, prepareData
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
@@ -25,7 +25,6 @@ else:
 
 pointNumber = para.pointNumber
 neighborNumber = para.neighborNumber
-
 
 LOG_MODEL = para.modelDir
 EVAL = para.evallog
@@ -49,30 +48,32 @@ def log_string(out_str):
 def evaluate():
     with tf.Graph().as_default():  # for define a new graph to put in every element
         # ===============================Build model=============================
-        trainOperation = model_architecture(para)
-        # init = tf.global_variables_initializer()
-        # sess = tf.Session()
-        # sess.run(init)
-        # ================================Load data===============================
-        inputTrain, trainsf, trainLabel, inputTest, testsf, testLabel = load_data(pointNumber, para.samplingType)
-        scaledLaplacianTrain, scaledLaplacianTest = prepareData(inputTrain, inputTest, neighborNumber, pointNumber)
+        trainOperation = model.model_architecture(para)
+
+        # ================================Load test data===============================
+        inputTest, testother, testLabel = read_data.load_data(isEvaluation=True)
+        scaledLaplacianTest = read_data.prepareData(
+            inputTest, neighborNumber, pointNumber, isEvaluation=True)
 
         # ===============================Train model ================================
         init = tf.compat.v1.global_variables_initializer()
         sess = tf.compat.v1.Session()
-        test_writer = tf.compat.v1.summary.FileWriter(os.path.join(para.logDir, 'test'),
-                                                      sess.graph)
+        test_writer = tf.compat.v1.summary.FileWriter(os.path.join(para.logDir, 'test'), sess.graph)
+
         sess.run(init)
         saver = tf.compat.v1.train.Saver()
         saver.restore(sess, f"{LOG_MODEL}/{para.expName[:6]}.ckpt")
         log_string("Model restored.")
 
-        inputtestall = np.dstack((inputTest, testsf))  # add the safety factor
+        inputtestall = np.dstack((inputTest, testother))  # add the safety factor
         fout = open(os.path.join(EVAL, 'pred_label.txt'), 'w')
         fout.write('no predict real\n')
-        test_average_loss, test_average_acc, test_predict = evaluateOneEpoch(inputtestall, scaledLaplacianTest,
-                                                                             testLabel, para, sess, trainOperation,
-                                                                             test_writer)
+        test_average_loss, test_average_acc, test_predict = model.evaluateOneEpoch(inputtestall,
+                                                                                   scaledLaplacianTest,
+                                                                                   testLabel,
+                                                                                   para, sess,
+                                                                                   trainOperation,
+                                                                                   test_writer)
         # calculate mean class accuracy and log result
         test_predict = np.asarray(test_predict)
         test_predict = test_predict.flatten()
@@ -83,10 +84,10 @@ def evaluate():
         class_acc = np.diag(normalized_confusion)
         mean_class_acc = np.mean(class_acc)
         log_string('Test result:')
-        log_string(f'average loss: {test_average_loss}')
-        log_string(f'accuracy: {test_average_acc}')
-        log_string(f'mean class accuracy: {mean_class_acc}')
-        log_string(normalized_confusion)
+        log_string(f'average loss: {test_average_loss:.3f}')
+        log_string(f'accuracy: {test_average_acc:.3f}')
+        log_string(f'mean class accuracy: {mean_class_acc:.3f}')
+        log_string(confusion_mat)
         for i, name in para.classes.items():
             log_string('%10s:\t%0.3f' % (name, class_acc[i]))
 

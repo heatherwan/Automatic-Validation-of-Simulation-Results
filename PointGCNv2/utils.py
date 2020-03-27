@@ -1,36 +1,28 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Oct 25 10:53:31 2017
+Created on Fri Mar 27 14:39:59 2020
 
-@author: yingxuezhang
+@author: wantinglin
 """
 import h5py
 import numpy as np
 import scipy
+from sklearn.preprocessing import label_binarize
+
+h5py.get_config().default_file_mode = 'r'
 
 
-def load_h5(h5_filename):
+def load_h5_other(h5_filename):
     f = h5py.File(h5_filename)
     data = f['data'][:]
     label = f['label'][:]
-    return data, label
+    other = f['other'][:]
+    return data, other, label
 
 
-def loadDataFile(filename):
-    return load_h5(filename)
-
-
-def load_h5_sf(h5_filename):
-    f = h5py.File(h5_filename)
-    data = f['data'][:]
-    label = f['label'][:]
-    sf = f['sf'][:]
-    return data, sf, label
-
-
-def loadDataFile_sf(filename):
-    return load_h5_sf(filename)
+def loadDataFile_other(filename):
+    return load_h5_other(filename)
 
 
 def adjacency(dist, idx):
@@ -92,8 +84,6 @@ def add_noise(batch_data, sigma=0.015, clip=0.05):
 
 
 def weight_dict_fc(trainLabel, para):
-
-    from sklearn.preprocessing import label_binarize
     y_total = label_binarize(trainLabel, classes=[i for i in range(para.outputClassN)])
     class_distribution_class = np.sum(y_total, axis=0)  # get count for each class
     class_distribution_class = [float(i) for i in class_distribution_class]

@@ -1,10 +1,10 @@
 import tensorflow as tf
 import numpy as np
-from layers import gcnLayer, globalPooling, fullyConnected
-from utils import get_mini_batch, add_noise, weights_calculation, uniform_weight
+
+import utils
+import layers
 from sklearn.utils import shuffle
 from sklearn.preprocessing import label_binarize
-import sys
 
 
 # ===========================Hyper parameter=====================
@@ -12,59 +12,58 @@ def model_architecture(para):
     inputPC = tf.compat.v1.placeholder(tf.float32, [None, para.pointNumber, para.dim])
     inputGraph = tf.compat.v1.placeholder(tf.float32, [None, para.pointNumber * para.pointNumber])
     outputLabel = tf.compat.v1.placeholder(tf.float32, [None, para.outputClassN])
+
+    # Note the global_step=batch parameter to minimize.
+    # That tells the optimizer to helpfully increment the 'batch' parameter for you every time it trains.
     batch = tf.Variable(0)
     scaledLaplacian = tf.reshape(inputGraph, [-1, para.pointNumber, para.pointNumber])
 
     weights = tf.compat.v1.placeholder(tf.float32, [None])
     lr = tf.compat.v1.placeholder(tf.float32)
-    keep_prob_1 = tf.compat.v1.placeholder(tf.float32)
-    keep_prob_2 = tf.compat.v1.placeholder(tf.float32)
+    dropout_prob_1 = tf.compat.v1.placeholder(tf.float32)
+    dropout_prob_2 = tf.compat.v1.placeholder(tf.float32)
 
     # gcn layer 1
-    gcn_1 = gcnLayer(inputPC, scaledLaplacian, pointNumber=para.pointNumber, inputFeatureN=para.dim,
-                     outputFeatureN=para.gcn_1_filter_n,
-                     chebyshev_order=para.chebyshev_1_Order)
-    gcn_1_output = tf.nn.dropout(gcn_1, rate=1 - (keep_prob_1))
-    gcn_1_pooling = globalPooling(gcn_1_output, featureNumber=para.gcn_1_filter_n)
-    print("The output of the first gcn layer is {}".format(gcn_1_pooling))
-    print(gcn_1_pooling)
+    gcn_1 = layers.gcnLayer(inputPC, scaledLaplacian, pointNumber=para.pointNumber, inputFeatureN=para.dim,
+                            outputFeatureN=para.gcn_1_filter_n,
+                            chebyshev_order=para.chebyshev_1_Order)
+    gcn_1_output = tf.nn.dropout(gcn_1, rate=dropout_prob_1)
+    gcn_1_pooling = layers.globalPooling(gcn_1_output)
 
     # gcn_layer_2
 
-    gcn_2 = gcnLayer(gcn_1_output, scaledLaplacian, pointNumber=para.pointNumber, inputFeatureN=para.gcn_1_filter_n,
-                     outputFeatureN=para.gcn_2_filter_n,
-                     chebyshev_order=para.chebyshev_2_Order)
-    gcn_2_output = tf.nn.dropout(gcn_2, rate=1 - keep_prob_1)
-    gcn_2_pooling = globalPooling(gcn_2_output, featureNumber=para.gcn_2_filter_n)
-    print("The output of the second gcn layer is {}".format(gcn_2_pooling))
+    gcn_2 = layers.gcnLayer(gcn_1_output, scaledLaplacian, pointNumber=para.pointNumber,
+                            inputFeatureN=para.gcn_1_filter_n,
+                            outputFeatureN=para.gcn_2_filter_n,
+                            chebyshev_order=para.chebyshev_2_Order)
+    gcn_2_output = tf.nn.dropout(gcn_2, rate=dropout_prob_1)
+    gcn_2_pooling = layers.globalPooling(gcn_2_output)
 
     # concatenate global features
     globalFeatures = tf.concat([gcn_1_pooling, gcn_2_pooling], axis=1)
-    globalFeatures = tf.nn.dropout(globalFeatures, rate=1 - keep_prob_2)
-    print("The global feature is {}".format(globalFeatures))
-    globalFeatureN = (para.gcn_1_filter_n + para.gcn_2_filter_n) * 2
+    globalFeatures = tf.nn.dropout(globalFeatures, rate=dropout_prob_2)
+    globalFeatureNum = (para.gcn_1_filter_n + para.gcn_2_filter_n) * 2  # 1 max pooling, 1 variance pooling
 
     # fully connected layer 1
-    fc_layer_1 = fullyConnected(globalFeatures, inputFeatureN=globalFeatureN, outputFeatureN=para.fc_1_n)
+    fc_layer_1 = layers.fullyConnected(globalFeatures, inputFeatureN=globalFeatureNum, outputFeatureN=para.fc_1_n)
     fc_layer_1 = tf.nn.relu(fc_layer_1)
-    fc_layer_1 = tf.nn.dropout(fc_layer_1, rate=1 - keep_prob_2)
-    print("The output of the first fc layer is {}".format(fc_layer_1))
+    fc_layer_1 = tf.nn.dropout(fc_layer_1, rate=dropout_prob_2)
 
     # fully connected layer 2
-    fc_layer_2 = fullyConnected(fc_layer_1, inputFeatureN=para.fc_1_n, outputFeatureN=para.outputClassN)
-    print("The output of the second fc layer is {}".format(fc_layer_2))
+    fc_layer_2 = layers.fullyConnected(fc_layer_1, inputFeatureN=para.fc_1_n, outputFeatureN=para.outputClassN)
 
     # =================================Define loss===========================
     predictSoftMax = tf.nn.softmax(fc_layer_2)
     predictLabels = tf.argmax(input=predictSoftMax, axis=1)
     loss = tf.nn.softmax_cross_entropy_with_logits(logits=fc_layer_2, labels=tf.stop_gradient(outputLabel))
     loss = tf.multiply(loss, weights)
-    loss = tf.reduce_mean(input_tensor=loss)
+    loss = tf.reduce_mean(input_tensor=loss)  # mean loss
 
-    vars = tf.compat.v1.trainable_variables()
-    loss_reg = tf.add_n([tf.nn.l2_loss(v) for v in vars if 'bias' and 'Variable:0' not in v.name]) * 8e-6  # best: 8 #last: 10
+    variables = tf.compat.v1.trainable_variables()
+    loss_reg = tf.add_n(
+        [tf.nn.l2_loss(v) for v in variables if 'bias' and 'Variable:0' not in v.name]) * 8e-6
     loss_total = loss + loss_reg
-    tf.compat.v1.summary.scalar('classify loss', loss_total)
+    tf.compat.v1.summary.scalar('mean classify loss', loss_total)
 
     correct_prediction = tf.equal(predictLabels, tf.argmax(input=outputLabel, axis=1))
     acc = tf.cast(correct_prediction, tf.float32)
@@ -81,21 +80,20 @@ def model_architecture(para):
         for dim in shape:
             variable_parametes *= dim
         total_parameters += variable_parametes
-    print('Total parameters number is {}'.format(total_parameters))
+    print(f'Total parameters number is {total_parameters}')
 
     merged = tf.compat.v1.summary.merge_all()
-
     trainOperation = {'train': train, 'loss_total': loss_total, 'loss': loss, 'acc': acc, 'loss_reg': loss_reg,
                       'inputPC': inputPC,
                       'inputGraph': inputGraph, 'outputLabel': outputLabel, 'weights': weights,
                       'predictLabels': predictLabels,
-                      'keep_prob_1': keep_prob_1, 'keep_prob_2': keep_prob_2, 'lr': lr,
+                      'dropout_prob_1': dropout_prob_1, 'dropout_prob_2': dropout_prob_2, 'lr': lr,
                       'merged': merged, 'step': batch}
 
     return trainOperation
 
 
-def trainOneEpoch(inputCoor, inputGraph, inputLabel, para, sess, trainOperaion, weight_dict, learningRate,
+def trainOneEpoch(inputCoor, inputGraph, inputLabel, para, sess, trainOperation, weight_dict, learningRate,
                   train_writer):
     graphTrain_1 = inputGraph.tocsr()
     labelBinarize = label_binarize(inputLabel, classes=[j for j in range(para.outputClassN)])
@@ -104,40 +102,37 @@ def trainOneEpoch(inputCoor, inputGraph, inputLabel, para, sess, trainOperaion, 
 
     batch_loss = []
     batch_acc = []
-    batch_reg = []
     batchSize = para.batchSize
     for batchID in range(len(labelBinarize) // para.batchSize):
         start = batchID * batchSize
         end = start + batchSize
-        batchCoor, batchGraph, batchLabel = get_mini_batch(xTrain, graphTrain, labelTrain, start, end)
+        batchCoor, batchGraph, batchLabel = utils.get_mini_batch(xTrain, graphTrain, labelTrain, start, end)
         batchGraph = batchGraph.todense()
-        batchCoor = add_noise(batchCoor, sigma=0.008, clip=0.02)
-        batchWeight = uniform_weight(batchLabel)
-        if para.weighting_scheme == 'weighted':
-            batchWeight = weights_calculation(batchLabel, weight_dict)
+        batchCoor = utils.add_noise(batchCoor, sigma=0.008, clip=0.02)
 
-        feed_dict = {trainOperaion['inputPC']: batchCoor, trainOperaion['inputGraph']: batchGraph,
-                     trainOperaion['outputLabel']: batchLabel, trainOperaion['lr']: learningRate,
-                     trainOperaion['weights']: batchWeight,
-                     trainOperaion['keep_prob_1']: para.keep_prob_1, trainOperaion['keep_prob_2']: para.keep_prob_2}
+        batchWeight = utils.weights_calculation(batchLabel, weight_dict)
 
-        summary, step, opt, loss_train, acc_train, loss_reg_train = sess.run(
-            [trainOperaion['merged'], trainOperaion['step'], trainOperaion['train'],
-             trainOperaion['loss_total'], trainOperaion['acc'], trainOperaion['loss_reg']],
+        feed_dict = {trainOperation['inputPC']: batchCoor, trainOperation['inputGraph']: batchGraph,
+                     trainOperation['outputLabel']: batchLabel, trainOperation['lr']: learningRate,
+                     trainOperation['weights']: batchWeight,
+                     trainOperation['dropout_prob_1']: para.dropout_prob_1,
+                     trainOperation['dropout_prob_2']: para.dropout_prob_2}
+
+        summary, step, _, loss_train, acc_train = sess.run(
+            [trainOperation['merged'], trainOperation['step'], trainOperation['train'],
+             trainOperation['loss_total'], trainOperation['acc']],
             feed_dict=feed_dict)
         train_writer.add_summary(summary, step)
         batch_loss.append(loss_train)
         batch_acc.append(acc_train)
-        batch_reg.append(loss_reg_train)
 
-    train_average_loss = np.mean(batch_loss)
+    train_average_loss = np.mean(batch_loss)  # avg. total loss
     train_average_acc = np.mean(batch_acc)
-    loss_reg_average = np.mean(batch_reg)
 
-    return train_average_loss, train_average_acc, loss_reg_average
+    return train_average_loss, train_average_acc
 
 
-def evaluateOneEpoch(inputCoor, inputGraph, inputLabel, para, sess, trainOperaion, test_writer):
+def evaluateOneEpoch(inputCoor, inputGraph, inputLabel, para, sess, trainOperation, test_writer):
     xTest, graphTest, labelTest = inputCoor, inputGraph, inputLabel
     graphTest = graphTest.tocsr()
     labelBinarize = label_binarize(labelTest, classes=[i for i in range(para.outputClassN)])
@@ -150,17 +145,17 @@ def evaluateOneEpoch(inputCoor, inputGraph, inputLabel, para, sess, trainOperaio
     for testBatchID in range(len(labelTest) // test_batch_size):
         start = testBatchID * test_batch_size
         end = start + test_batch_size
-        batchCoor, batchGraph, batchLabel = get_mini_batch(xTest, graphTest, labelBinarize, start, end)
-        batchWeight = uniform_weight(batchLabel)
+        batchCoor, batchGraph, batchLabel = utils.get_mini_batch(xTest, graphTest, labelBinarize, start, end)
+        batchWeight = utils.uniform_weight(batchLabel)
         batchGraph = batchGraph.todense()
 
-        feed_dict = {trainOperaion['inputPC']: batchCoor, trainOperaion['inputGraph']: batchGraph,
-                     trainOperaion['outputLabel']: batchLabel, trainOperaion['weights']: batchWeight,
-                     trainOperaion['keep_prob_1']: 1.0, trainOperaion['keep_prob_2']: 1.0}
+        feed_dict = {trainOperation['inputPC']: batchCoor, trainOperation['inputGraph']: batchGraph,
+                     trainOperation['outputLabel']: batchLabel, trainOperation['weights']: batchWeight,
+                     trainOperation['dropout_prob_1']: 1.0, trainOperation['dropout_prob_2']: 1.0}
 
         summary, step, predict, loss_test, acc_test = sess.run(
-            [trainOperaion['merged'], trainOperaion['step'], trainOperaion['predictLabels'],
-             trainOperaion['loss'], trainOperaion['acc']],
+            [trainOperation['merged'], trainOperation['step'], trainOperation['predictLabels'],
+             trainOperation['loss_total'], trainOperation['acc']],
             feed_dict=feed_dict)
 
         test_writer.add_summary(summary, step)
@@ -168,7 +163,7 @@ def evaluateOneEpoch(inputCoor, inputGraph, inputLabel, para, sess, trainOperaio
         test_acc.append(acc_test)
         test_predict.append(predict)
 
-    test_average_loss = np.mean(test_loss)
+    test_average_loss = np.mean(test_loss)  # avg. total loss
     test_average_acc = np.mean(test_acc)
 
     return test_average_loss, test_average_acc, test_predict

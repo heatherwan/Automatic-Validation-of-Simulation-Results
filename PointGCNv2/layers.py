@@ -42,7 +42,7 @@ def gcnLayer(inputPC, scaledLaplacian, pointNumber, inputFeatureN, outputFeature
     return gcnOutput
 
 
-def globalPooling(gcnOutput, featureNumber):
+def globalPooling(gcnOutput):
     # l2_max_pooling_pre = tf.reshape(gcnOutput, [-1, 1024, featureNumber, 1])
     # max_pooling_output_1=tf.nn.max_pool(l2_max_pooling_pre,ksize=[1,1024,1,1],strides=[1,1,1,1],padding='VALID')
     # max_pooling_output_1=tf.reshape(max_pooling_output_1,[-1,featureNumber])
