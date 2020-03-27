@@ -71,7 +71,7 @@ def train():
         saver = tf.compat.v1.train.Saver()
         learningRate = para.learningRate
 
-        save_model_path = os.path.join(para.modelDir, para.expName[:6], '.ckpt')
+        save_model_path = os.path.join(para.modelDir, f'{para.expName[:6]}.ckpt')
         weight_dict = utils.weight_dict_fc(trainLabel, para)
 
         minloss = np.inf

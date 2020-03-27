@@ -61,7 +61,8 @@ def evaluate():
 
         sess.run(init)
         saver = tf.compat.v1.train.Saver()
-        saver.restore(sess, f"{LOG_MODEL}/{para.expName[:6]}.ckpt")
+        save_model_path = os.path.join(para.modelDir, f'{para.expName[:6]}.ckpt')
+        saver.restore(sess, save_model_path)
         log_string("Model restored.")
 
         inputtestall = np.dstack((inputTest, testother))  # add the safety factor
