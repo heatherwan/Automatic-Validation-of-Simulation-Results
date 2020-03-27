@@ -54,6 +54,7 @@ def model_architecture(para):
 
     # =================================Define loss===========================
     predictSoftMax = tf.nn.softmax(fc_layer_2)
+    print(predictSoftMax)
     predictLabels = tf.argmax(input=predictSoftMax, axis=1)
     loss = tf.nn.softmax_cross_entropy_with_logits(logits=fc_layer_2, labels=tf.stop_gradient(outputLabel))
     loss = tf.multiply(loss, weights)
@@ -118,7 +119,7 @@ def trainOneEpoch(inputCoor, inputGraph, inputLabel, para, sess, trainOperation,
                      trainOperation['dropout_prob_1']: para.dropout_prob_1,
                      trainOperation['dropout_prob_2']: para.dropout_prob_2}
 
-        summary, step, _, loss_train, acc_train = sess.run(
+        summary, step, opt, loss_train, acc_train = sess.run(
             [trainOperation['merged'], trainOperation['step'], trainOperation['train'],
              trainOperation['loss_total'], trainOperation['acc']],
             feed_dict=feed_dict)
