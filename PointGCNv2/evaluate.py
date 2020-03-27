@@ -52,8 +52,7 @@ def evaluate():
 
         # ================================Load test data===============================
         inputTest, testother, testLabel = read_data.load_data(isEvaluation=True)
-        scaledLaplacianTest = read_data.prepareData(
-            inputTest, neighborNumber, pointNumber, isEvaluation=True)
+        scaledLaplacianTest = read_data.prepareData(None, inputTest, neighborNumber, pointNumber, isEvaluation=True)
 
         # ===============================Train model ================================
         init = tf.compat.v1.global_variables_initializer()
