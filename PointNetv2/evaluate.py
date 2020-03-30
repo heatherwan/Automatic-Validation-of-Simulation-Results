@@ -135,7 +135,7 @@ def eval_one_epoch(sess, ops):
     log_string(f'acc: {(total_correct / float(total_seen)):.3f}')
     avg_class_acc = np.mean(np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float))
     log_string(f'avg class acc: {avg_class_acc:.3f}')
-    log_string(confusion_matrix(pred_label, current_label))
+    log_string(confusion_matrix(current_label[:len(pred_label)], pred_label))
     class_accuracies = np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float)
     for i, name in para.classes.items():
         log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
