@@ -103,8 +103,6 @@ def train():
             log_string(f'mean loss: {train_average_loss:.3f}')
             log_string(f'accuracy: {train_average_acc:.3f}')
 
-
-
             inputtestall = np.dstack((inputTest, testother))  # add the safety factor
             test_average_loss, test_average_acc, test_predict = model.evaluateOneEpoch(inputtestall,
                                                                                        scaledLaplacianTest,
