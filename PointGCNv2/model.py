@@ -137,7 +137,7 @@ def evaluateOneEpoch(inputCoor, inputGraph, inputLabel, para, sess, trainOperati
     xTest, graphTest, labelTest = inputCoor, inputGraph, inputLabel
     graphTest = graphTest.tocsr()
     labelBinarize = label_binarize(labelTest, classes=[i for i in range(para.outputClassN)])
-    test_batch_size = para.batchSize
+    test_batch_size = para.testBatchSize
 
     test_loss = []
     test_acc = []
