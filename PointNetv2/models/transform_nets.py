@@ -139,7 +139,7 @@ def input_transform_net_dgcnn(edge_feature, is_training, bn_decay=None, K=3, is_
             biases = tf.compat.v1.get_variable('biases', [K * K],
                                                initializer=tf.compat.v1.constant_initializer(0.0),
                                                dtype=tf.float32)
-        biases += tf.constant(np.eye(K).flatten(), dtype=tf.float32)
+        biases.assign_add(tf.constant(np.eye(K).flatten(), dtype=tf.float32))
         transform = tf.matmul(net, weights)
         transform = tf.nn.bias_add(transform, biases)
 
