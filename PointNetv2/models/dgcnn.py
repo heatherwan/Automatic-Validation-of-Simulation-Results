@@ -107,23 +107,30 @@ def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
     batch_size = point_cloud.get_shape()[0]  # .value
     num_point = point_cloud.get_shape()[1]  # .value
     end_points = {}
-    k = 20
 
+    k = 20
+    # build graph
     adj_matrix = tf_util.pairwise_distance(point_cloud)
     nn_idx = tf_util.knn(adj_matrix, k=k)
     edge_feature = tf_util.get_edge_feature(point_cloud, nn_idx=nn_idx, k=k)
+    print(f'first edge shape: {edge_feature.shape}')
 
     # transform net for input x,y,z
     with tf.compat.v1.variable_scope('transform_net1') as sc:
         transform = input_transform_net_dgcnn(edge_feature, is_training, bn_decay, K=3)
 
     point_cloud_transformed = tf.matmul(point_cloud, transform)
-    
+    print(f'point_cloud_transformed shape: {point_cloud_transformed.shape}')
+
+    # ======try to add more features here
+    concat_other = tf.concat(axis=2, values=[point_cloud_transformed, pointclouds_other])
+    point_cloud_transformed = concat_other
     # build graph
     adj_matrix = tf_util.pairwise_distance(point_cloud_transformed)
     nn_idx = tf_util.knn(adj_matrix, k=k)
     edge_feature = tf_util.get_edge_feature(point_cloud_transformed, nn_idx=nn_idx, k=k)
-    
+    print(f'first edge shape: {edge_feature.shape}')
+
     # First EdgeConv layers
     net = tf_util.conv2d(edge_feature, 64, [1, 1],
                          padding='VALID', stride=[1, 1],
@@ -131,6 +138,7 @@ def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
                          scope='dgcnn1', bn_decay=bn_decay)
     net = tf.reduce_max(input_tensor=net, axis=-2, keepdims=True)
     net1 = net
+    print(net1.shape)
     
     # build graph
     adj_matrix = tf_util.pairwise_distance(net)

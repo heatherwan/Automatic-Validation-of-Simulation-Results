@@ -694,7 +694,10 @@ def get_edge_feature(point_cloud, nn_idx, k=20):
     idx_ = tf.reshape(idx_, [batch_size, 1, 1])
 
     point_cloud_flat = tf.reshape(point_cloud, [-1, num_dims])
-    point_cloud_neighbors = tf.gather(point_cloud_flat, nn_idx + idx_)
+
+    point_cloud_neighbors = tf.gather(point_cloud_flat, nn_idx + idx_)  # idx_ which sample, nn_idx which point
+    print(f'point_cloud_neighbors shape: {point_cloud_neighbors.shape}')
+
     point_cloud_central = tf.expand_dims(point_cloud_central, axis=-2)
 
     point_cloud_central = tf.tile(point_cloud_central, [1, 1, k, 1])
