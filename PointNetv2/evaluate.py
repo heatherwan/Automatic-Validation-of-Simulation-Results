@@ -91,9 +91,10 @@ def eval_one_epoch(sess, ops):
     loss_sum = 0
     total_seen_class = [0 for _ in range(NUM_CLASSES)]
     total_correct_class = [0 for _ in range(NUM_CLASSES)]
-    fout = open(os.path.join(EVAL, 'pred_label.txt'), 'w')
-    fout.write('no predict real\n')
-
+    fout = open(os.path.join(EVAL, 'all_pred_label.txt'), 'w')
+    fout.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
+    fout2 = open(os.path.join(EVAL, 'wrong_pred_prob.txt'), 'w')
+    fout2.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
     # load data
     current_data, current_other, current_label = provider.loadDataFile_other(para.TEST_FILES)
     current_data = current_data[:, 0:NUM_POINT, :]
@@ -117,8 +118,9 @@ def eval_one_epoch(sess, ops):
                      ops['labels_pl']: current_label[start_idx:end_idx],
                      ops['is_training_pl']: is_training,
                      ops['weights']: batchWeight}
-        loss_val, pred_val = sess.run([ops['loss'], ops['pred']], feed_dict=feed_dict)
-        pred_val = np.argmax(pred_val, 1)  # get the predict class number
+        loss_val, pred_prob = sess.run([ops['loss'], ops['pred']], feed_dict=feed_dict)
+        pred_prob2 = np.exp(pred_prob) / np.sum(np.exp(pred_prob), axis=1).reshape(32, 1)
+        pred_val = np.argmax(pred_prob, 1)  # get the predict class number
         correct_count = np.sum(pred_val == current_label[start_idx:end_idx])
         total_correct += correct_count
         total_seen += cur_batch_size
@@ -128,7 +130,13 @@ def eval_one_epoch(sess, ops):
             l = current_label[i]
             total_seen_class[l] += 1
             total_correct_class[l] += (pred_val[i - start_idx] == l)
-            fout.write('%d %d %d\n' % (i, pred_val[i - start_idx], l))
+            fout.write(f'{i:^5d}\t{pred_val[i - start_idx]:^5d}\t{l:^5d}\t'
+                       f'{pred_prob[i - start_idx][0]:.3f}\t{pred_prob[i - start_idx][1]:.3f}\t'
+                       f'{pred_prob[i - start_idx][2]:.3f}\t{pred_prob[i - start_idx][3]:.3f}\n')
+            if pred_val[i - start_idx] != l:
+                fout2.write(f'{i:^5d}\t{pred_val[i - start_idx]:^5d}\t{l:^5d}\t'
+                            f'{pred_prob2[i - start_idx][0]:.3f}\t{pred_prob2[i - start_idx][1]:.3f}\t'
+                            f'{pred_prob2[i - start_idx][2]:.3f}\t{pred_prob2[i - start_idx][3]:.3f}\n')
         pred_label.extend(pred_val)
 
     log_string(f'mean loss: {(loss_sum / float(total_seen)):.3f}')
