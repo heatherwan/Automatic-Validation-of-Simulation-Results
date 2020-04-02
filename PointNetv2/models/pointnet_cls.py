@@ -22,7 +22,7 @@ def placeholder_inputs_other(batch_size, num_point):
 
 
 def get_model(point_cloud, is_training, bn_decay=None):
-    """ Classification PointNet, input is BxNx3 and BxNx1, output Bx4 """
+    """ Classification PointNet, input is BxNx3 and BxNx5, output Bx4 """
     batch_size = point_cloud.get_shape()[0]
     num_point = point_cloud.get_shape()[1]
     end_points = {}
@@ -83,6 +83,7 @@ def get_model_other(point_cloud, point_cloud_other, is_training, bn_decay=None):
     batch_size = point_cloud.get_shape()[0]  # .value
     num_point = point_cloud.get_shape()[1]  # .value 
     end_points = {}
+
     # transform net for input x,y,z
     with tf.compat.v1.variable_scope('transform_net1') as sc:
         transform = input_transform_net(point_cloud, is_training, bn_decay, K=3)

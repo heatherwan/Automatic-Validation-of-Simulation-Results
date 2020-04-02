@@ -11,13 +11,13 @@ class Parameters:
     def __init__(self, evaluation=False):
         # ==============Network setting===========================
         self.gpu = False
-        self.model = 'pointnet_cls'
+        self.model = 'dgcnn'  # 'pointnet_cls'
         self.outputClassN = 4
         self.pointNumber = 1024
         self.dim = 8  # 3 coordinate, 1 safety factor, 1 distance from Min SF, 3 normals
-        self.batchSize = 32
-        self.testBatchSize = 32
-        self.max_epoch = 2
+        self.batchSize = 16
+        self.testBatchSize = 16
+        self.max_epoch = 200
         self.learningRate = 2e-3
         self.momentum = 0.9
         self.optimizer = 'adam'  # or momentum
@@ -51,7 +51,7 @@ class Parameters:
         self.TRAIN_FILES = os.path.join(self.dataDir, 'traindataset_dim8_480_1024_relabel.hdf5')
         self.TEST_FILES = os.path.join(self.dataDir, 'testdataset_dim8_160_1024_relabel.hdf5')
 
-        self.expName = f'exp002_point{self.pointNumber}_batch{self.batchSize}_out{self.outputClassN}' \
+        self.expName = f'exp400_point{self.pointNumber}_batch{self.batchSize}_out{self.outputClassN}' \
                        f'_weighted{self.weight_scaler}'  # save model path
 
         self.classes = {1: 'EM1_contact', 2: 'EM3_radius', 3: 'EM4_hole', 0: 'Good'}

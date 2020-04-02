@@ -2,24 +2,26 @@
 
 Author: Charles R. Qi
 Date: November 2016
+
+Updated by Yue Wang and Yongbin Sun
 """
 
 import numpy as np
 import tensorflow as tf
 
 
-def _variable_on_cpu(name, shape, initializer, use_fp16=False):
-    """ Helper to create a Variable stored on CPU memory.
-      Args:
-        name: name of the variable
-        shape: list of ints
-        initializer: initializer for Variable
-      Returns:
-        Variable Tensor
-    """
+def _variable_on_cpu(name, shape, initializer, use_fp16=False, trainable=True):
+    """Helper to create a Variable stored on CPU memory.
+  Args:
+    name: name of the variable
+    shape: list of ints
+    initializer: initializer for Variable
+  Returns:
+    Variable Tensor
+  """
     with tf.device('/cpu:0'):
         dtype = tf.float16 if use_fp16 else tf.float32
-        var = tf.compat.v1.get_variable(name, shape, initializer=initializer, dtype=dtype)
+        var = tf.compat.v1.get_variable(name, shape, initializer=initializer, dtype=dtype, trainable=trainable)
     return var
 
 
@@ -63,7 +65,8 @@ def conv1d(inputs,
            activation_fn=tf.nn.relu,
            bn=False,
            bn_decay=None,
-           is_training=None):
+           is_training=None,
+           is_dist=False):
     """ 1D convolution with non-linear operation.
 
   Args:
@@ -85,7 +88,7 @@ def conv1d(inputs,
     Variable tensor
   """
     with tf.compat.v1.variable_scope(scope) as sc:
-        num_in_channels = inputs.get_shape()[-1]  # .value
+        num_in_channels = inputs.get_shape()[-1].value
         kernel_shape = [kernel_size,
                         num_in_channels, num_output_channels]
         kernel = _variable_with_weight_decay('weights',
@@ -102,7 +105,7 @@ def conv1d(inputs,
 
         if bn:
             outputs = batch_norm_for_conv1d(outputs, is_training,
-                                            bn_decay=bn_decay, scope='bn')
+                                            bn_decay=bn_decay, scope='bn', is_dist=is_dist)
 
         if activation_fn is not None:
             outputs = activation_fn(outputs)
@@ -121,7 +124,8 @@ def conv2d(inputs,
            activation_fn=tf.nn.relu,
            bn=False,
            bn_decay=None,
-           is_training=None):
+           is_training=None,
+           is_dist=False):
     """ 2D convolution with non-linear operation.
 
   Args:
@@ -144,7 +148,7 @@ def conv2d(inputs,
   """
     with tf.compat.v1.variable_scope(scope) as sc:
         kernel_h, kernel_w = kernel_size
-        num_in_channels = inputs.get_shape()[-1]  # .value
+        num_in_channels = inputs.get_shape()[-1].value
         kernel_shape = [kernel_h, kernel_w,
                         num_in_channels, num_output_channels]
         kernel = _variable_with_weight_decay('weights',
@@ -162,7 +166,7 @@ def conv2d(inputs,
 
         if bn:
             outputs = batch_norm_for_conv2d(outputs, is_training,
-                                            bn_decay=bn_decay, scope='bn')
+                                            bn_decay=bn_decay, scope='bn', is_dist=is_dist)
 
         if activation_fn is not None:
             outputs = activation_fn(outputs)
@@ -181,7 +185,8 @@ def conv2d_transpose(inputs,
                      activation_fn=tf.nn.relu,
                      bn=False,
                      bn_decay=None,
-                     is_training=None):
+                     is_training=None,
+                     is_dist=False):
     """ 2D convolution transpose with non-linear operation.
 
   Args:
@@ -206,7 +211,7 @@ def conv2d_transpose(inputs,
   """
     with tf.compat.v1.variable_scope(scope) as sc:
         kernel_h, kernel_w = kernel_size
-        num_in_channels = inputs.get_shape()[-1]  # .value
+        num_in_channels = inputs.get_shape()[-1].value
         kernel_shape = [kernel_h, kernel_w,
                         num_output_channels, num_in_channels]  # reversed to conv2d
         kernel = _variable_with_weight_decay('weights',
@@ -241,7 +246,7 @@ def conv2d_transpose(inputs,
 
         if bn:
             outputs = batch_norm_for_conv2d(outputs, is_training,
-                                            bn_decay=bn_decay, scope='bn')
+                                            bn_decay=bn_decay, scope='bn', is_dist=is_dist)
 
         if activation_fn is not None:
             outputs = activation_fn(outputs)
@@ -260,7 +265,8 @@ def conv3d(inputs,
            activation_fn=tf.nn.relu,
            bn=False,
            bn_decay=None,
-           is_training=None):
+           is_training=None,
+           is_dist=False):
     """ 3D convolution with non-linear operation.
 
   Args:
@@ -301,7 +307,7 @@ def conv3d(inputs,
 
         if bn:
             outputs = batch_norm_for_conv3d(outputs, is_training,
-                                            bn_decay=bn_decay, scope='bn')
+                                            bn_decay=bn_decay, scope='bn', is_dist=is_dist)
 
         if activation_fn is not None:
             outputs = activation_fn(outputs)
@@ -317,7 +323,8 @@ def fully_connected(inputs,
                     activation_fn=tf.nn.relu,
                     bn=False,
                     bn_decay=None,
-                    is_training=None):
+                    is_training=None,
+                    is_dist=False):
     """ Fully connected layer with non-linear operation.
   
   Args:
@@ -328,7 +335,7 @@ def fully_connected(inputs,
     Variable tensor of size B x num_outputs.
   """
     with tf.compat.v1.variable_scope(scope) as sc:
-        num_input_units = inputs.get_shape()[-1]  # .value
+        num_input_units = inputs.get_shape()[-1].value
         weights = _variable_with_weight_decay('weights',
                                               shape=[num_input_units, num_outputs],
                                               use_xavier=use_xavier,
@@ -340,7 +347,7 @@ def fully_connected(inputs,
         outputs = tf.nn.bias_add(outputs, biases)
 
         if bn:
-            outputs = batch_norm_for_fc(outputs, is_training, bn_decay, 'bn')
+            outputs = batch_norm_for_fc(outputs, is_training, bn_decay, 'bn', is_dist=is_dist)
 
         if activation_fn is not None:
             outputs = activation_fn(outputs)
@@ -465,7 +472,7 @@ def batch_norm_template(inputs, is_training, scope, moments_dims, bn_decay):
       normed:        batch-normalized maps
   """
     with tf.compat.v1.variable_scope(scope) as sc:
-        num_channels = inputs.get_shape()[-1]  # .value
+        num_channels = inputs.get_shape()[-1].value
         beta = tf.Variable(tf.constant(0.0, shape=[num_channels]),
                            name='beta', trainable=True)
         gamma = tf.Variable(tf.constant(1.0, shape=[num_channels]),
@@ -491,7 +498,45 @@ def batch_norm_template(inputs, is_training, scope, moments_dims, bn_decay):
     return normed
 
 
-def batch_norm_for_fc(inputs, is_training, bn_decay, scope):
+def batch_norm_dist_template(inputs, is_training, scope, moments_dims, bn_decay):
+    """ The batch normalization for distributed training.
+  Args:
+      inputs:        Tensor, k-D input ... x C could be BC or BHWC or BDHWC
+      is_training:   boolean tf.Varialbe, true indicates training phase
+      scope:         string, variable scope
+      moments_dims:  a list of ints, indicating dimensions for moments calculation
+      bn_decay:      float or float tensor variable, controling moving average weight
+  Return:
+      normed:        batch-normalized maps
+  """
+    with tf.compat.v1.variable_scope(scope) as sc:
+        num_channels = inputs.get_shape()[-1].value
+        beta = _variable_on_cpu('beta', [num_channels], initializer=tf.compat.v1.zeros_initializer())
+        gamma = _variable_on_cpu('gamma', [num_channels], initializer=tf.compat.v1.ones_initializer())
+
+        pop_mean = _variable_on_cpu('pop_mean', [num_channels], initializer=tf.compat.v1.zeros_initializer(),
+                                    trainable=False)
+        pop_var = _variable_on_cpu('pop_var', [num_channels], initializer=tf.compat.v1.ones_initializer(),
+                                   trainable=False)
+
+        def train_bn_op():
+            batch_mean, batch_var = tf.nn.moments(x=inputs, axes=moments_dims, name='moments')
+            decay = bn_decay if bn_decay is not None else 0.9
+            train_mean = tf.compat.v1.assign(pop_mean, pop_mean * decay + batch_mean * (1 - decay))
+            train_var = tf.compat.v1.assign(pop_var, pop_var * decay + batch_var * (1 - decay))
+            with tf.control_dependencies([train_mean, train_var]):
+                return tf.nn.batch_normalization(inputs, batch_mean, batch_var, beta, gamma, 1e-3)
+
+        def test_bn_op():
+            return tf.nn.batch_normalization(inputs, pop_mean, pop_var, beta, gamma, 1e-3)
+
+        normed = tf.cond(pred=is_training,
+                         true_fn=train_bn_op,
+                         false_fn=test_bn_op)
+        return normed
+
+
+def batch_norm_for_fc(inputs, is_training, bn_decay, scope, is_dist=False):
     """ Batch normalization on FC data.
   
   Args:
@@ -499,13 +544,17 @@ def batch_norm_for_fc(inputs, is_training, bn_decay, scope):
       is_training: boolean tf.Varialbe, true indicates training phase
       bn_decay:    float or float tensor variable, controling moving average weight
       scope:       string, variable scope
+      is_dist:     true indicating distributed training scheme
   Return:
       normed:      batch-normalized maps
   """
-    return batch_norm_template(inputs, is_training, scope, [0, ], bn_decay)
+    if is_dist:
+        return batch_norm_dist_template(inputs, is_training, scope, [0, ], bn_decay)
+    else:
+        return batch_norm_template(inputs, is_training, scope, [0, ], bn_decay)
 
 
-def batch_norm_for_conv1d(inputs, is_training, bn_decay, scope):
+def batch_norm_for_conv1d(inputs, is_training, bn_decay, scope, is_dist=False):
     """ Batch normalization on 1D convolutional maps.
   
   Args:
@@ -513,13 +562,17 @@ def batch_norm_for_conv1d(inputs, is_training, bn_decay, scope):
       is_training: boolean tf.Varialbe, true indicates training phase
       bn_decay:    float or float tensor variable, controling moving average weight
       scope:       string, variable scope
+      is_dist:     true indicating distributed training scheme
   Return:
       normed:      batch-normalized maps
   """
-    return batch_norm_template(inputs, is_training, scope, [0, 1], bn_decay)
+    if is_dist:
+        return batch_norm_dist_template(inputs, is_training, scope, [0, 1], bn_decay)
+    else:
+        return batch_norm_template(inputs, is_training, scope, [0, 1], bn_decay)
 
 
-def batch_norm_for_conv2d(inputs, is_training, bn_decay, scope):
+def batch_norm_for_conv2d(inputs, is_training, bn_decay, scope, is_dist=False):
     """ Batch normalization on 2D convolutional maps.
   
   Args:
@@ -527,13 +580,17 @@ def batch_norm_for_conv2d(inputs, is_training, bn_decay, scope):
       is_training: boolean tf.Varialbe, true indicates training phase
       bn_decay:    float or float tensor variable, controling moving average weight
       scope:       string, variable scope
+      is_dist:     true indicating distributed training scheme
   Return:
       normed:      batch-normalized maps
   """
-    return batch_norm_template(inputs, is_training, scope, [0, 1, 2], bn_decay)
+    if is_dist:
+        return batch_norm_dist_template(inputs, is_training, scope, [0, 1, 2], bn_decay)
+    else:
+        return batch_norm_template(inputs, is_training, scope, [0, 1, 2], bn_decay)
 
 
-def batch_norm_for_conv3d(inputs, is_training, bn_decay, scope):
+def batch_norm_for_conv3d(inputs, is_training, bn_decay, scope, is_dist=False):
     """ Batch normalization on 3D convolutional maps.
   
   Args:
@@ -541,10 +598,14 @@ def batch_norm_for_conv3d(inputs, is_training, bn_decay, scope):
       is_training: boolean tf.Varialbe, true indicates training phase
       bn_decay:    float or float tensor variable, controling moving average weight
       scope:       string, variable scope
+      is_dist:     true indicating distributed training scheme
   Return:
       normed:      batch-normalized maps
   """
-    return batch_norm_template(inputs, is_training, scope, [0, 1, 2, 3], bn_decay)
+    if is_dist:
+        return batch_norm_dist_template(inputs, is_training, scope, [0, 1, 2, 3], bn_decay)
+    else:
+        return batch_norm_template(inputs, is_training, scope, [0, 1, 2, 3], bn_decay)
 
 
 def dropout(inputs,
@@ -569,3 +630,74 @@ def dropout(inputs,
                           true_fn=lambda: tf.nn.dropout(inputs, 1 - (keep_prob), noise_shape),
                           false_fn=lambda: inputs)
         return outputs
+
+
+def pairwise_distance(point_cloud):
+    """Compute pairwise distance of a point cloud.
+
+  Args:
+    point_cloud: tensor (batch_size, num_points, num_dims)
+
+  Returns:
+    pairwise distance: (batch_size, num_points, num_points)
+  """
+    og_batch_size = point_cloud.get_shape().as_list()[0]
+    point_cloud = tf.squeeze(point_cloud)
+    if og_batch_size == 1:
+        point_cloud = tf.expand_dims(point_cloud, 0)
+
+    point_cloud_transpose = tf.transpose(a=point_cloud, perm=[0, 2, 1])
+    point_cloud_inner = tf.matmul(point_cloud, point_cloud_transpose)
+    point_cloud_inner = -2 * point_cloud_inner
+    point_cloud_square = tf.reduce_sum(input_tensor=tf.square(point_cloud), axis=-1, keepdims=True)
+    point_cloud_square_tranpose = tf.transpose(a=point_cloud_square, perm=[0, 2, 1])
+    return point_cloud_square + point_cloud_inner + point_cloud_square_tranpose
+
+
+def knn(adj_matrix, k=20):
+    """Get KNN based on the pairwise distance.
+  Args:
+    pairwise distance: (batch_size, num_points, num_points)
+    k: int
+
+  Returns:
+    nearest neighbors: (batch_size, num_points, k)
+  """
+    neg_adj = -adj_matrix
+    _, nn_idx = tf.nn.top_k(neg_adj, k=k)
+    return nn_idx
+
+
+def get_edge_feature(point_cloud, nn_idx, k=20):
+    """Construct edge feature for each point
+  Args:
+    point_cloud: (batch_size, num_points, 1, num_dims)
+    nn_idx: (batch_size, num_points, k)
+    k: int
+
+  Returns:
+    edge features: (batch_size, num_points, k, num_dims)
+  """
+    og_batch_size = point_cloud.get_shape().as_list()[0]
+    point_cloud = tf.squeeze(point_cloud)
+    if og_batch_size == 1:
+        point_cloud = tf.expand_dims(point_cloud, 0)
+
+    point_cloud_central = point_cloud
+
+    point_cloud_shape = point_cloud.get_shape()
+    batch_size = point_cloud_shape[0].value
+    num_points = point_cloud_shape[1].value
+    num_dims = point_cloud_shape[2].value
+
+    idx_ = tf.range(batch_size) * num_points
+    idx_ = tf.reshape(idx_, [batch_size, 1, 1])
+
+    point_cloud_flat = tf.reshape(point_cloud, [-1, num_dims])
+    point_cloud_neighbors = tf.gather(point_cloud_flat, nn_idx + idx_)
+    point_cloud_central = tf.expand_dims(point_cloud_central, axis=-2)
+
+    point_cloud_central = tf.tile(point_cloud_central, [1, 1, k, 1])
+
+    edge_feature = tf.concat([point_cloud_central, point_cloud_neighbors - point_cloud_central], axis=-1)
+    return edge_feature
