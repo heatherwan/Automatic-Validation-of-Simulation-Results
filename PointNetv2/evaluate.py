@@ -119,7 +119,7 @@ def eval_one_epoch(sess, ops):
                      ops['is_training_pl']: is_training,
                      ops['weights']: batchWeight}
         loss_val, pred_prob = sess.run([ops['loss'], ops['pred']], feed_dict=feed_dict)
-        pred_prob2 = np.exp(pred_prob) / np.sum(np.exp(pred_prob), axis=1).reshape(32, 1)
+        pred_prob2 = np.exp(pred_prob) / np.sum(np.exp(pred_prob), axis=1).reshape(para.batchSize, 1)
         pred_val = np.argmax(pred_prob, 1)  # get the predict class number
         correct_count = np.sum(pred_val == current_label[start_idx:end_idx])
         total_correct += correct_count
