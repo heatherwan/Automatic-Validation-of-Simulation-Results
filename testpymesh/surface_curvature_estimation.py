@@ -5,7 +5,6 @@ import numpy as np
 import pylab
 from mpl_toolkits.mplot3d import Axes3D
 from main import readVTP, getMinSF, getNearpoints
-import networkx as nx
 import pymesh
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
@@ -95,11 +94,6 @@ def surface_curvature(X, Y, Z):
 
 def fun(x, y):
     return x ** 2 + y ** 2
-
-
-def create_graph(mesh, points):
-    G = nx.Graph()
-    G.add_edges_from()
 
 
 def main():
