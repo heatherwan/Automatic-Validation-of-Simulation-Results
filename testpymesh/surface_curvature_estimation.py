@@ -105,8 +105,9 @@ def main():
     mesh = pymesh.form_mesh(data[:, 1:], mesh_connect)
     print(mesh.num_vertices, mesh.num_faces, mesh.num_voxels)
     mesh.add_attribute("vertex_gaussian_curvature")
-    mesh.get_attribute("vertex_gaussian_curvature")
-
+    gaussian = mesh.get_attribute("vertex_gaussian_curvature")
+    print(gaussian.shape)
+    print(gaussian[:5])
     # ============get the connected vertices================
     # adjacencyM = {}
     # for (a, b, c) in mesh:
