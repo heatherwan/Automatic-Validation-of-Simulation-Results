@@ -170,6 +170,8 @@ def main():
     normal = mesh.get_attribute("vertex_normal")
     mesh.add_attribute("vertex_gaussian_curvature")
     gaussian = mesh.get_attribute("vertex_gaussian_curvature")
+    mesh.add_attribute("vertex_index")
+    index = mesh.get_attribute("vertex_index")
 
     MinSF = getMinSF(data)
     indexes, nearpoints = getNearpoints(data, MinSF, NNeighbors)
@@ -181,8 +183,11 @@ def main():
     pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.5, max_nn=4))
     # o3d.visualization.draw_geometries([pcd])
     normals = np.asarray(pcd.normals)
+    print(indexes)
+    print(f'index :\n {index[indexes]}')
     print(f'gaussian :\n {gaussian[indexes]}')
     print(f'normals :\n {normal[indexes]}')
+    print(normal[indexes].shape)
     print(normals)
 
 
