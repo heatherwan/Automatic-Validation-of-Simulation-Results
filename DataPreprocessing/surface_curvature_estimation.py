@@ -2,10 +2,10 @@ import os
 import sys
 
 import numpy as np
-import pylab
-from mpl_toolkits.mplot3d import Axes3D
-from main import readVTP, getMinSF, getNearpoints
-import pymesh
+# import pylab
+# from mpl_toolkits.mplot3d import Axes3D
+# from main import readVTP, getMinSF, getNearpoints
+# import pymesh
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 
@@ -97,17 +97,20 @@ def fun(x, y):
 
 
 def main():
-    file = '10000004_FF_A38900064_00_DFPD_120_Deckel_Fv_Max.odb__P2325PF21_01_DFPD_120_DECKEL.vtu.vtp'
-    mesh_connect, data = readVTP(file)
-    print(mesh_connect[:5])
-    print(data[:5])
-    N = np.max(mesh_connect) + 1
-    mesh = pymesh.form_mesh(data[:, 1:], mesh_connect)
-    print(mesh.num_vertices, mesh.num_faces, mesh.num_voxels)
-    mesh.add_attribute("vertex_gaussian_curvature")
-    gaussian = mesh.get_attribute("vertex_gaussian_curvature")
-    print(gaussian.shape)
-    print(gaussian[:5])
+    a = [4, 3, 5, 7, 6, 8]
+    indices = [0, 1, 4, 2]
+    print(np.take(a, indices))
+    # file = '10000004_FF_A38900064_00_DFPD_120_Deckel_Fv_Max.odb__P2325PF21_01_DFPD_120_DECKEL.vtu.vtp'
+    # mesh_connect, data = readVTP(file)
+    # print(mesh_connect[:5])
+    # print(data[:5])
+    # N = np.max(mesh_connect) + 1
+    # mesh = pymesh.form_mesh(data[:, 1:], mesh_connect)
+    # print(mesh.num_vertices, mesh.num_faces, mesh.num_voxels)
+    # mesh.add_attribute("vertex_gaussian_curvature")
+    # gaussian = mesh.get_attribute("vertex_gaussian_curvature")
+    # print(gaussian.shape)
+    # print(gaussian[:5])
     # ============get the connected vertices================
     # adjacencyM = {}
     # for (a, b, c) in mesh:

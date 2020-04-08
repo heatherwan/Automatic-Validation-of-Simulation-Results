@@ -94,16 +94,19 @@ def readfilestoh5(export_filename, train_test_folder):
                 # # get distance
                 distance = get_dist(MinSF, nearpoints)
                 # # get normals
-                pcd = o3d.geometry.PointCloud()
-                pcd.points = o3d.utility.Vector3dVector(data[:, 1:])
-                pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.5, max_nn=4))
+                # pcd = o3d.geometry.PointCloud()
+                # pcd.points = o3d.utility.Vector3dVector(data[:, 1:])
+                # pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.5, max_nn=4))
                 # o3d.visualization.draw_geometries([pcd])
-                normals = np.asarray(pcd.normals)
+                # normals = np.asarray(pcd.normals)
+                # get normals and gaussain curvature
+                gaussian, normals = get_gaussian_curvature_normal(poly, data, indexes)
                 all_data.append(nearpoints[:, 1:])
                 # # concat all other features
                 other = np.concatenate((nearpoints[:, 0].reshape(NNeighbors, 1),
                                         distance.reshape(NNeighbors, 1),
-                                        normals[indexes, :]), axis=1)
+                                        normals[indexes, :],
+                                        gaussian), axis=1)
                 all_other.append(other)
 
             print(f'total find time = {time.time() - now}')
@@ -157,50 +160,32 @@ def get_dist(MinSF, nearpoints):
     return np.array(distance)
 
 
-def main():
-    # =============get gaussain curvature and normal=================
-    file = '10000001_FF_A01751982_2_DFPD-40-S-Stossbelastung_Fv_Mid_BREAK.odb__P3701636_REV_2_DECKEL_80-1.vtu.vtp'
-    mesh_connect, data = readVTP(file)
-    print(mesh_connect[:5])
-    print(data[:5])
-    N = np.max(mesh_connect) + 1
+def get_gaussian_curvature_normal(mesh_connect, data, indexes):
     mesh = pymesh.form_mesh(data[:, 1:], mesh_connect)
-    print(mesh.num_vertices, mesh.num_faces, mesh.num_voxels)
+    # print(mesh.num_vertices, mesh.num_faces, mesh.num_voxels)
     mesh.add_attribute("vertex_normal")
     normal = mesh.get_attribute("vertex_normal")
-    normal = normal.reshape(normal.shape[0]//3, 3)
-    print(normal.shape)
+    normal = normal.reshape(normal.shape[0] // 3, 3)
+    # print(normal.shape)
     mesh.add_attribute("vertex_gaussian_curvature")
     gaussian = mesh.get_attribute("vertex_gaussian_curvature")
     mesh.add_attribute("vertex_index")
     index = mesh.get_attribute("vertex_index")
 
-    MinSF = getMinSF(data)
-    indexes, nearpoints = getNearpoints(data, MinSF, NNeighbors)
-    # # get distance
-    distance = get_dist(MinSF, nearpoints)
-    # # get normals
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(data[:, 1:])
-    pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.5, max_nn=4))
-    # o3d.visualization.draw_geometries([pcd])
-    normals = np.asarray(pcd.normals)
-    print(f'index :\n {index[indexes]}')
-    print(f'gaussian :\n {gaussian[indexes]}')
-    print(f'normals :\n {normal[indexes, :]}')
-    print(normal[indexes].shape)
-    print(normals)
+    # print(f'index :\n {index[indexes]}')
+    # print(f'gaussian :\n {gaussian[indexes]}')
+    # print(f'normals :\n {normal[indexes, :]}')
+
+    return gaussian[indexes], normal[indexes, :]
 
 
-
-
-    pass
+def main():
     # =============generate h5df dataset=============================
-    # export_filename = f"outputdataset/traindataset_dim8_480_{NNeighbors}_relabel.hdf5"
-    # readfilestoh5(export_filename, 'train')
-    #
-    # export_filename = f"outputdataset/testdataset_dim8_160_{NNeighbors}_relabel.hdf5"
-    # readfilestoh5(export_filename, 'test')
+    export_filename = f"outputdataset/traindataset_dim9_480_{NNeighbors}.hdf5"
+    readfilestoh5(export_filename, 'train')
+
+    export_filename = f"outputdataset/testdataset_dim9_160_{NNeighbors}.hdf5"
+    readfilestoh5(export_filename, 'test')
 
     # =============visualize result with prediction=============================
     # 1. single
