@@ -11,6 +11,7 @@ import vtk
 from scipy import spatial
 from vtk.util import numpy_support
 from vtk.util.numpy_support import vtk_to_numpy
+import pymesh
 # from compare_result import compare, output_wrong
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -157,6 +158,36 @@ def get_dist(MinSF, nearpoints):
 
 
 def main():
+    # =============get gaussain curvature and normal=================
+    file = '10000001_FF_A01751982_2_DFPD-40-S-Stossbelastung_Fv_Mid_BREAK.odb__P3701636_REV_2_DECKEL_80-1.vtu.vtp'
+    mesh_connect, data = readVTP(file)
+    print(mesh_connect[:5])
+    print(data[:5])
+    N = np.max(mesh_connect) + 1
+    mesh = pymesh.form_mesh(data[:, 1:], mesh_connect)
+    print(mesh.num_vertices, mesh.num_faces, mesh.num_voxels)
+    mesh.add_attribute("vertex_normal")
+    normal = mesh.get_attribute("vertex_normal")
+    mesh.add_attribute("vertex_gaussian_curvature")
+    gaussian = mesh.get_attribute("vertex_gaussian_curvature")
+
+    MinSF = getMinSF(data)
+    indexes, nearpoints = getNearpoints(data, MinSF, NNeighbors)
+    # # get distance
+    distance = get_dist(MinSF, nearpoints)
+    # # get normals
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(data[:, 1:])
+    pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.5, max_nn=4))
+    # o3d.visualization.draw_geometries([pcd])
+    normals = np.asarray(pcd.normals)
+    print(f'gaussian :\n {gaussian[indexes]}')
+    print(f'normals :\n {normal[indexes]}')
+    print(normals)
+
+
+
+
     pass
     # =============generate h5df dataset=============================
     # export_filename = f"outputdataset/traindataset_dim8_480_{NNeighbors}_relabel.hdf5"
