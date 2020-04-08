@@ -104,6 +104,8 @@ def main():
     N = np.max(mesh_connect) + 1
     mesh = pymesh.form_mesh(data[:, 1:], mesh_connect)
     print(mesh.num_vertices, mesh.num_faces, mesh.num_voxels)
+    mesh.add_attribute("vertex_gaussian_curvature")
+    mesh.get_attribute("vertex_gaussian_curvature")
 
     # ============get the connected vertices================
     # adjacencyM = {}
