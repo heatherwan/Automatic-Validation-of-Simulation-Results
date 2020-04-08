@@ -11,7 +11,7 @@ import vtk
 from scipy import spatial
 from vtk.util import numpy_support
 from vtk.util.numpy_support import vtk_to_numpy
-from compare_result import compare, output_wrong
+# from compare_result import compare, output_wrong
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
@@ -157,6 +157,7 @@ def get_dist(MinSF, nearpoints):
 
 
 def main():
+    pass
     # =============generate h5df dataset=============================
     # export_filename = f"outputdataset/traindataset_dim8_480_{NNeighbors}_relabel.hdf5"
     # readfilestoh5(export_filename, 'train')
@@ -166,11 +167,11 @@ def main():
 
     # =============visualize result with prediction=============================
     # 1. single
-    file = 'pred_label_dgcnn.txt'
-    data = output_wrong(file)
-
-    for index, row in data.iterrows():
-        compare_plot(row.file, row, single=True)
+    # file = 'pred_label_dgcnn.txt'
+    # data = output_wrong(file)
+    #
+    # for index, row in data.iterrows():
+    #     compare_plot(row.file, row, single=True)
 
     # 2. comparison
     # file1 = 'pred_label_1024.txt'
