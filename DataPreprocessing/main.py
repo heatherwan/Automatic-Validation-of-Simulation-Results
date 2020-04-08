@@ -168,6 +168,8 @@ def main():
     print(mesh.num_vertices, mesh.num_faces, mesh.num_voxels)
     mesh.add_attribute("vertex_normal")
     normal = mesh.get_attribute("vertex_normal")
+    print(normal.shape)
+    print(normal.reshape(normal.shape[0]/3, 3))
     mesh.add_attribute("vertex_gaussian_curvature")
     gaussian = mesh.get_attribute("vertex_gaussian_curvature")
     mesh.add_attribute("vertex_index")
