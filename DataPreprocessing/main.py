@@ -67,6 +67,44 @@ def getNearpoints(data, MinSF, NNeighbors):
     return indexes, nearestpoints
 
 
+def get_neighborpolys(indexes, polys):
+    neighborpoly = []
+    # get the extracted faces
+    for p in polys:
+        if set(p).issubset(set(indexes)):
+            neighborpoly.append(p)
+    neighborpoly = np.asarray(neighborpoly).flatten()
+
+    # re-index points
+    for i, p in enumerate(neighborpoly):
+        neighborpoly[i] = list(indexes).index(p)
+    neighborpoly = neighborpoly.reshape(neighborpoly.shape[0] // 3, 3)
+    return neighborpoly
+
+
+def get_curvatures(mesh):
+    # Estimate curvatures by Rusinkiewicz method
+    start = time.time()
+    PrincipalCurvatures, PrincipalDir1, PrincipalDir2 = CC.GetCurvaturesAndDerivatives(mesh)
+    print(f'finish calculating: {time.time() - start} time used\n')
+
+    gaussian_curv = PrincipalCurvatures[0, :] * PrincipalCurvatures[1, :]
+    mean_curv = 0.5 * (PrincipalCurvatures[0, :] + PrincipalCurvatures[1, :])
+    return gaussian_curv, mean_curv
+
+
+def visualize_curvature(curvature, mesh):
+    # Plot mean curvature
+    vect_col_map = \
+        trimesh.visual.color.interpolate(curvature, color_map='jet')
+
+    if curvature.shape[0] == mesh.vertices.shape[0]:
+        mesh.visual.vertex_colors = vect_col_map
+    elif curvature.shape[0] == mesh.faces.shape[0]:
+        mesh.visual.face_colors = vect_col_map
+    mesh.show(background=[0, 0, 0, 255])
+
+
 def getfiles(folder, category):
     datafold = os.path.join(folder, category)
     files = []
@@ -202,6 +240,26 @@ def main():
     # data = compare(file1, file2, outname)
     # for index, row in data.iterrows():
     #     compare_plot(row.file, row, single=False, name_a='PointNet', name_b='PointGCN')
+
+    # ============get curvatures example=================================
+    filename = 'output_ascii.vtp'
+    NNeighbors = 1024
+
+    # =====use all points=========
+    poly, data = readVTP(filename)
+    # print(poly, data)
+    # mesh = trimesh.Trimesh(vertices=data[:, 1:], faces=poly)
+    # mesh.show()
+
+    # =====get less points========
+    MinSF = getMinSF(data)
+    indexes, nearpoints = getNearpoints(data, MinSF, NNeighbors)
+    neighborpolys = get_neighborpolys(indexes, poly)
+    mesh = trimesh.Trimesh(vertices=nearpoints[:, 1:], faces=neighborpolys)
+    mesh.show()
+    k_curvature, m_curvature = get_curvatures(mesh)
+    visualize_curvature(k_curvature, mesh)
+    visualize_curvature(m_curvature, mesh)
 
 
 if __name__ == '__main__':
