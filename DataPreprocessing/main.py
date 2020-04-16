@@ -8,10 +8,11 @@ import numpy as np
 import open3d as o3d
 import pyvista as pv
 import vtk
+import trimesh
 from scipy import spatial
 from vtk.util import numpy_support
 from vtk.util.numpy_support import vtk_to_numpy
-import pymesh
+import CalCurvature as CC
 # from compare_result import compare, output_wrong
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -44,7 +45,6 @@ def writeVTP(data, filename, poly):
     # Add data set and write VTK file
     polyNew = poly
     polyNew.SetPoints = VTK_data_point
-    print(polyNew)
     polyNew.GetPointData().SetScalars(VTK_data_SF)
     writer = vtk.vtkXMLPolyDataWriter()
     writer.SetFileName(filename)
@@ -69,25 +69,29 @@ def getNearpoints(data, MinSF, NNeighbors):
 
 def get_neighborpolys(indexes, polys):
     neighborpoly = []
-    # get the extracted faces
-    for p in polys:
-        if set(p).issubset(set(indexes)):
-            neighborpoly.append(p)
-    neighborpoly = np.asarray(neighborpoly).flatten()
+    index = dict((y, x) for x, y in enumerate(indexes))
 
-    # re-index points
-    for i, p in enumerate(neighborpoly):
-        neighborpoly[i] = list(indexes).index(p)
-    neighborpoly = neighborpoly.reshape(neighborpoly.shape[0] // 3, 3)
-    return neighborpoly
+    # get the extracted faces
+    for p in np.asarray(polys).flatten():
+        try:
+            neighborpoly.append(index[p])
+        except KeyError:
+            neighborpoly.append(np.nan)
+
+    neighborpoly = np.asarray(neighborpoly)
+    neighborpoly = neighborpoly.reshape(neighborpoly.shape[0]//3, 3)
+    mask = np.any(np.isnan(neighborpoly), axis=1)
+    neighborpoly = neighborpoly[~mask]
+    connected_points = set(neighborpoly.flatten())
+    return neighborpoly, connected_points
 
 
 def get_curvatures(mesh):
     # Estimate curvatures by Rusinkiewicz method
-    start = time.time()
-    PrincipalCurvatures, PrincipalDir1, PrincipalDir2 = CC.GetCurvaturesAndDerivatives(mesh)
-    print(f'finish calculating: {time.time() - start} time used\n')
+    # "Estimating Curvatures and Their Derivatives on Triangle Meshes."
+    # Symposium on 3D Data Processing, Visualization, and Transmission, September 2004.
 
+    PrincipalCurvatures = CC.GetCurvaturesAndDerivatives(mesh)
     gaussian_curv = PrincipalCurvatures[0, :] * PrincipalCurvatures[1, :]
     mean_curv = 0.5 * (PrincipalCurvatures[0, :] + PrincipalCurvatures[1, :])
     return gaussian_curv, mean_curv
@@ -110,7 +114,6 @@ def getfiles(folder, category):
     files = []
     for f in os.listdir(datafold):
         files.append(os.path.join(datafold, f))
-    # print(files)
     return files
 
 
@@ -126,25 +129,42 @@ def readfilestoh5(export_filename, train_test_folder):
             all_label.extend([num] * len(files))
             print(len(files))
             for i, filename in enumerate(files):
+                # # get points near MinSF point
                 poly, data = readVTP(filename)
                 MinSF = getMinSF(data)
                 indexes, nearpoints = getNearpoints(data, MinSF, NNeighbors)
+
                 # # get distance
                 distance = get_dist(MinSF, nearpoints)
+
                 # # get normals
                 # pcd = o3d.geometry.PointCloud()
                 # pcd.points = o3d.utility.Vector3dVector(data[:, 1:])
                 # pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.5, max_nn=4))
                 # o3d.visualization.draw_geometries([pcd])
                 # normals = np.asarray(pcd.normals)
-                # get normals and gaussain curvature
-                gaussian, normals = get_gaussian_curvature_normal(poly, data, indexes)
+
+                # # get gaussian and mean curvature
+                start = time.time()
+                neighborpolys, connected_points = get_neighborpolys(indexes, poly)
+                mesh = trimesh.Trimesh(vertices=nearpoints[:, 1:], faces=neighborpolys)
+                k_curvature, m_curvature = get_curvatures(mesh)
+                # visualize_curvature(k_curvature, mesh)
+                # # sometimes the selected point is not connected to mesh
+                if NNeighbors > len(connected_points):
+                    print(f'not connected {NNeighbors - len(connected_points)}')
+                    no_curvature = set(range(1024)) - connected_points
+                    for idx in no_curvature:
+                        k_curvature = np.insert(k_curvature, idx, 0)
+                        m_curvature = np.insert(m_curvature, idx, 0)
+                print(f'time {time.time() - start}')
+
+                # # gather data into hdf5 format
                 all_data.append(nearpoints[:, 1:])
-                # # concat all other features
-                other = np.concatenate((nearpoints[:, 0].reshape(NNeighbors, 1),
-                                        distance.reshape(NNeighbors, 1),
-                                        normals[indexes, :],
-                                        gaussian), axis=1)
+                other = np.concatenate((nearpoints[:, 0].reshape(-1, 1),
+                                        distance.reshape(-1, 1),
+                                        k_curvature.reshape(-1, 1),
+                                        m_curvature.reshape(-1, 1)), axis=1)
                 all_other.append(other)
 
             print(f'total find time = {time.time() - now}')
@@ -198,32 +218,13 @@ def get_dist(MinSF, nearpoints):
     return np.array(distance)
 
 
-def get_gaussian_curvature_normal(mesh_connect, data, indexes):
-    mesh = pymesh.form_mesh(data[:, 1:], mesh_connect)
-    # print(mesh.num_vertices, mesh.num_faces, mesh.num_voxels)
-    mesh.add_attribute("vertex_normal")
-    normal = mesh.get_attribute("vertex_normal")
-    normal = normal.reshape(normal.shape[0] // 3, 3)
-    # print(normal.shape)
-    mesh.add_attribute("vertex_gaussian_curvature")
-    gaussian = mesh.get_attribute("vertex_gaussian_curvature")
-    mesh.add_attribute("vertex_index")
-    index = mesh.get_attribute("vertex_index")
-
-    # print(f'index :\n {index[indexes]}')
-    # print(f'gaussian :\n {gaussian[indexes]}')
-    # print(f'normals :\n {normal[indexes, :]}')
-
-    return gaussian[indexes], normal[indexes, :]
-
-
 def main():
     # =============generate h5df dataset=============================
-    export_filename = f"outputdataset/traindataset_dim9_480_{NNeighbors}.hdf5"
-    readfilestoh5(export_filename, 'train')
+    export_filename = f"outputdataset/traindataset_dim7_460_{NNeighbors}.hdf5"
+    readfilestoh5(export_filename, 'wanting_split/train')
 
-    export_filename = f"outputdataset/testdataset_dim9_160_{NNeighbors}.hdf5"
-    readfilestoh5(export_filename, 'test')
+    export_filename = f"outputdataset/testdataset_dim7_154_{NNeighbors}.hdf5"
+    readfilestoh5(export_filename, 'wanting_split/test')
 
     # =============visualize result with prediction=============================
     # 1. single
@@ -242,24 +243,34 @@ def main():
     #     compare_plot(row.file, row, single=False, name_a='PointNet', name_b='PointGCN')
 
     # ============get curvatures example=================================
-    filename = 'output_ascii.vtp'
-    NNeighbors = 1024
-
-    # =====use all points=========
-    poly, data = readVTP(filename)
+    # filename = 'wanting_split/train/EM1_contact/' \
+    #            '10000198_FF_DLP-160-0p0-Original-eco_U7Pc1KY_Fv_Mid.odb__BB_DECKEL.vtu.vtp'
+    # # =====use all points=========
+    # poly, data = readVTP(filename)
     # print(poly, data)
     # mesh = trimesh.Trimesh(vertices=data[:, 1:], faces=poly)
     # mesh.show()
 
-    # =====get less points========
-    MinSF = getMinSF(data)
-    indexes, nearpoints = getNearpoints(data, MinSF, NNeighbors)
-    neighborpolys = get_neighborpolys(indexes, poly)
-    mesh = trimesh.Trimesh(vertices=nearpoints[:, 1:], faces=neighborpolys)
-    mesh.show()
-    k_curvature, m_curvature = get_curvatures(mesh)
-    visualize_curvature(k_curvature, mesh)
-    visualize_curvature(m_curvature, mesh)
+    # # =====get less points========
+    # MinSF = getMinSF(data)
+    # indexes, nearpoints = getNearpoints(data, MinSF, NNeighbors)
+    #
+    # start = time.time()
+    # neighborpolys, connected_points = get_neighborpolys(indexes, poly)
+    # print(nearpoints[:, 1:].shape)
+    # mesh = trimesh.Trimesh(vertices=nearpoints[:, 1:], faces=neighborpolys)
+    # # sometimes the selected point is not connected to mesh
+    #
+    # k_curvature, m_curvature = get_curvatures(mesh)
+    # visualize_curvature(k_curvature, mesh)
+    #
+    # if NNeighbors > len(connected_points):
+    #     print(f'not connected {NNeighbors - len(connected_points)}')
+    #     no_curvature = set(range(1024))-connected_points
+    #     for idx in no_curvature:
+    #         k_curvature = np.insert(k_curvature, idx, 0)
+    #         m_curvature = np.insert(m_curvature, idx, 0)
+    # print(f'time {time.time() - start}')
 
 
 if __name__ == '__main__':
