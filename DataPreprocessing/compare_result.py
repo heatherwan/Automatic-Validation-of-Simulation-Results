@@ -1,5 +1,8 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-This is a class to compare the prediction result of different experiments
+Created on Fri Mar 27 14:39:59 2020
+@author: wantinglin
 """
 import os
 import sys
@@ -12,14 +15,14 @@ sys.path.append(BASE_DIR)
 
 # load prediction result
 resultDir = 'result_folder'
-dataDir = 'test'
+dataDir = 'wanting_split/test'
 classes = {1: 'EM1_contact', 2: 'EM3_radius', 3: 'EM4_hole', 0: 'Good'}
 
 testdata = []
 for cls in os.listdir(dataDir):
     for data in os.listdir(os.path.join(dataDir, cls)):
         testdata.append(os.path.join(dataDir, cls, data))
-tdataDir = 'train'
+tdataDir = 'wanting_split/train'
 traindata = []
 for cls in os.listdir(tdataDir):
     for data in os.listdir(os.path.join(tdataDir, cls)):
