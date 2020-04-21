@@ -101,6 +101,7 @@ def train():
             # Get model and loss
             pred, end_points = MODEL.get_model_other(pointclouds_pl, pointclouds_other_pl, is_training_pl,
                                                      bn_decay=bn_decay)
+            MODEL.get_para_num()
             loss = MODEL.get_loss_weight(pred, labels_pl, end_points, weights)
 
             tf.compat.v1.summary.scalar('loss', loss)
@@ -152,7 +153,7 @@ def train():
 
         min_loss = np.inf
         for epoch in range(MAX_EPOCH):
-            log_string('**** EPOCH %03d ****' % (epoch))
+            log_string('**** EPOCH %03d ****' % epoch)
             sys.stdout.flush()
 
             loss = train_one_epoch(sess, ops, train_writer)
