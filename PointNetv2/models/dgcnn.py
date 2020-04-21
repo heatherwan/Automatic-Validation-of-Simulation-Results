@@ -103,7 +103,7 @@ def get_model(point_cloud, is_training, bn_decay=None):
 
 
 def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
-    """ Classification PointNet, input is BxNx3 and BxNx5, output Bx4 """
+    """ Classification DGCNN, input is BxNx3 and BxNx5, output Bx4 """
     batch_size = point_cloud.get_shape()[0]  # .value
     num_point = point_cloud.get_shape()[1]  # .value
     end_points = {}
@@ -215,6 +215,18 @@ def get_loss_weight(pred, label, end_points, classweight):
     return mean_classify_loss
 
 
+def get_para_num():
+    total_parameters = 0
+    for variable in tf.compat.v1.trainable_variables():
+        # shape is an array of tf.Dimension
+        shape = variable.get_shape()
+        variable_parametes = 1
+        for dim in shape:
+            variable_parametes *= dim
+        total_parameters += variable_parametes
+    print(f'Total parameters number is {total_parameters}')
+
+
 if __name__ == '__main__':
     batch_size = 2
     num_pt = 124
@@ -239,8 +251,8 @@ if __name__ == '__main__':
             sess.run(tf.compat.v1.global_variables_initializer())
             feed_dict = {input_pl: input_feed, label_pl: label_feed}
             res1, res2 = sess.run([pos, ftr], feed_dict=feed_dict)
-            print(res1.shape)
-            print(res1)
-
-            print(res2.shape)
-            print(res2)
+            # print(res1.shape)
+            # print(res1)
+            #
+            # print(res2.shape)
+            # print(res2)
