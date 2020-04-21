@@ -163,6 +163,18 @@ def get_loss_weight(pred, label, end_points, classweight, reg_weight=0.001):
     return mean_classify_loss + mat_diff_loss * reg_weight
 
 
+def get_para_num():
+    total_parameters = 0
+    for variable in tf.compat.v1.trainable_variables():
+        # shape is an array of tf.Dimension
+        shape = variable.get_shape()
+        variable_parametes = 1
+        for dim in shape:
+            variable_parametes *= dim
+        total_parameters += variable_parametes
+    print(f'Total parameters number is {total_parameters}')
+
+
 if __name__ == '__main__':
     with tf.Graph().as_default():
         inputs = tf.zeros((32, 1024, 3))
