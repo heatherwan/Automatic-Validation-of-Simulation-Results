@@ -10,3 +10,5 @@ test
 test_3cat
 train
 train_3cat
+# Ignore all STL files
+*.STL
