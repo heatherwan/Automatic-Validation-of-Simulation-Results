@@ -20,13 +20,15 @@ from vtk.util import numpy_support
 from vtk.util.numpy_support import vtk_to_numpy
 import CalCurvature as CC
 from compare_result import compare, output_wrong
+
 np.set_printoptions(threshold=sys.maxsize)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 
 resultDir = 'result_folder'
-NNeighbors = 1024
 classes = {1: 'EM1_contact', 2: 'EM3_radius', 3: 'EM4_hole', 0: 'Good'}
+
+
 # classes = {1: 'EM13_contactradius', 2: 'EM4_hole', 0: 'Good'}
 
 
@@ -36,7 +38,7 @@ def readVTP(filename):
     reader.Update()
     poly = reader.GetOutput()
     mesh = vtk_to_numpy(poly.GetPolys().GetData())
-    mesh = mesh.reshape(mesh.shape[0]//4, 4)[:, 1:]
+    mesh = mesh.reshape(mesh.shape[0] // 4, 4)[:, 1:]
 
     Points = vtk_to_numpy(poly.GetPoints().GetData())
     SF = vtk_to_numpy(poly.GetPointData().GetScalars()).reshape(-1, 1)
@@ -85,7 +87,7 @@ def get_neighborpolys(indexes, polys):
             neighborpoly.append(np.nan)
 
     neighborpoly = np.asarray(neighborpoly)
-    neighborpoly = neighborpoly.reshape(neighborpoly.shape[0]//3, 3)
+    neighborpoly = neighborpoly.reshape(neighborpoly.shape[0] // 3, 3)
     mask = np.any(np.isnan(neighborpoly), axis=1)
     neighborpoly = neighborpoly[~mask]
     connected_points = set(neighborpoly.flatten())
@@ -123,15 +125,25 @@ def get_dist(MinSF, nearpoints):
     return np.array(distance)
 
 
-def get_normals(data):
+def get_normals(data, visual=False):
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(data[:, 1:])
-    pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.5, max_nn=4))
-    o3d.visualization.draw_geometries([pcd])
+    pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=1, max_nn=4))
+    if visual:
+        o3d.visualization.draw_geometries([pcd])
     return np.asarray(pcd.normals)
 
 
-def readfilestoh5(export_filename, train_test_folder):
+def readfilestoh5(export_filename, train_test_folder, NNeighbors=1024, dim=5):
+    """
+
+    :param NNeighbors:
+    :param export_filename: .hdf5 filename
+    :param train_test_folder: .vtp files to read
+    :param dim: features output: 5-distance, 6-normal, 7-curvature, 10 normal+curvature
+    :return:
+    """
+    export_filename = f'{export_filename}_{NNeighbors}_dim{dim}.hdf5'
     with h5py.File(export_filename, "w") as f:
         all_data = []
         all_label = []
@@ -147,31 +159,47 @@ def readfilestoh5(export_filename, train_test_folder):
                 poly, data = readVTP(filename)
                 MinSF = get_MinSF(data)
                 indexes, nearpoints = get_Nearpoints(data, MinSF, NNeighbors)
-                neighborpolys, connected_points = get_neighborpolys(indexes, poly)
-                mesh = trimesh.Trimesh(vertices=nearpoints[:, 1:], faces=neighborpolys)
 
                 # get distance
                 distance = get_dist(MinSF, nearpoints)
 
                 # get normals
-                normals = get_normals(data)[indexes]
+                if dim == 6 or dim == 10:
+                    normals = get_normals(data)[indexes]
 
                 # get gaussian and mean curvature
-                k_curvature, m_curvature = get_curvatures(mesh)
-                # sometimes the selected point is not connected to mesh
-                if NNeighbors > len(connected_points):
-                    print(f'not connected {NNeighbors - len(connected_points)}')
-                    no_curvature = set(range(1024)) - connected_points
-                    for idx in no_curvature:
-                        k_curvature = np.insert(k_curvature, idx, 0)
-                        m_curvature = np.insert(m_curvature, idx, 0)
+                if dim == 7 or dim == 10:
+                    neighborpolys, connected_points = get_neighborpolys(indexes, poly)
+                    mesh = trimesh.Trimesh(vertices=nearpoints[:, 1:], faces=neighborpolys)
+                    k_curvature, m_curvature = get_curvatures(mesh)
+                    # sometimes the selected point is not connected to mesh
+                    if NNeighbors > len(connected_points):
+                        print(f'not connected {NNeighbors - len(connected_points)}')
+                        no_curvature = set(range(1024)) - connected_points
+                        for idx in no_curvature:
+                            k_curvature = np.insert(k_curvature, idx, 0)
+                            m_curvature = np.insert(m_curvature, idx, 0)
 
                 # gather data into hdf5 format
                 all_data.append(nearpoints[:, 1:])
-                other = np.concatenate((nearpoints[:, 0].reshape(-1, 1),
-                                        distance.reshape(-1, 1),
-                                        k_curvature.reshape(-1, 1),
-                                        m_curvature.reshape(-1, 1)), axis=1)
+                if dim == 5:
+                    other = np.concatenate((nearpoints[:, 0].reshape(-1, 1),
+                                            distance.reshape(-1, 1)), axis=1)
+                elif dim == 6:
+                    other = np.concatenate((nearpoints[:, 0].reshape(-1, 1),
+                                            distance.reshape(-1, 1),
+                                            normals), axis=1)
+                elif dim == 7:
+                    other = np.concatenate((nearpoints[:, 0].reshape(-1, 1),
+                                            distance.reshape(-1, 1),
+                                            k_curvature.reshape(-1, 1),
+                                            m_curvature.reshape(-1, 1)), axis=1)
+                elif dim == 10:
+                    other = np.concatenate((nearpoints[:, 0].reshape(-1, 1),
+                                            distance.reshape(-1, 1),
+                                            k_curvature.reshape(-1, 1),
+                                            m_curvature.reshape(-1, 1),
+                                            normals), axis=1)
                 all_other.append(other)
 
             print(f'total find time = {time.time() - now}')
@@ -180,14 +208,14 @@ def readfilestoh5(export_filename, train_test_folder):
         label = f.create_dataset("label", data=all_label)
 
 
-def visualize_selected_points(filename, df, single=True, name_a=None, name_b=None):
+def visualize_selected_points(filename, df=None, single=True, name_a=None, name_b=None, NNeighbors=1024):
     poly, data = readVTP(filename)
     MinSF = get_MinSF(data)
     points = data[:, 1:]
-    _, nearpoints2000 = get_Nearpoints(data, MinSF, 2048)
+    _, nearpoints2000 = get_Nearpoints(data, MinSF, NNeighbors*2)
     nearpoints2000 = nearpoints2000[:, 1:]
 
-    indexes, nearpoints1000 = get_Nearpoints(data, MinSF, 1024)
+    indexes, nearpoints1000 = get_Nearpoints(data, MinSF, NNeighbors)
     nearpoints1000 = nearpoints1000[:, 1:]
     neighborpolys, connected_points = get_neighborpolys(indexes, poly)
 
@@ -214,16 +242,21 @@ def visualize_selected_points(filename, df, single=True, name_a=None, name_b=Non
     plotter.add_mesh(point_cloud1, scalars=nearpoints1000[:, 0], stitle='safety factor',
                      point_size=5., render_points_as_spheres=True)
     plotter.add_mesh(minpoint, color='white', point_size=8, render_points_as_spheres=True)
-
-    if single:
-        plotter.add_text(f"no{df['  no']}, predict:{classes[df.pred]}, "
-                         f"label:{classes[df.real]}")
-    else:
-        plotter.add_text(f"no{df.iloc[0]}, {name_a} predict:{classes[df.pred]}, "
-                         f"{name_b} predict:{classes[df.pred2]}, "
-                         f"label:{classes[df.real]}")
+    if df is not None:
+        if single:
+            plotter.add_text(f"no{df['  no']}, predict:{classes[df.pred]}, "
+                             f"label:{classes[df.real]}")
+        else:
+            plotter.add_text(f"no{df.iloc[0]}, {name_a} predict:{classes[df.pred]}, "
+                             f"{name_b} predict:{classes[df.pred2]}, "
+                             f"label:{classes[df.real]}")
     plotter.show_grid()
     plotter.show(auto_close=True)
+
+    # visualize normal
+    normals = get_normals(data, visual=True)[indexes]
+
+    visualize_color_by_array(m_curvature, mesh)
     visualize_color_by_array(k_curvature, mesh)
 
 
@@ -251,7 +284,7 @@ def visualize_color_by_array(curvature, mesh):
     mesh.show(background=[0, 0, 0, 255])
 
 
-def visualize_curvatures(filename, use_all):
+def visualize_curvatures(filename, use_all, NNeighbors=1024):
     # read data and selected needed points
     poly, data = readVTP(filename)
     MinSF = get_MinSF(data)
@@ -268,8 +301,9 @@ def visualize_curvatures(filename, use_all):
     # extract curvatures
     start = time.time()
     k_curvature, m_curvature = get_curvatures(mesh)
-    print(f'time: {time.time()-start}')
+    print(f'time: {time.time() - start}')
     visualize_color_by_array(k_curvature, mesh)
+    visualize_color_by_array(m_curvature, mesh)
 
     # sometimes the selected point is not connected to mesh
     if NNeighbors > len(connected_points):
@@ -278,15 +312,17 @@ def visualize_curvatures(filename, use_all):
         for idx in no_curvature:
             k_curvature = np.insert(k_curvature, idx, 0)
             m_curvature = np.insert(m_curvature, idx, 0)
+    # visualize normal
+    normals = get_normals(data, visual=True)[indexes]
 
 
 def main():
     # =============generate h5df dataset=========================================
-    # export_filename = f"outputdataset/traindataset_dim7_460_{NNeighbors}.hdf5"
-    # readfilestoh5(export_filename, 'wanting_split/train')
-    #
-    # export_filename = f"outputdataset/testdataset_dim7_154_{NNeighbors}.hdf5"
-    # readfilestoh5(export_filename, 'wanting_split/test')
+    export_filename = f"outputdataset/traindataset_460"
+    readfilestoh5(export_filename, 'wanting_split/train')
+
+    export_filename = f"outputdataset/testdataset_154"
+    readfilestoh5(export_filename, 'wanting_split/test')
     # ===========================================================================
 
     # =============visualize result with prediction======================================
@@ -300,14 +336,12 @@ def main():
     # ====================================================================================
 
     # ============get curvatures example====================================================
-    filename = 'wanting_split/train/EM1_contact/' \
-               '10000198_FF_DLP-160-0p0-Original-eco_U7Pc1KY_Fv_Mid.odb__BB_DECKEL.vtu.vtp'
+    filename = 'wanting_split/test/EM3_radius/' \
+               '10000252_FF_P5024849_Revb07_Drucklast_V17_Fv_Min.odb__AA_DECKEL.vtu.vtp'
     file = 'all_pred_labelgdcnn.txt'
     use_all = False
     # visualize_curvatures(filename, use_all)
-    data = output_wrong(file)
-    for index, row in data.iterrows():
-        visualize_selected_points(row.file, row, single=True)
+    # visualize_pred_result_single(file)
     # =======================================================================================
 
 

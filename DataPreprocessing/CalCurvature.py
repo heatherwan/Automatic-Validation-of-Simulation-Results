@@ -5,13 +5,26 @@ Created on Fri Mar 27 14:39:59 2020
 @author: aymanesouani
 """
 import numpy as np
+import trimesh
+import time
 
 
 def GetCurvaturesAndDerivatives(FV):
+    now = time.time()
     FaceNormals = CalcFaceNormals(FV)
+    print(time.time()-now)
+
+    now = time.time()
     (VertexNormals, Avertex, Acorner, up, vp) = CalcVertexNormals(FV, FaceNormals)
+    print(time.time()-now)
+
+    now = time.time()
     (FaceSFM, VertexSFM, wfp) = CalcCurvature(FV, VertexNormals, FaceNormals, Avertex, Acorner, up, vp)
+    print('Calcurvature', time.time() - now)
+
+    now = time.time()
     PrincipalCurvature = getPrincipalCurvatures(FV, VertexSFM)
+    print(time.time()-now)
     return PrincipalCurvature
 
 
@@ -71,11 +84,11 @@ def CalcVertexNormals(FV, N):
     ew = np.array([l2[:, 0] * (l2[:, 1] + l2[:, 2] - l2[:, 0]),
                    l2[:, 1] * (l2[:, 2] + l2[:, 0] - l2[:, 1]),
                    l2[:, 2] * (l2[:, 0] + l2[:, 1] - l2[:, 2])])
+
     s = (de0 + de1 + de2) / 2
 
     "Af - face area vector"
     Af = np.sqrt(s * (s - de0) * (s - de1) * (s - de2))
-
     "herons formula for triangle area, could have also used  0.5 * norm(cross(e0,e1)) "
     "Calc weights"
     Acorner = np.zeros((np.shape(FV.faces)[0], 3))
@@ -157,12 +170,9 @@ def CalcCurvature(FV, VertexNormals, FaceNormals, Avertex, Acorner, up, vp):
     wfp - corner voronoi weights """
     # print("Calculating curvature tensors ... Please wait")
     "Matrix of each face at each cell"
-    FaceSFM, VertexSFM = list(), list()
-    for i in range(FV.faces.shape[0]):
-        FaceSFM.append([[0, 0], [0, 0]])
-    for i in range(FV.vertices.shape[0]):
-        VertexSFM.append([[0, 0], [0, 0]])
     Kn = np.zeros((1, FV.faces.shape[0]))
+    FaceSFM = np.zeros((FV.faces.shape[0], 2, 2))
+    VertexSFM = np.zeros((FV.vertices.shape[0], 2, 2))
 
     " Get all the edge vectors "
     e0 = FV.vertices[FV.faces[:, 2], :] - FV.vertices[FV.faces[:, 1], :]
@@ -171,8 +181,6 @@ def CalcCurvature(FV, VertexNormals, FaceNormals, Avertex, Acorner, up, vp):
 
     " Normalize edge vectors "
     e0_norm = normr(e0)
-    # e1_norm = normr(e1)
-    # e2_norm = normr(e2)
 
     wfp = np.array(np.zeros((FV.faces.shape[0], 3)))
     for i in range(FV.faces.shape[0]):
@@ -184,17 +192,17 @@ def CalcCurvature(FV, VertexNormals, FaceNormals, Avertex, Acorner, up, vp):
         B = B / (np.linalg.norm(B))
 
         "extract relevant normals in face vertices"
-        n0 = VertexNormals[FV.faces[i][0], :]
-        n1 = VertexNormals[FV.faces[i][1], :]
-        n2 = VertexNormals[FV.faces[i][2], :]
+        n0 = VertexNormals[FV.faces[i, 0], :]
+        n1 = VertexNormals[FV.faces[i, 1], :]
+        n2 = VertexNormals[FV.faces[i, 2], :]
 
         " solve least squares problem of th form Ax=b "
-        A = np.array([[np.dot(e0[i, :], t), np.dot(e0[i, :], B), 0],   # e0 dot u
-                      [0, np.dot(e0[i, :], t), np.dot(e0[i, :], B)],   # e0 dot v
-                      [np.dot(e1[i, :], t), np.dot(e1[i, :], B), 0],   # e1 dot u
-                      [0, np.dot(e1[i, :], t), np.dot(e1[i, :], B)],   # e1 dot v
-                      [np.dot(e2[i, :], t), np.dot(e2[i, :], B), 0],   # e2 dot u
-                      [0, np.dot(e2[i, :], t), np.dot(e2[i, :], B)]])   # e2 dot v
+        A = np.array([[np.dot(e0[i, :], t), np.dot(e0[i, :], B), 0],  # e0 dot u
+                      [0, np.dot(e0[i, :], t), np.dot(e0[i, :], B)],  # e0 dot v
+                      [np.dot(e1[i, :], t), np.dot(e1[i, :], B), 0],  # e1 dot u
+                      [0, np.dot(e1[i, :], t), np.dot(e1[i, :], B)],  # e1 dot v
+                      [np.dot(e2[i, :], t), np.dot(e2[i, :], B), 0],  # e2 dot u
+                      [0, np.dot(e2[i, :], t), np.dot(e2[i, :], B)]])  # e2 dot v
 
         b = np.array(
             [np.dot(n2 - n1, t), np.dot(n2 - n1, B), np.dot(n0 - n2, t), np.dot(n0 - n2, B), np.dot(n1 - n0, t),
@@ -202,26 +210,24 @@ def CalcCurvature(FV, VertexNormals, FaceNormals, Avertex, Acorner, up, vp):
 
         "Resolving by least mean square method because A is not a square matrix"
 
-        x = np.linalg.lstsq(A, b, None)
+        x = np.linalg.lstsq(A, b, None)[0]
 
-        FaceSFM[i] = np.array([[x[0][0], x[0][1]], [x[0][1], x[0][2]]])
-        Kn[0][i] = np.dot(np.array([1, 0]), np.dot(FaceSFM[i], np.array([[1.], [0.]])))
+        FaceSFM[i] = np.array([[x[0], x[1]], [x[1], x[2]]])
+        Kn[0, i] = np.dot(np.array([1, 0]), np.dot(FaceSFM[i], np.array([[1.], [0.]])))
         """
         Calculate curvature per vertex
         Calculate voronoi weights
         """
-        wfp[i][0] = Acorner[i][0] / Avertex[FV.faces[i][0]]
-        wfp[i][1] = Acorner[i][1] / Avertex[FV.faces[i][1]]
-        wfp[i][2] = Acorner[i][2] / Avertex[FV.faces[i][2]]
+        wfp[i, 0] = Acorner[i, 0] / Avertex[FV.faces[i, 0]]
+        wfp[i, 1] = Acorner[i, 1] / Avertex[FV.faces[i, 1]]
+        wfp[i, 2] = Acorner[i, 2] / Avertex[FV.faces[i, 2]]
 
         "Calculate new coordinate system and project the tensor"
 
         for j in range(3):
-            new_ku, new_kuv, new_kv = ProjectCurvatureTensor(t, B, nf, x[0][0], x[0][1], x[0][2],
-                                                             up[FV.faces[i][j], :], vp[FV.faces[i][j], :])
-            VertexSFM[FV.faces[i][j]] += np.dot(wfp[i][j], np.array([[new_ku, new_kuv], [new_kuv, new_kv]]))
-
-    # print('Finished Calculating curvature tensors')
+            new_ku, new_kuv, new_kv = ProjectCurvatureTensor(t, B, nf, x[0], x[1], x[2],
+                                                             up[FV.faces[i, j], :], vp[FV.faces[i, j], :])
+            VertexSFM[FV.faces[i, j]] += np.dot(wfp[i, j], np.array([[new_ku, new_kuv], [new_kuv, new_kv]]))
 
     return FaceSFM, VertexSFM, wfp
 
@@ -241,9 +247,9 @@ def getPrincipalCurvatures(FV, VertexSFM):
 
     PrincipalCurvature = np.zeros((2, np.shape(FV.vertices)[0]))
     for i in range(np.shape(FV.vertices)[0]):
-        ku = VertexSFM[i][0][0]
-        kuv = VertexSFM[i][0][1]
-        kv = VertexSFM[i][1][1]
+        ku = VertexSFM[i, 0, 0]
+        kuv = VertexSFM[i, 0, 1]
+        kv = VertexSFM[i, 1, 1]
         c, s, tt = 1, 0, 0
         if kuv != 0:
             "Jacobi rotation to diagonalize"
@@ -255,8 +261,8 @@ def getPrincipalCurvatures(FV, VertexSFM):
         k1 = ku - tt * kuv
         k2 = kv + tt * kuv
 
-        PrincipalCurvature[0][i] = k1
-        PrincipalCurvature[1][i] = k2
+        PrincipalCurvature[0, i] = k1
+        PrincipalCurvature[1, i] = k2
 
         if np.isnan(k1) or np.isnan(k2):
             print("Nan")
@@ -292,7 +298,7 @@ def ProjectCurvatureTensor(uf, vf, nf, old_ku, old_kuv, old_kv, up, vp):
 
 
 def RotateCoordinateSystem(up, vp, nf):
-    '''
+    """
     RotateCoordinateSystem performs the rotation of the vectors up and vp
     to the plane defined by nf as its normal vector
     INPUT:
@@ -300,7 +306,7 @@ def RotateCoordinateSystem(up, vp, nf):
     nf : face normal
     OUTPUT:
     r_new_u,r_new_v : new rotated vectors
-    '''
+    """
 
     r_new_u = up
     r_new_v = vp
@@ -343,3 +349,14 @@ def somme_colonnes(X):
     for i in range(np.shape(X)[1]):
         xx.append(sum(X[:, i]))
     return np.array(xx)
+
+
+def main():
+    mesh = trimesh.load('idler_riser.STL')
+    print(mesh.faces.shape)
+    print(mesh.vertices.shape)
+    curvatures = GetCurvaturesAndDerivatives(mesh)
+
+
+if __name__ == '__main__':
+    main()
