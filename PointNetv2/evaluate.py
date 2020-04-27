@@ -131,8 +131,8 @@ def eval_one_epoch(sess, ops):
             total_seen_class[l] += 1
             total_correct_class[l] += (pred_val[i - start_idx] == l)
             fout.write(f'{i:^5d}\t{pred_val[i - start_idx]:^5d}\t{l:^5d}\t'
-                       f'{pred_prob[i - start_idx][0]:.3f}\t{pred_prob[i - start_idx][1]:.3f}\t'
-                       f'{pred_prob[i - start_idx][2]:.3f}\t{pred_prob[i - start_idx][3]:.3f}\n')
+                       f'{pred_prob2[i - start_idx][0]:.3f}\t{pred_prob2[i - start_idx][1]:.3f}\t'
+                       f'{pred_prob2[i - start_idx][2]:.3f}\t{pred_prob2[i - start_idx][3]:.3f}\n')
             if pred_val[i - start_idx] != l:
                 fout2.write(f'{i:^5d}\t{pred_val[i - start_idx]:^5d}\t{l:^5d}\t'
                             f'{pred_prob2[i - start_idx][0]:.3f}\t{pred_prob2[i - start_idx][1]:.3f}\t'
