@@ -58,7 +58,7 @@ class DatasetHDF5(object):
         return self.h5_files[self.file_idxs[self.current_file_idx]]
 
     def _load_data_file(self, filename):
-        print(filename)
+        # print(filename)
         self.current_data, self.current_other, self.current_label = provider.load_h5_other(filename)
         self.current_label = np.squeeze(self.current_label)
         self.batch_idx = 0
