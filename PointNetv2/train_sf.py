@@ -180,7 +180,6 @@ def train_one_epoch(sess, ops, train_writer):
         batch_data, batch_other, batch_label = trainDataset.next_batch(augment=True)
         # batch_data = provider.random_point_dropout(batch_data)
         bsize = batch_data.shape[0]
-        print(f'batch size: {bsize}')
         cur_batch_data[0:bsize, ...] = batch_data
         cur_batch_other[0:bsize, ...] = batch_other
         cur_batch_label[0:bsize] = batch_label
@@ -232,13 +231,9 @@ def eval_one_epoch(sess, ops, test_writer):
     while testDataset.has_next_batch():
         batch_data, batch_other, batch_label = testDataset.next_batch(augment=False)
         bsize = batch_data.shape[0]
-        print(f'batch size: {bsize}')
         cur_batch_data[0:bsize, ...] = batch_data
         cur_batch_other[0:bsize, ...] = batch_other
         cur_batch_label[0:bsize] = batch_label
-        print(cur_batch_data.shape)
-        print(cur_batch_label.shape)
-        print(cur_batch_other.shape)
         batchWeight = provider.weights_calculation(cur_batch_label, testDataset.weight_dict)
 
         feed_dict = {ops['pointclouds_pl']: cur_batch_data,
@@ -259,7 +254,7 @@ def eval_one_epoch(sess, ops, test_writer):
             l = batch_label[i]
             total_seen_class[l] += 1
             total_correct_class[l] += (pred_val[i] == l)
-        total_pred.extend(pred_val)
+        total_pred.extend(pred_val[0:bsize])
 
     log_string('Test result:')
     log_string(f'mean loss: {(loss_sum / float(total_seen)):.3f}')
