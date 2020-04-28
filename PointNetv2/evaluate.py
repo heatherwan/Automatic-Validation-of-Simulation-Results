@@ -7,10 +7,16 @@ import time
 import numpy as np
 import tensorflow as tf
 from sklearn.metrics import confusion_matrix
+from datetime import datetime
 
 import provider
 from Parameters import Parameters
+from Dataset_hdf5 import DatasetHDF5
 
+# ===============get basic folder=====================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(BASE_DIR)
+sys.path.append(os.path.join(BASE_DIR, 'models'))
 para = Parameters(evaluation=True)
 if para.gpu:
     gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -18,13 +24,11 @@ if para.gpu:
         tf.config.experimental.set_memory_growth(gpu, True)
 else:
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(BASE_DIR)
-
-BATCH_SIZE = para.batchSize
-NUM_CLASSES = para.outputClassN
-NUM_POINT = para.pointNumber
+# set parameters
+BN_INIT_DECAY = 0.5
+BN_DECAY_DECAY_RATE = 0.5
+BN_DECAY_DECAY_STEP = float(para.decay_step)
+BN_DECAY_CLIP = 0.99
 
 MODEL = importlib.import_module(para.model)  # import network module
 LOG_MODEL = para.logmodelDir
@@ -35,6 +39,9 @@ LOG_FOUT = open(os.path.join(EVAL, f'{para.expName}_testresult.txt'), 'w')
 LOG_FOUT.write(str(para.__dict__) + '\n')
 
 HOSTNAME = socket.gethostname()
+
+# get dataset
+testDataset = DatasetHDF5(para.TEST_FILES, batch_size=para.testBatchSize, npoints=para.pointNumber, dim=para.dim, shuffle=True)
 
 
 def log_string(out_str):
@@ -48,7 +55,8 @@ def log_string(out_str):
 
 def evaluate():
     with tf.device(''):
-        pointclouds_pl, pointclouds_other_pl, labels_pl = MODEL.placeholder_inputs_other(BATCH_SIZE, NUM_POINT)
+        pointclouds_pl, pointclouds_other_pl, labels_pl = MODEL.placeholder_inputs_other(para.testBatchSize,
+                                                                                         para.pointNumber)
         is_training_pl = tf.compat.v1.placeholder(tf.bool, shape=())
         weights = tf.compat.v1.placeholder(tf.float32, [None])
 
@@ -82,71 +90,74 @@ def evaluate():
     eval_one_epoch(sess, ops)
 
 
-# since the paras in training is with batch size 32, the evaluation should have the same shape.
-# So it is better to have the testing as the multiply of batch size 32
 def eval_one_epoch(sess, ops):
     is_training = False
+    log_string(str(datetime.now()))
+
+    # Make sure batch data is of same size
+    cur_batch_data = np.zeros((para.testBatchSize, para.pointNumber, 3))
+    cur_batch_other = np.zeros((para.testBatchSize, para.pointNumber, testDataset.num_channel() - 3))
+    cur_batch_label = np.zeros(para.testBatchSize, dtype=np.int32)
+
+    # set variable for statistics
     total_correct = 0
     total_seen = 0
+    pred_label = []
     loss_sum = 0
-    total_seen_class = [0 for _ in range(NUM_CLASSES)]
-    total_correct_class = [0 for _ in range(NUM_CLASSES)]
+    batch_idx = 0
+    total_seen_class = [0 for _ in range(para.outputClassN)]
+    total_correct_class = [0 for _ in range(para.outputClassN)]
+
     fout = open(os.path.join(EVAL, 'all_pred_label.txt'), 'w')
     fout.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
     fout2 = open(os.path.join(EVAL, 'wrong_pred_prob.txt'), 'w')
     fout2.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
-    # load data
-    current_data, current_other, current_label = provider.loadDataFile_other(para.TEST_FILES)
-    current_data = current_data[:, 0:NUM_POINT, :]
-    current_other = current_other[:, 0:NUM_POINT]
-    current_label = np.squeeze(current_label)
-    print(current_data.shape)
-    weight_dict = provider.weight_dict_fc(current_label)
 
-    file_size = current_data.shape[0]
-    num_batches = file_size // BATCH_SIZE
-    print(file_size)
-    pred_label = []
-    for batch_idx in range(num_batches):
-        start_idx = batch_idx * BATCH_SIZE
-        end_idx = (batch_idx + 1) * BATCH_SIZE
-        cur_batch_size = end_idx - start_idx
-        batchWeight = provider.weights_calculation(current_label[start_idx:end_idx], weight_dict)
+    while testDataset.has_next_batch():
+        batch_data, batch_other, batch_label = testDataset.next_batch(augment=False)
+        bsize = batch_data.shape[0]
+        cur_batch_data[0:bsize, ...] = batch_data
+        cur_batch_other[0:bsize, ...] = batch_other
+        cur_batch_label[0:bsize] = batch_label
+        batchWeight = provider.weights_calculation(cur_batch_label, testDataset.weight_dict)
 
-        feed_dict = {ops['pointclouds_pl']: current_data[start_idx:end_idx, :, :],
-                     ops['pointclouds_other_pl']: current_other[start_idx:end_idx, :, :],
-                     ops['labels_pl']: current_label[start_idx:end_idx],
+        feed_dict = {ops['pointclouds_pl']: cur_batch_data,
+                     ops['pointclouds_other_pl']: cur_batch_other,
+                     ops['labels_pl']: cur_batch_label,
                      ops['is_training_pl']: is_training,
                      ops['weights']: batchWeight}
+
         loss_val, pred_prob = sess.run([ops['loss'], ops['pred']], feed_dict=feed_dict)
+
         pred_prob2 = np.exp(pred_prob) / np.sum(np.exp(pred_prob), axis=1).reshape(para.batchSize, 1)
         pred_val = np.argmax(pred_prob, 1)  # get the predict class number
-        correct_count = np.sum(pred_val == current_label[start_idx:end_idx])
+        correct_count = np.sum(pred_val[0:bsize] == batch_label[0:bsize])
         total_correct += correct_count
-        total_seen += cur_batch_size
-        loss_sum += (loss_val * BATCH_SIZE)
-
-        for i in range(start_idx, end_idx):
-            l = current_label[i]
+        total_seen += bsize
+        loss_sum += (loss_val * bsize)
+        batch_idx += 1
+        for i in range(bsize):
+            l = batch_label[i]
             total_seen_class[l] += 1
-            total_correct_class[l] += (pred_val[i - start_idx] == l)
-            fout.write(f'{i:^5d}\t{pred_val[i - start_idx]:^5d}\t{l:^5d}\t'
-                       f'{pred_prob2[i - start_idx][0]:.3f}\t{pred_prob2[i - start_idx][1]:.3f}\t'
-                       f'{pred_prob2[i - start_idx][2]:.3f}\t{pred_prob2[i - start_idx][3]:.3f}\n')
-            if pred_val[i - start_idx] != l:
-                fout2.write(f'{i:^5d}\t{pred_val[i - start_idx]:^5d}\t{l:^5d}\t'
-                            f'{pred_prob2[i - start_idx][0]:.3f}\t{pred_prob2[i - start_idx][1]:.3f}\t'
-                            f'{pred_prob2[i - start_idx][2]:.3f}\t{pred_prob2[i - start_idx][3]:.3f}\n')
-        pred_label.extend(pred_val)
+            total_correct_class[l] += (pred_val[i] == l)
+            fout.write(f'{i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t'
+                       f'{pred_prob2[i][0]:.3f}\t{pred_prob2[i][1]:.3f}\t'
+                       f'{pred_prob2[i][2]:.3f}\t{pred_prob2[i][3]:.3f}\n')
+            if pred_val[i] != l:
+                fout2.write(f'{i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t'
+                            f'{pred_prob2[i][0]:.3f}\t{pred_prob2[i][1]:.3f}\t'
+                            f'{pred_prob2[i][2]:.3f}\t{pred_prob2[i][3]:.3f}\n')
+        pred_label.extend(pred_val[0:bsize])
 
+    log_string('Test result:')
     log_string(f'mean loss: {(loss_sum / float(total_seen)):.3f}')
     log_string(f'acc: {(total_correct / float(total_seen)):.3f}')
-    avg_class_acc = np.mean(np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float))
-    log_string(f'avg class acc: {avg_class_acc:.3f}')
-    log_string(confusion_matrix(current_label[:len(pred_label)], pred_label))
     class_accuracies = np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float)
+    avg_class_acc = np.mean(class_accuracies)
+    log_string(f'avg class acc: {avg_class_acc:.3f}')
     for i, name in para.classes.items():
         log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
+    log_string(confusion_matrix(testDataset.current_label[:len(pred_label)], pred_label))
 
 
 if __name__ == '__main__':

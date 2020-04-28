@@ -176,6 +176,9 @@ def train_one_epoch(sess, ops, train_writer):
     total_pred = []
     loss_sum = 0
     batch_idx = 0
+    total_seen_class = [0 for _ in range(para.outputClassN)]
+    total_correct_class = [0 for _ in range(para.outputClassN)]
+
     while trainDataset.has_next_batch():
         batch_data, batch_other, batch_label = trainDataset.next_batch(augment=True)
         # batch_data = provider.random_point_dropout(batch_data)
@@ -202,9 +205,18 @@ def train_one_epoch(sess, ops, train_writer):
         loss_sum += loss_val * bsize
         total_pred.extend(pred_val[0:bsize])
         batch_idx += 1
+        for i in range(0, bsize):
+            l = batch_label[i]
+            total_seen_class[l] += 1
+            total_correct_class[l] += (pred_val[i] == l)
     log_string('Train result:')
     log_string(f'mean loss: {loss_sum / float(total_seen):.3f}')
     log_string(f'accuracy: {total_correct / float(total_seen):.3f}')
+    class_accuracies = np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float)
+    avg_class_acc = np.mean(class_accuracies)
+    log_string(f'avg class acc: {avg_class_acc:.3f}')
+    for i, name in para.classes.items():
+        log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
     log_string(confusion_matrix(trainDataset.current_label[:len(total_pred)], total_pred))
     return loss_sum / float(total_seen)
 
@@ -222,7 +234,7 @@ def eval_one_epoch(sess, ops, test_writer):
     # set variable for statistics
     total_correct = 0
     total_seen = 0
-    total_pred = []
+    pred_label = []
     loss_sum = 0
     batch_idx = 0
     total_seen_class = [0 for _ in range(para.outputClassN)]
@@ -254,14 +266,17 @@ def eval_one_epoch(sess, ops, test_writer):
             l = batch_label[i]
             total_seen_class[l] += 1
             total_correct_class[l] += (pred_val[i] == l)
-        total_pred.extend(pred_val[0:bsize])
+        pred_label.extend(pred_val[0:bsize])
 
     log_string('Test result:')
     log_string(f'mean loss: {(loss_sum / float(total_seen)):.3f}')
     log_string(f'acc: {(total_correct / float(total_seen)):.3f}')
-    avg_class_acc = np.mean(np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float))
+    class_accuracies = np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float)
+    avg_class_acc = np.mean(class_accuracies)
     log_string(f'avg class acc: {avg_class_acc:.3f}')
-    log_string(confusion_matrix(testDataset.current_label[:len(total_pred)], total_pred))
+    for i, name in para.classes.items():
+        log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
+    log_string(confusion_matrix(testDataset.current_label[:len(pred_label)], pred_label))
 
 
 if __name__ == "__main__":
