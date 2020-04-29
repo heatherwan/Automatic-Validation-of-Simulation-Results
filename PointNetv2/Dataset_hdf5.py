@@ -47,12 +47,12 @@ class DatasetHDF5(object):
 
     def _augment_batch_data(self, batch_data):
         rotated_data = provider.rotate_point_cloud(batch_data)
-        rotated_data = provider.rotate_perturbation_point_cloud(rotated_data)
-        jittered_data = provider.random_scale_point_cloud(rotated_data[:, :, 0:3])
-        jittered_data = provider.shift_point_cloud(jittered_data)
-        jittered_data = provider.jitter_point_cloud(jittered_data)
-        rotated_data[:, :, 0:3] = jittered_data
-        return provider.shuffle_points(rotated_data)
+        # rotated_data = provider.rotate_perturbation_point_cloud(rotated_data)
+        # jittered_data = provider.random_scale_point_cloud(rotated_data[:, :, 0:3])
+        # jittered_data = provider.shift_point_cloud(jittered_data)
+        jittered_data = provider.jitter_point_cloud(rotated_data)
+        # rotated_data[:, :, 0:3] = jittered_data
+        return jittered_data  # provider.shuffle_points(jittered_data)
 
     def _get_data_filename(self):
         return self.h5_files[self.file_idxs[self.current_file_idx]]
