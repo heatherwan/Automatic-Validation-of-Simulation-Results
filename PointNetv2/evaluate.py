@@ -136,7 +136,7 @@ def eval_one_epoch(sess, ops):
         total_correct += correct_count
         total_seen += bsize
         loss_sum += (loss_val * bsize)
-        batch_idx += 1
+
         for i in range(bsize):
             l = batch_label[i]
             total_seen_class[l] += 1
@@ -149,7 +149,7 @@ def eval_one_epoch(sess, ops):
                             f'{pred_prob2[i][0]:.3f}\t{pred_prob2[i][1]:.3f}\t'
                             f'{pred_prob2[i][2]:.3f}\t{pred_prob2[i][3]:.3f}\n')
         pred_label.extend(pred_val[0:bsize])
-
+        batch_idx += 1
     log_string('Test result:')
     log_string(f'mean loss: {(loss_sum / float(total_seen)):.3f}')
     log_string(f'acc: {(total_correct / float(total_seen)):.3f}')
