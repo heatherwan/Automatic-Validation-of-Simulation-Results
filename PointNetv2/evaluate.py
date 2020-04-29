@@ -41,7 +41,8 @@ LOG_FOUT.write(str(para.__dict__) + '\n')
 HOSTNAME = socket.gethostname()
 
 # get dataset
-testDataset = DatasetHDF5(para.TEST_FILES, batch_size=para.testBatchSize, npoints=para.pointNumber, dim=para.dim, shuffle=True)
+testDataset = DatasetHDF5(para.TEST_FILES, batch_size=para.testBatchSize,
+                          npoints=para.pointNumber, dim=para.dim, shuffle=False)
 
 
 def log_string(out_str):
@@ -140,11 +141,11 @@ def eval_one_epoch(sess, ops):
             l = batch_label[i]
             total_seen_class[l] += 1
             total_correct_class[l] += (pred_val[i] == l)
-            fout.write(f'{i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t'
+            fout.write(f'{batch_idx*para.testBatchSize+i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t'
                        f'{pred_prob2[i][0]:.3f}\t{pred_prob2[i][1]:.3f}\t'
                        f'{pred_prob2[i][2]:.3f}\t{pred_prob2[i][3]:.3f}\n')
             if pred_val[i] != l:
-                fout2.write(f'{i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t'
+                fout2.write(f'{batch_idx*para.testBatchSize+i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t'
                             f'{pred_prob2[i][0]:.3f}\t{pred_prob2[i][1]:.3f}\t'
                             f'{pred_prob2[i][2]:.3f}\t{pred_prob2[i][3]:.3f}\n')
         pred_label.extend(pred_val[0:bsize])

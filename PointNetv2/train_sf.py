@@ -41,8 +41,10 @@ BN_DECAY_CLIP = 0.99
 HOSTNAME = socket.gethostname()
 
 # get dataset
-trainDataset = DatasetHDF5(para.TRAIN_FILES, batch_size=para.batchSize, npoints=para.pointNumber, dim=para.dim, shuffle=True)
-testDataset = DatasetHDF5(para.TEST_FILES, batch_size=para.testBatchSize, npoints=para.pointNumber, dim=para.dim, shuffle=True)
+trainDataset = DatasetHDF5(para.TRAIN_FILES, batch_size=para.batchSize,
+                           npoints=para.pointNumber, dim=para.dim, shuffle=True)
+testDataset = DatasetHDF5(para.TEST_FILES, batch_size=para.testBatchSize,
+                          npoints=para.pointNumber, dim=para.dim, shuffle=False)
 
 
 def log_string(out_str):
