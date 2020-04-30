@@ -109,9 +109,9 @@ def eval_one_epoch(sess, ops):
     total_seen_class = [0 for _ in range(para.outputClassN)]
     total_correct_class = [0 for _ in range(para.outputClassN)]
 
-    fout = open(os.path.join(EVAL, 'all_pred_label.txt'), 'w')
+    fout = open(os.path.join(EVAL, f'{para.expName[:6]}_all_pred_label.txt'), 'w')
     fout.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
-    fout2 = open(os.path.join(EVAL, 'wrong_pred_prob.txt'), 'w')
+    fout2 = open(os.path.join(EVAL, f'{para.expName[:6]}_wrong_pred_prob.txt'), 'w')
     fout2.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
 
     while testDataset.has_next_batch():
