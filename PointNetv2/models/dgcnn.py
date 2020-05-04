@@ -27,7 +27,7 @@ def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
     # build graph
     adj_matrix = tf_util.pairwise_distance(point_cloud)
     nn_idx = tf_util.knn(adj_matrix, k=k)
-    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=1, batch_dims=1)
+    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
     end_points['knn1'] = allSF_dist
 
     edge_feature = tf_util.get_edge_feature(point_cloud, nn_idx=nn_idx, k=k)
@@ -47,7 +47,7 @@ def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
     # build graph
     adj_matrix = tf_util.pairwise_distance(point_cloud_transformed)
     nn_idx = tf_util.knn(adj_matrix, k=k)
-    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=1, batch_dims=1)
+    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
     end_points['knn2'] = allSF_dist
 
     edge_feature = tf_util.get_edge_feature(point_cloud_transformed, nn_idx=nn_idx, k=k)
@@ -65,7 +65,7 @@ def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
     # build graph
     adj_matrix = tf_util.pairwise_distance(net)
     nn_idx = tf_util.knn(adj_matrix, k=k)
-    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=1, batch_dims=1)
+    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
     end_points['knn3'] = allSF_dist
 
     edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=k)
@@ -81,7 +81,7 @@ def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
     # build graph
     adj_matrix = tf_util.pairwise_distance(net)
     nn_idx = tf_util.knn(adj_matrix, k=k)
-    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=1, batch_dims=1)
+    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
     end_points['knn4'] = allSF_dist
 
     edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=k)
@@ -97,7 +97,7 @@ def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
     # build graph
     adj_matrix = tf_util.pairwise_distance(net)
     nn_idx = tf_util.knn(adj_matrix, k=k)
-    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=1, batch_dims=1)
+    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
     end_points['knn5'] = allSF_dist
 
     edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=k)
