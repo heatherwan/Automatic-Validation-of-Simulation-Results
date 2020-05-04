@@ -137,14 +137,13 @@ def eval_one_epoch(sess, ops):
         total_correct += correct_count
         total_seen += bsize
         loss_sum += (loss_val * bsize)
+
         if batch_idx == 0:
             all_knn_idx = knn_idx
         else:
             for key, value in all_knn_idx.items():
-                # print(all_knn_idx[key].shape)
-                # print(knn_idx[key].shape)
                 all_knn_idx[key] = np.append(all_knn_idx[key], knn_idx[key][0:bsize], axis=0)
-                # print(all_knn_idx[key].shape)
+
         for i in range(bsize):
             l = batch_label[i]
             total_seen_class[l] += 1
@@ -169,10 +168,8 @@ def eval_one_epoch(sess, ops):
     log_string(confusion_matrix(testDataset.current_label[:len(pred_label)], pred_label))
 
     if para.model == "dgcnn":
-        print(type(all_knn_idx['knn1']))
         for k, v in all_knn_idx.items():
-            print(v.shape)
-            v.tofile(f'{k}.txt', sep=" ", format="%.3f")
+            v.tofile(f'evallog/{para.expName[:6]}_{k}.txt', sep=" ", format="%.3f")
 
 
 if __name__ == '__main__':

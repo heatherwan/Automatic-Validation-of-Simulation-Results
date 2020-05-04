@@ -153,7 +153,7 @@ def train():
             log_string('**** EPOCH %03d ****' % epoch)
             sys.stdout.flush()
 
-            loss, knn_idx = train_one_epoch(sess, ops, train_writer)
+            loss = train_one_epoch(sess, ops, train_writer)
             trainDataset.reset()
             eval_one_epoch(sess, ops, test_writer)
             testDataset.reset()
@@ -162,13 +162,6 @@ def train():
                 save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}.ckpt"))
                 log_string("Model saved in file: %s" % save_path)
                 min_loss = loss
-
-                # if para.model == "dgcnn":
-                #                 #     log_string(f"knn1: \n{knn_idx['knn1']}")
-                #                 #     log_string(f"knn2: \n{knn_idx['knn2']}")
-                #                 #     log_string(f"knn3: \n{knn_idx['knn3']}")
-                #                 #     log_string(f"knn4: \n{knn_idx['knn4']}")
-                #                 #     log_string(f"knn5: \n{knn_idx['knn5']}")
 
 
 def train_one_epoch(sess, ops, train_writer):
@@ -189,7 +182,7 @@ def train_one_epoch(sess, ops, train_writer):
     batch_idx = 0
     total_seen_class = [0 for _ in range(para.outputClassN)]
     total_correct_class = [0 for _ in range(para.outputClassN)]
-    all_knn_idx = {}
+
     while trainDataset.has_next_batch():
         batch_data, batch_other, batch_label = trainDataset.next_batch(augment=True)
         # batch_data = provider.random_point_dropout(batch_data)
@@ -205,18 +198,9 @@ def train_one_epoch(sess, ops, train_writer):
                      ops['labels_pl']: cur_batch_label,
                      ops['is_training_pl']: is_training,
                      ops['weights']: batchWeight}
-        summary, step, _, loss_val, pred_val, knn_idx = sess.run([ops['merged'], ops['step'],
-                                                                  ops['train_op'], ops['loss'], ops['pred'],
-                                                                  ops['knn']],
-                                                                 feed_dict=feed_dict)
-        if batch_idx == 0:
-            all_knn_idx = knn_idx
-        else:
-            for key, value in all_knn_idx.items():
-                # print(all_knn_idx[key].shape)
-                # print(knn_idx[key].shape)
-                all_knn_idx[key] = np.append(all_knn_idx[key], knn_idx[key], axis=0)
-                # print(all_knn_idx[key].shape)
+        summary, step, _, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
+                                                         ops['train_op'], ops['loss'], ops['pred']],
+                                                        feed_dict=feed_dict)
 
         train_writer.add_summary(summary, step)  # tensorboard
         pred_val = np.argmax(pred_val, 1)
@@ -240,7 +224,7 @@ def train_one_epoch(sess, ops, train_writer):
     for i, name in para.classes.items():
         log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
     log_string(confusion_matrix(trainDataset.current_label[:len(total_pred)], total_pred))
-    return loss_sum / float(total_seen), all_knn_idx
+    return loss_sum / float(total_seen)
 
 
 def eval_one_epoch(sess, ops, test_writer):
@@ -275,17 +259,9 @@ def eval_one_epoch(sess, ops, test_writer):
                      ops['labels_pl']: cur_batch_label,
                      ops['is_training_pl']: is_training,
                      ops['weights']: batchWeight}
-        summary, step, loss_val, pred_val, knn_idx = sess.run([ops['merged'], ops['step'],
-                                                               ops['loss'], ops['pred'], ops['knn']],
-                                                              feed_dict=feed_dict)
-        if batch_idx == 0:
-            all_knn_idx = knn_idx
-        else:
-            for key, value in all_knn_idx.items():
-                # print(all_knn_idx[key].shape)
-                # print(knn_idx[key].shape)
-                all_knn_idx[key] = np.append(all_knn_idx[key], knn_idx[key], axis=0)
-                # print(all_knn_idx[key].shape)
+        summary, step, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
+                                                      ops['loss'], ops['pred']],
+                                                     feed_dict=feed_dict)
 
         test_writer.add_summary(summary, step)
         pred_val = np.argmax(pred_val, 1)
@@ -309,12 +285,6 @@ def eval_one_epoch(sess, ops, test_writer):
     for i, name in para.classes.items():
         log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
     log_string(confusion_matrix(testDataset.current_label[:len(pred_label)], pred_label))
-    if para.model == "dgcnn":
-        log_string(f"knn1: \n{all_knn_idx['knn1']}")
-        log_string(f"knn2: \n{all_knn_idx['knn2']}")
-        log_string(f"knn3: \n{all_knn_idx['knn3']}")
-        log_string(f"knn4: \n{all_knn_idx['knn4']}")
-        log_string(f"knn5: \n{all_knn_idx['knn5']}")
 
 
 if __name__ == "__main__":
