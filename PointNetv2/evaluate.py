@@ -86,7 +86,8 @@ def evaluate():
            'is_training_pl': is_training_pl,
            'pred': pred,
            'loss': loss,
-           'weights': weights}
+           'weights': weights,
+           'knn': end_points}
 
     eval_one_epoch(sess, ops)
 
