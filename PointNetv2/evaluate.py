@@ -113,7 +113,7 @@ def eval_one_epoch(sess, ops):
     fout.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
     fout2 = open(os.path.join(EVAL, f'{para.expName[:6]}_wrong_pred_prob.txt'), 'w')
     fout2.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
-
+    all_knn_idx = {}
     while testDataset.has_next_batch():
         batch_data, batch_other, batch_label = testDataset.next_batch(augment=False)
         bsize = batch_data.shape[0]
@@ -128,7 +128,7 @@ def eval_one_epoch(sess, ops):
                      ops['is_training_pl']: is_training,
                      ops['weights']: batchWeight}
 
-        loss_val, pred_prob = sess.run([ops['loss'], ops['pred']], feed_dict=feed_dict)
+        loss_val, pred_prob, knn_idx = sess.run([ops['loss'], ops['pred'], ops['knn']], feed_dict=feed_dict)
 
         pred_prob2 = np.exp(pred_prob) / np.sum(np.exp(pred_prob), axis=1).reshape(para.batchSize, 1)
         pred_val = np.argmax(pred_prob, 1)  # get the predict class number
@@ -136,7 +136,14 @@ def eval_one_epoch(sess, ops):
         total_correct += correct_count
         total_seen += bsize
         loss_sum += (loss_val * bsize)
-
+        if batch_idx == 0:
+            all_knn_idx = knn_idx
+        else:
+            for key, value in all_knn_idx.items():
+                # print(all_knn_idx[key].shape)
+                # print(knn_idx[key].shape)
+                all_knn_idx[key] = np.append(all_knn_idx[key], knn_idx[key], axis=0)
+                # print(all_knn_idx[key].shape)
         for i in range(bsize):
             l = batch_label[i]
             total_seen_class[l] += 1
@@ -159,6 +166,13 @@ def eval_one_epoch(sess, ops):
     for i, name in para.classes.items():
         log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
     log_string(confusion_matrix(testDataset.current_label[:len(pred_label)], pred_label))
+
+    if para.model == "dgcnn":
+        log_string(f"knn1: \n{all_knn_idx['knn1']}")
+        log_string(f"knn2: \n{all_knn_idx['knn2']}")
+        log_string(f"knn3: \n{all_knn_idx['knn3']}")
+        log_string(f"knn4: \n{all_knn_idx['knn4']}")
+        log_string(f"knn5: \n{all_knn_idx['knn5']}")
 
 
 if __name__ == '__main__':
