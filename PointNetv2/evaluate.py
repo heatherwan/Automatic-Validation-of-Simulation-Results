@@ -143,7 +143,7 @@ def eval_one_epoch(sess, ops):
             for key, value in all_knn_idx.items():
                 # print(all_knn_idx[key].shape)
                 # print(knn_idx[key].shape)
-                all_knn_idx[key] = np.append(all_knn_idx[key], knn_idx[key], axis=0)
+                all_knn_idx[key] = np.append(all_knn_idx[key], knn_idx[key][0:bsize], axis=0)
                 # print(all_knn_idx[key].shape)
         for i in range(bsize):
             l = batch_label[i]
@@ -171,6 +171,7 @@ def eval_one_epoch(sess, ops):
     if para.model == "dgcnn":
         print(type(all_knn_idx['knn1']))
         for k, v in all_knn_idx.items():
+            print(v.shape)
             v.tofile(f'{k}.txt', sep=" ", format="%.3f")
 
 
