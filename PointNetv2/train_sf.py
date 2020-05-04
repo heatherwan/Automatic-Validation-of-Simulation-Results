@@ -82,7 +82,8 @@ def get_bn_decay(batch):
 def train():
     with tf.Graph().as_default():
         with tf.device(''):
-            pointclouds_pl, pointclouds_other_pl, labels_pl = MODEL.placeholder_inputs_other(para.batchSize, para.pointNumber)
+            pointclouds_pl, pointclouds_other_pl, labels_pl = MODEL.placeholder_inputs_other(para.batchSize,
+                                                                                             para.pointNumber)
             is_training_pl = tf.compat.v1.placeholder(tf.bool, shape=())
             weights = tf.compat.v1.placeholder(tf.float32, [None])
             print(is_training_pl)
@@ -144,7 +145,8 @@ def train():
                'train_op': train_op,
                'merged': merged,
                'step': batch,
-               'weights': weights}
+               'weights': weights,
+               'knn': end_points}
 
         min_loss = np.inf
         for epoch in range(para.max_epoch):
@@ -196,9 +198,11 @@ def train_one_epoch(sess, ops, train_writer):
                      ops['labels_pl']: cur_batch_label,
                      ops['is_training_pl']: is_training,
                      ops['weights']: batchWeight}
-        summary, step, _, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
-                                                         ops['train_op'], ops['loss'], ops['pred']],
-                                                        feed_dict=feed_dict)
+        summary, step, _, loss_val, pred_val, knn_idx = sess.run([ops['merged'], ops['step'],
+                                                                  ops['train_op'], ops['loss'], ops['pred'],
+                                                                  ops['knn']],
+                                                                 feed_dict=feed_dict)
+
         train_writer.add_summary(summary, step)  # tensorboard
         pred_val = np.argmax(pred_val, 1)
         correct = np.sum(pred_val[0:bsize] == batch_label[0:bsize])
@@ -211,6 +215,12 @@ def train_one_epoch(sess, ops, train_writer):
             l = batch_label[i]
             total_seen_class[l] += 1
             total_correct_class[l] += (pred_val[i] == l)
+    if para.model == "dgcnn":
+        print(f"knn1: \n{knn_idx['knn1']}")
+        print(f"knn2: \n{knn_idx['knn2']}")
+        print(f"knn3: \n{knn_idx['knn3']}")
+        print(f"knn4: \n{knn_idx['knn4']}")
+        print(f"knn5: \n{knn_idx['knn5']}")
     log_string('Train result:')
     log_string(f'mean loss: {loss_sum / float(total_seen):.3f}')
     log_string(f'accuracy: {total_correct / float(total_seen):.3f}')
