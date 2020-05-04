@@ -25,7 +25,11 @@ def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
     # build graph
     adj_matrix = tf_util.pairwise_distance(point_cloud)
     nn_idx = tf_util.knn(adj_matrix, k=k)
-    end_points['knn1'] = nn_idx
+    # get MinSF
+    minSF = tf.math.argmax(pointclouds_other[:, :, 0], axis=1)
+    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=1, batch_dims=1)
+    # print('minSF ', allSF_dist)
+    end_points['knn1'] = allSF_dist
 
     edge_feature = tf_util.get_edge_feature(point_cloud, nn_idx=nn_idx, k=k)
     print(f'first edge shape: {edge_feature.shape}')
@@ -40,10 +44,16 @@ def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
     # ======try to add more features here
     concat_other = tf.concat(axis=2, values=[point_cloud_transformed, pointclouds_other])
     point_cloud_transformed = concat_other
+
     # build graph
     adj_matrix = tf_util.pairwise_distance(point_cloud_transformed)
     nn_idx = tf_util.knn(adj_matrix, k=k)
-    end_points['knn2'] = nn_idx
+    # get MinSF
+    minSF = tf.math.argmax(pointclouds_other[:, :, 0], axis=1)
+    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=1, batch_dims=1)
+    # print('minSF ', allSF_dist)
+    end_points['knn2'] = allSF_dist
+
     edge_feature = tf_util.get_edge_feature(point_cloud_transformed, nn_idx=nn_idx, k=k)
     print(f'first edge shape: {edge_feature.shape}')
 
@@ -59,7 +69,11 @@ def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
     # build graph
     adj_matrix = tf_util.pairwise_distance(net)
     nn_idx = tf_util.knn(adj_matrix, k=k)
-    end_points['knn3'] = nn_idx
+    # get MinSF
+    minSF = tf.math.argmax(pointclouds_other[:, :, 0], axis=1)
+    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=1, batch_dims=1)
+    # print('minSF ', allSF_dist)
+    end_points['knn3'] = allSF_dist
     edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=k)
     
     # Second EdgeConv layers
@@ -73,7 +87,11 @@ def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
     # build graph
     adj_matrix = tf_util.pairwise_distance(net)
     nn_idx = tf_util.knn(adj_matrix, k=k)
-    end_points['knn4'] = nn_idx
+    # get MinSF
+    minSF = tf.math.argmax(pointclouds_other[:, :, 0], axis=1)
+    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=1, batch_dims=1)
+    # print('minSF ', allSF_dist)
+    end_points['knn4'] = allSF_dist
     edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=k)
 
     # third EdgeConv layers
@@ -87,7 +105,11 @@ def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
     # build graph
     adj_matrix = tf_util.pairwise_distance(net)
     nn_idx = tf_util.knn(adj_matrix, k=k)
-    end_points['knn5'] = nn_idx
+    # get MinSF
+    minSF = tf.math.argmax(pointclouds_other[:, :, 0], axis=1)
+    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=1, batch_dims=1)
+    # print('minSF ', allSF_dist)
+    end_points['knn5'] = allSF_dist
     edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=k)
 
     # fourth EdgeConv layers
