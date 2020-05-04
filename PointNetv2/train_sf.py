@@ -153,7 +153,7 @@ def train():
             log_string('**** EPOCH %03d ****' % epoch)
             sys.stdout.flush()
 
-            loss = train_one_epoch(sess, ops, train_writer)
+            loss, knn_idx = train_one_epoch(sess, ops, train_writer)
             trainDataset.reset()
             eval_one_epoch(sess, ops, test_writer)
             testDataset.reset()
@@ -162,6 +162,13 @@ def train():
                 save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}.ckpt"))
                 log_string("Model saved in file: %s" % save_path)
                 min_loss = loss
+                
+                if para.model == "dgcnn":
+                    print(f"knn1: \n{knn_idx['knn1']}")
+                    print(f"knn2: \n{knn_idx['knn2']}")
+                    print(f"knn3: \n{knn_idx['knn3']}")
+                    print(f"knn4: \n{knn_idx['knn4']}")
+                    print(f"knn5: \n{knn_idx['knn5']}")
 
 
 def train_one_epoch(sess, ops, train_writer):
@@ -215,12 +222,7 @@ def train_one_epoch(sess, ops, train_writer):
             l = batch_label[i]
             total_seen_class[l] += 1
             total_correct_class[l] += (pred_val[i] == l)
-    if para.model == "dgcnn":
-        print(f"knn1: \n{knn_idx['knn1']}")
-        print(f"knn2: \n{knn_idx['knn2']}")
-        print(f"knn3: \n{knn_idx['knn3']}")
-        print(f"knn4: \n{knn_idx['knn4']}")
-        print(f"knn5: \n{knn_idx['knn5']}")
+
     log_string('Train result:')
     log_string(f'mean loss: {loss_sum / float(total_seen):.3f}')
     log_string(f'accuracy: {total_correct / float(total_seen):.3f}')
@@ -230,7 +232,7 @@ def train_one_epoch(sess, ops, train_writer):
     for i, name in para.classes.items():
         log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
     log_string(confusion_matrix(trainDataset.current_label[:len(total_pred)], total_pred))
-    return loss_sum / float(total_seen)
+    return loss_sum / float(total_seen), knn_idx
 
 
 def eval_one_epoch(sess, ops, test_writer):
