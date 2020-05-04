@@ -47,7 +47,7 @@ testDataset = DatasetHDF5(para.TEST_FILES, batch_size=para.testBatchSize,
 
 def log_string(out_str):
     if isinstance(out_str, np.ndarray):
-        np.savetxt(LOG_FOUT, out_str, fmt='%3d')
+        np.savetxt(LOG_FOUT, out_str, fmt='%.2f')
     else:
         LOG_FOUT.write(out_str + '\n')
     LOG_FOUT.flush()
@@ -169,11 +169,10 @@ def eval_one_epoch(sess, ops):
     log_string(confusion_matrix(testDataset.current_label[:len(pred_label)], pred_label))
 
     if para.model == "dgcnn":
-        log_string(f"knn1: \n{all_knn_idx['knn1']}")
-        log_string(f"knn2: \n{all_knn_idx['knn2']}")
-        log_string(f"knn3: \n{all_knn_idx['knn3']}")
-        log_string(f"knn4: \n{all_knn_idx['knn4']}")
-        log_string(f"knn5: \n{all_knn_idx['knn5']}")
+        print(type(all_knn_idx['knn1']))
+        for k,v in all_knn_idx.items():
+            log_string(f"{k}: \n")
+            log_string(v)
 
 
 if __name__ == '__main__':
