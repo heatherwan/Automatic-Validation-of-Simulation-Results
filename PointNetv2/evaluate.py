@@ -47,7 +47,7 @@ testDataset = DatasetHDF5(para.TEST_FILES, batch_size=para.testBatchSize,
 
 def log_string(out_str):
     if isinstance(out_str, np.ndarray):
-        np.savetxt(LOG_FOUT, out_str, fmt='%.2f')
+        np.savetxt(LOG_FOUT, out_str, fmt='%3d')
     else:
         LOG_FOUT.write(out_str + '\n')
     LOG_FOUT.flush()
@@ -170,9 +170,8 @@ def eval_one_epoch(sess, ops):
 
     if para.model == "dgcnn":
         print(type(all_knn_idx['knn1']))
-        for k,v in all_knn_idx.items():
-            log_string(f"{k}: \n")
-            log_string(v)
+        for k, v in all_knn_idx.items():
+            v.tofile(f'{k}.txt', sep=" ", format="%.3f")
 
 
 if __name__ == '__main__':
