@@ -22,7 +22,7 @@ def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
     end_points = {}
 
     # get MinSF
-    minSF = tf.reshape(tf.math.argmax(pointclouds_other[:, :, 0], axis=1), (-1, 1))
+    minSF = tf.reshape(tf.math.argmin(pointclouds_other[:, :, 0], axis=1), (-1, 1))
     k = 20
     # build graph
     adj_matrix = tf_util.pairwise_distance(point_cloud)
