@@ -69,11 +69,11 @@ def evaluate():
 
         # Add ops to save and restore all the variables.
         # variable_names = [v.name for v in tf.global_variables()]
-        variables = tf.global_variables()
+        variables = tf.compat.v1.global_variables()
         # Variables before #43 belong to the feature extractor.
-        saver_cnn = tf.train.Saver(variables[0:44])
+        saver_cnn = tf.compat.v1.train.Saver(variables[0:44])
         # Variables after #43 belong to the classifier.
-        saver_fc = tf.train.Saver(variables[44:])
+        saver_fc = tf.compat.v1.train.Saver(variables[44:])
 
     # Create a session
     config = tf.compat.v1.ConfigProto()
