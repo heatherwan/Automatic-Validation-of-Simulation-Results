@@ -47,7 +47,7 @@ def get_model(feature, is_training, bn_decay=None):
     net = tf_util.dropout(net, keep_prob=0.5, is_training=is_training,
                           scope=layer_name + 'dp3')
     # net: B*40
-    net = tf_util.fully_connected(net, 40, activation_fn=None, scope='fc4')
+    net = tf_util.fully_connected(net, para.outputClassN, activation_fn=None, scope='fc4')
     layers[layer_name + 'fc4'] = net
 
     return net, layers
