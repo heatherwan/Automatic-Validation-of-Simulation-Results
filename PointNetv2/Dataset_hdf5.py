@@ -31,8 +31,11 @@ class DatasetHDF5(object):
         self.current_data = None
         self.current_other = None
         self.current_label = None
+        self.current_feature = None
+        self.current_feature_label = None
         self.current_file_idx = 0
         self.batch_idx = 0
+        self.feature_batch_idx = 0
         self.reset()
 
     def reset(self):
@@ -96,6 +99,31 @@ class DatasetHDF5(object):
             data_batch = self._augment_batch_data(data_batch)
         return data_batch, other_batch, label_batch
 
+    # functions for features
+    def set_feature(self, global_feature, labels):
+        self.current_feature = global_feature
+        self.current_feature_label = labels
+
+    def has_next_feature(self):
+        return self.feature_batch_idx * self.batch_size < self.current_feature.shape[0]
+
+    def next_feature(self):
+        """ returned dimension may be smaller than self.batch_size """
+        start_idx = self.batch_idx * self.batch_size
+        end_idx = min((self.batch_idx + 1) * self.batch_size, self.current_feature.shape[0])
+
+        feature_batch = self.current_feature[start_idx:end_idx, 0:self.npoints, :].copy()
+        feature_label_batch = self.current_feature_label[start_idx:end_idx].copy()
+        self.feature_batch_idx += 1
+        return feature_batch, feature_label_batch
+
+    def reset_feature(self):
+        """ reset order of h5 files """
+        idx = np.arange(len(self.current_feature))
+        np.random.shuffle(idx)
+        self.current_feature = self.current_feature[idx, ...]
+        self.current_feature_label = self.current_feature_label[idx, ...]
+        self.feature_batch_idx = 0
 
 if __name__ == '__main__':
     d = DatasetHDF5([os.path.join(DATADIR,'testdataset_154_1024_dim5.hdf5')])

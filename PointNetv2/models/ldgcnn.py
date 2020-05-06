@@ -1,147 +1,178 @@
+"""
+The network model of linked dynamic graph CNN. We borrow the edge 
+convolutional operation from the DGCNN and design our own network architecture.
+Reference code: https://github.com/WangYueFt/dgcnn
+@author: Kuangen Zhang
+
+"""
 import tensorflow as tf
 import numpy as np
-
+import sys
+import os
 from utils import tf_util
-from models.transform_nets import input_transform_net_dgcnn
 from Parameters import Parameters
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(BASE_DIR)
 para = Parameters()
 
-
+# Add input placeholder
 def placeholder_inputs_other(batch_size, num_point):
     pointclouds_pl = tf.compat.v1.placeholder(tf.float32, shape=(batch_size, num_point, 3))
-    pointclouds_other_pl = tf.compat.v1.placeholder(tf.float32, shape=(batch_size, num_point, para.dim-3))
+    pointclouds_other_pl = tf.compat.v1.placeholder(tf.float32, shape=(batch_size, num_point, para.dim - 3))
     labels_pl = tf.compat.v1.placeholder(tf.int32, shape=batch_size)
     return pointclouds_pl, pointclouds_other_pl, labels_pl
 
 
-def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
-    """ Classification DGCNN, input is BxNx3 and BxNx5, output Bx4 """
-    batch_size = point_cloud.get_shape()[0]  # .value
-    end_points = {}
-
-    # get MinSF
-    minSF = tf.reshape(tf.math.argmin(pointclouds_other[:, :, 0], axis=1), (-1, 1))
+# Input point cloud and output the global feature
+def calc_ldgcnn_feature(point_cloud, pointclouds_other, is_training, bn_decay=None):
+    # B: batch size; N: number of points, C: channels; k: number of nearest neighbors
+    # point_cloud: B*N*3
     k = 20
-    # build graph
+    # ======try to add more features here
+    point_cloud = tf.concat(axis=2, values=[point_cloud, pointclouds_other])
+
+    # adj_matrix: B*N*N
     adj_matrix = tf_util.pairwise_distance(point_cloud)
     nn_idx = tf_util.knn(adj_matrix, k=k)
-    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
-    end_points['knn1'] = allSF_dist
 
+    point_cloud = tf.expand_dims(point_cloud, axis=-2)
+
+    # Edge_feature: B*N*k*6
+    # The vector in the last dimension represents: (Xc,Yc,Zc, Xck - Xc, Yck-Yc, Yck-zc)
+    # (Xc,Yc,Zc) is the central point. (Xck - Xc, Yck-Yc, Yck-zc) is the edge vector.
     edge_feature = tf_util.get_edge_feature(point_cloud, nn_idx=nn_idx, k=k)
     print(f'first edge shape: {edge_feature.shape}')
 
-    # transform net for input x,y,z
-    with tf.compat.v1.variable_scope('transform_net1') as sc:
-        transform = input_transform_net_dgcnn(edge_feature, is_training, bn_decay, K=3)
-
-    point_cloud_transformed = tf.matmul(point_cloud, transform)
-    print(f'point_cloud_transformed shape: {point_cloud_transformed.shape}')
-
-    # ======try to add more features here
-    concat_other = tf.concat(axis=2, values=[point_cloud_transformed, pointclouds_other])
-    point_cloud_transformed = concat_other
-
-    # build graph
-    adj_matrix = tf_util.pairwise_distance(point_cloud_transformed)
-    nn_idx = tf_util.knn(adj_matrix, k=k)
-    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
-    end_points['knn2'] = allSF_dist
-
-    edge_feature = tf_util.get_edge_feature(point_cloud_transformed, nn_idx=nn_idx, k=k)
-    print(f'first edge shape: {edge_feature.shape}')
-
-    # First EdgeConv layers
+    # net: B*N*k*64
+    # The kernel size of CNN is 1*1, and thus this is a MLP with sharing parameters.
     net = tf_util.conv2d(edge_feature, 64, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
                          scope='dgcnn1', bn_decay=bn_decay)
-    net = tf.reduce_max(input_tensor=net, axis=-2, keepdims=True)
+
+    # net: B*N*1*64
+    # Extract the biggest feature from k convolutional edge features.     
+    net = tf.reduce_max(net, axis=-2, keep_dims=True)
     net1 = net
     print(f'First EdgeConv layers: {net1.shape}')
-    
-    # build graph
+
+    # adj_matrix: B*N*N
     adj_matrix = tf_util.pairwise_distance(net)
     nn_idx = tf_util.knn(adj_matrix, k=k)
-    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
-    end_points['knn3'] = allSF_dist
 
+    # net: B*N*1*67 
+    # Link the Hierarchical features.
+    net = tf.concat([point_cloud, net1], axis=-1)
+
+    # edge_feature: B*N*k*134
     edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=k)
-    
-    # Second EdgeConv layers
+
+    # net: B*N*k*64
     net = tf_util.conv2d(edge_feature, 64, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
                          scope='dgcnn2', bn_decay=bn_decay)
-    net = tf.reduce_max(input_tensor=net, axis=-2, keepdims=True)
+    # net: B*N*1*64
+    net = tf.reduce_max(net, axis=-2, keep_dims=True)
     net2 = net
-    
-    # build graph
+
     adj_matrix = tf_util.pairwise_distance(net)
     nn_idx = tf_util.knn(adj_matrix, k=k)
-    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
-    end_points['knn4'] = allSF_dist
 
+    # net: B*N*1*131
+    net = tf.concat([point_cloud, net1, net2], axis=-1)
+
+    # edge_feature: B*N*k*262
     edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=k)
 
-    # third EdgeConv layers
+    # net: B*N*k*64
     net = tf_util.conv2d(edge_feature, 64, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
                          scope='dgcnn3', bn_decay=bn_decay)
-    net = tf.reduce_max(input_tensor=net, axis=-2, keepdims=True)
+    # net: B*N*1*64
+    net = tf.reduce_max(net, axis=-2, keep_dims=True)
     net3 = net
 
-    # build graph
     adj_matrix = tf_util.pairwise_distance(net)
     nn_idx = tf_util.knn(adj_matrix, k=k)
-    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
-    end_points['knn5'] = allSF_dist
 
+    # net: B*N*1*195
+    net = tf.concat([point_cloud, net1, net2, net3], axis=-1)
+    # edge_feature: B*N*k*390
     edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=k)
 
-    # fourth EdgeConv layers
+    # net: B*N*k*128
     net = tf_util.conv2d(edge_feature, 128, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
                          scope='dgcnn4', bn_decay=bn_decay)
-    net = tf.reduce_max(input_tensor=net, axis=-2, keepdims=True)
+    # net: B*N*1*128
+    net = tf.reduce_max(net, axis=-2, keep_dims=True)
     net4 = net
-    
-    # MLP for all concatenate features and maxpooling
-    net = tf_util.conv2d(tf.concat([net1, net2, net3, net4], axis=-1), 1024, [1, 1],
+
+    # input: B*N*1*323
+    # net: B*N*1*1024
+    net = tf_util.conv2d(tf.concat([point_cloud, net1, net2, net3,
+                                    net4], axis=-1), 1024, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
                          scope='agg', bn_decay=bn_decay)
+    # net: B*1*1*1024
+    net = tf.reduce_max(net, axis=1, keep_dims=True)
+    # net: B*1024
+    net = tf.squeeze(net)
+    return net
 
-    net = tf.reduce_max(input_tensor=net, axis=1, keepdims=True)
+
+def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
+    """ Classification PointNet, input is BxNx3, output Bx40 """
+    batch_size = point_cloud.get_shape()[0].value
+    layers = {}
+
+    # Extract global feature
+    net = calc_ldgcnn_feature(point_cloud, pointclouds_other, is_training, bn_decay)
 
     # MLP on global point cloud vector
     net = tf.reshape(net, [batch_size, -1])
+    layers['global_feature'] = net
+
+    # Fully connected layers: classifier
+    # net: B*512
     net = tf_util.fully_connected(net, 512, bn=True, is_training=is_training,
                                   scope='fc1', bn_decay=bn_decay)
+    layers['fc1'] = net
+    # Each element is kept or dropped independently, and the drop rate is 0.5.
     net = tf_util.dropout(net, keep_prob=0.5, is_training=is_training,
                           scope='dp1')
+
+    # net: B*256
     net = tf_util.fully_connected(net, 256, bn=True, is_training=is_training,
                                   scope='fc2', bn_decay=bn_decay)
+    layers['fc2'] = net
     net = tf_util.dropout(net, keep_prob=0.5, is_training=is_training,
                           scope='dp2')
-    net = tf_util.fully_connected(net, para.outputClassN, activation_fn=None, scope='fc3')
 
-    return net, end_points
-    
-    
+    # net: B*outclass
+    net = tf_util.fully_connected(net, para.outputClassN, activation_fn=None, scope='fc3')
+    layers['fc3'] = net
+    return net, layers
+
+
 def get_loss_weight(pred, label, end_points, classweight):
     """ pred: B*NUM_CLASSES,
-      label: B, """
+        label: B, """
+    # Change the label from an integer to the one_hot vector.
     labels = tf.one_hot(indices=label, depth=para.outputClassN)
+
+    # Calculate the loss based on cross entropy method.
     loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=labels, logits=pred, label_smoothing=0.2)
     loss = tf.multiply(loss, classweight)  # multiply class weight with loss for each object
 
-    mean_classify_loss = tf.reduce_mean(input_tensor=loss)
+    # Calculate the mean loss of a batch input.
+    mean_classify_loss = tf.reduce_mean(loss)
     tf.compat.v1.summary.scalar('classify loss', mean_classify_loss)
-
     return mean_classify_loss
 
 

@@ -13,6 +13,7 @@ import provider
 from Parameters import Parameters
 from Dataset_hdf5 import DatasetHDF5
 
+
 # ===============get basic folder=====================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
@@ -21,6 +22,8 @@ para = Parameters()
 
 # log
 MODEL = importlib.import_module(para.model)  # import network module
+if para.model == 'ldgcnn':
+    MODEL_CLS = importlib.import_module(para.class_model)
 LOG_DIR = para.logDir
 LOG_MODEL = para.logmodelDir
 LOG_FOUT = open(os.path.join(LOG_DIR, f'{para.expName}.txt'), 'w')
@@ -163,6 +166,10 @@ def train():
                 log_string("Model saved in file: %s" % save_path)
                 min_loss = loss
 
+        # Save the extracted global feature
+        # if para.model == 'ldgcnn':
+        #     save_global_feature(sess, ops, saver, end_points)
+
 
 def train_one_epoch(sess, ops, train_writer):
     """ ops: dict mapping from string to tf ops """
@@ -245,7 +252,6 @@ def eval_one_epoch(sess, ops, test_writer):
     batch_idx = 0
     total_seen_class = [0 for _ in range(para.outputClassN)]
     total_correct_class = [0 for _ in range(para.outputClassN)]
-    all_knn_idx = {}
     while testDataset.has_next_batch():
         batch_data, batch_other, batch_label = testDataset.next_batch(augment=False)
         bsize = batch_data.shape[0]
@@ -287,9 +293,271 @@ def eval_one_epoch(sess, ops, test_writer):
     log_string(confusion_matrix(testDataset.current_label[:len(pred_label)], pred_label))
 
 
+def save_global_feature(sess, ops, saver, layers):
+    feature_name = 'global_feature'
+    file_name_vec = ['train_' + feature_name, 'test_' + feature_name]
+    datasets = [trainDataset, testDataset]
+    # Restore variables that achieves the best validation accuracy from the disk.
+    saver.restore(sess, os.path.join(LOG_DIR, f"{para.expName[:6]}.ckpt"))
+    log_string("Model restored.")
+    is_training = False
+
+    # Extract the features from training set and validation set.
+    for r in range(2):
+        file_name = file_name_vec[r]
+        dataset = datasets[r]
+        global_feature_vec = np.array([])
+        label_vec = np.array([])
+        # Make sure batch data is of same size
+        cur_batch_data = np.zeros((para.batchSize, para.pointNumber, 3))
+        cur_batch_other = np.zeros((para.batchSize, para.pointNumber, trainDataset.num_channel() - 3))
+        cur_batch_label = np.zeros(para.batchSize, dtype=np.int32)
+
+        while dataset.has_next_batch():
+            batch_data, batch_other, batch_label = dataset.next_batch(augment=False)
+            bsize = batch_data.shape[0]
+            cur_batch_data[0:bsize, ...] = batch_data
+            cur_batch_other[0:bsize, ...] = batch_other
+            cur_batch_label[0:bsize] = batch_label
+            # Input the point cloud and labels to the graph.
+            feed_dict = {ops['pointclouds_pl']: cur_batch_data,
+                         ops['pointclouds_other_pl']: cur_batch_other,
+                         ops['labels_pl']: cur_batch_label,
+                         ops['is_training_pl']: is_training}
+
+            # Extract the global features from the input batch data.
+            global_feature = np.squeeze(layers[feature_name].eval(
+                feed_dict=feed_dict, session=sess))
+
+            if label_vec.shape[0] == 0:
+                global_feature_vec = global_feature
+                label_vec = cur_batch_label
+            else:
+                global_feature_vec = np.concatenate([global_feature_vec, global_feature])
+                label_vec = np.concatenate([label_vec, cur_batch_label])
+        # Save all global features to the disk.
+        dataset.set_feature(global_feature_vec, label_vec)
+
+
+def train_classifier():
+    with tf.Graph().as_default():
+        with tf.device(''):
+            pointclouds_pl, pointclouds_other_pl, labels_pl = MODEL.placeholder_inputs_other(para.batchSize,
+                                                                                             para.pointNumber)
+            is_training_pl = tf.compat.v1.placeholder(tf.bool, shape=())
+
+            # Note the global_step=batch parameter to minimize.
+            # That tells the optimizer to helpfully increment the 'batch' parameter for you every time it trains.
+            batch = tf.Variable(0)
+            bn_decay = get_bn_decay(batch)
+            tf.compat.v1.summary.scalar('bn_decay', bn_decay)
+
+            # Get model and loss
+            pred, layers = MODEL_CLS.get_model(pointclouds_pl, pointclouds_other_pl, is_training_pl, bn_decay=bn_decay)
+
+            loss = MODEL_CLS.get_loss(pred, labels_pl)
+            tf.compat.v1.summary.scalar('loss', loss)
+
+            correct = tf.equal(tf.argmax(pred, 1), tf.cast(labels_pl, dtype=tf.int64))
+            accuracy = tf.reduce_sum(tf.cast(correct, tf.float32)) / float(para.batchSize)
+            tf.compat.v1.summary.scalar('accuracy', accuracy)
+
+            # Get training operator
+            learning_rate = get_learning_rate(batch)
+            tf.compat.v1.summary.scalar('learning_rate', learning_rate)
+            # We change the optimier to momentum. Because the momentum can
+            # find better parameters
+            if para.class_optimizer == 'momentum':
+                optimizer = tf.compat.v1.train.MomentumOptimizer(learning_rate, momentum=para.momentum)
+            elif para.class_optimizer == 'adam':
+                optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
+            elif para.class_optimizer == 'SGD':
+                optimizer = tf.compat.v1.train.GradientDescentOptimizer(learning_rate)
+            train_op = optimizer.minimize(loss, global_step=batch)
+
+            # Add ops to save and restore all the variables.
+            saver = tf.compat.v1.train.Saver()
+
+        # Create a session
+        config = tf.compat.v1.ConfigProto()
+        config.gpu_options.allow_growth = True
+        config.allow_soft_placement = True
+        config.log_device_placement = False
+        sess = tf.Session(config=config)
+
+        # Add summary writers
+        # merged = tf.merge_all_summaries()
+        merged = tf.compat.v1.summary.merge_all()
+        train_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, para.expName[:6] + 'train_cls'), sess.graph)
+        test_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, para.expName[:6] + 'test_cls'), sess.graph)
+
+
+        # We retrain the classifier three times to see the stable accuracy.
+        # It takes much less time to retrain the classifier than to
+        # train the whole network.
+        # idx_num = 3
+        #
+        # for idx in range(idx_num):
+
+        # Init variables
+        init = tf.compat.v1.global_variables_initializer()
+        # To fix the bug introduced in TF 0.12.1 as in
+        # http://stackoverflow.com/questions/41543774/invalidargumenterror-for-tensor-bool-tensorflow-0-12-1
+        # sess.run(init)
+        sess.run(init, {is_training_pl: True})
+
+        ops = {'pointclouds_pl': pointclouds_pl,
+               'pointclouds_other_pl': pointclouds_other_pl,
+               'labels_pl': labels_pl,
+               'is_training_pl': is_training_pl,
+               'pred': pred,
+               'loss': loss,
+               'train_op': train_op,
+               'merged': merged,
+               'step': batch}
+        min_loss = np.inf
+        for epoch in range(para.class_max_epoch):
+            log_string('**** EPOCH %03d ****' % (epoch))
+            sys.stdout.flush()
+
+            loss = train_classifier_one_epoch(sess, ops, train_writer)
+            trainDataset.reset_feature()
+            eval_classifier_one_epoch(sess, ops, test_writer)
+            testDataset.reset_feature()
+
+            if loss < min_loss:  # save the min loss model
+                save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}_cls.ckpt"))
+                log_string("Model saved in file: %s" % save_path)
+                min_loss = loss
+
+
+def train_classifier_one_epoch(sess, ops, train_writer):
+    """ ops: dict mapping from string to tf ops """
+    is_training = True
+    log_string(str(datetime.now()))
+
+    # Make sure batch data is of same size
+    cur_batch_feature = np.zeros((para.batchSize, 1024))
+    cur_batch_label = np.zeros(para.batchSize, dtype=np.int32)
+
+    # set variable for statistics
+    total_correct = 0
+    total_seen = 0
+    total_pred = []
+    loss_sum = 0
+    batch_idx = 0
+    total_seen_class = [0 for _ in range(para.outputClassN)]
+    total_correct_class = [0 for _ in range(para.outputClassN)]
+
+    while trainDataset.has_next_feature():
+        # Shuffle train files
+        current_feature, current_label = trainDataset.next_feature()
+        bsize = cur_batch_feature.shape[0]
+        cur_batch_feature[0:bsize, ...] = current_feature
+        cur_batch_label[0:bsize] = current_label
+
+        # Input the features and labels to the graph.
+        feed_dict = {ops['pointclouds_pl']: cur_batch_feature,
+                     ops['labels_pl']: cur_batch_label,
+                     ops['is_training_pl']: is_training}
+
+        # Calculate the loss and classification scores.
+        summary, step, _, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
+                                                         ops['train_op'], ops['loss'], ops['pred']],
+                                                        feed_dict=feed_dict)
+
+        train_writer.add_summary(summary, step)  # tensorboard
+        pred_val = np.argmax(pred_val, 1)
+        correct = np.sum(pred_val[0:bsize] == current_label[0:bsize])
+        total_correct += correct
+        total_seen += bsize
+        loss_sum += loss_val * bsize
+        total_pred.extend(pred_val[0:bsize])
+        batch_idx += 1
+        for i in range(0, bsize):
+            l = current_label[i]
+            total_seen_class[l] += 1
+            total_correct_class[l] += (pred_val[i] == l)
+
+    log_string('Train result:')
+    log_string(f'mean loss: {loss_sum / float(total_seen):.3f}')
+    log_string(f'accuracy: {total_correct / float(total_seen):.3f}')
+    class_accuracies = np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float)
+    avg_class_acc = np.mean(class_accuracies)
+    log_string(f'avg class acc: {avg_class_acc:.3f}')
+    for i, name in para.classes.items():
+        log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
+    log_string(confusion_matrix(trainDataset.current_label[:len(total_pred)], total_pred))
+    return loss_sum / float(total_seen)
+
+
+def eval_classifier_one_epoch(sess, ops, test_writer):
+    """ ops: dict mapping from string to tf ops """
+    is_training = False
+    log_string(str(datetime.now()))
+
+    # Make sure batch data is of same size
+    cur_batch_feature = np.zeros((para.batchSize, 1024))
+    cur_batch_label = np.zeros(para.batchSize, dtype=np.int32)
+
+    # set variable for statistics
+    total_correct = 0
+    total_seen = 0
+    total_pred = []
+    loss_sum = 0
+    batch_idx = 0
+    total_seen_class = [0 for _ in range(para.outputClassN)]
+    total_correct_class = [0 for _ in range(para.outputClassN)]
+
+    while testDataset.has_next_feature():
+        # Shuffle train files
+        current_feature, current_label = testDataset.next_feature()
+        bsize = cur_batch_feature.shape[0]
+        cur_batch_feature[0:bsize, ...] = current_feature
+        cur_batch_label[0:bsize] = current_label
+
+        # Input the features and labels to the graph.
+        feed_dict = {ops['pointclouds_pl']: cur_batch_feature,
+                     ops['labels_pl']: cur_batch_label,
+                     ops['is_training_pl']: is_training}
+
+        # Calculate the loss and classification scores.
+        summary, step, _, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
+                                                         ops['train_op'], ops['loss'], ops['pred']],
+                                                        feed_dict=feed_dict)
+
+        test_writer.add_summary(summary, step)  # tensorboard
+        pred_val = np.argmax(pred_val, 1)
+        correct = np.sum(pred_val[0:bsize] == current_label[0:bsize])
+        total_correct += correct
+        total_seen += bsize
+        loss_sum += loss_val * bsize
+        total_pred.extend(pred_val[0:bsize])
+        batch_idx += 1
+        for i in range(0, bsize):
+            l = current_label[i]
+            total_seen_class[l] += 1
+            total_correct_class[l] += (pred_val[i] == l)
+
+    log_string('Train result:')
+    log_string(f'mean loss: {loss_sum / float(total_seen):.3f}')
+    log_string(f'accuracy: {total_correct / float(total_seen):.3f}')
+    class_accuracies = np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float)
+    avg_class_acc = np.mean(class_accuracies)
+    log_string(f'avg class acc: {avg_class_acc:.3f}')
+    for i, name in para.classes.items():
+        log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
+    log_string(confusion_matrix(trainDataset.current_label[:len(total_pred)], total_pred))
+    return loss_sum / float(total_seen)
+
+
 if __name__ == "__main__":
     start_time = time.time()
-    train()
+    if para.model == 'ldgcnn':
+        train()
+        train_classifier()
+    else:
+        train()
     end_time = time.time()
     run_time = (end_time - start_time) / 60
     log_string(f'running time:\t{run_time} mins')
