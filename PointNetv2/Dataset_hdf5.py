@@ -109,8 +109,8 @@ class DatasetHDF5(object):
 
     def next_feature(self):
         """ returned dimension may be smaller than self.batch_size """
-        start_idx = self.batch_idx * self.batch_size
-        end_idx = min((self.batch_idx + 1) * self.batch_size, self.current_feature.shape[0])
+        start_idx = self.feature_batch_idx * self.batch_size
+        end_idx = min((self.feature_batch_idx + 1) * self.batch_size, self.current_feature.shape[0])
 
         feature_batch = self.current_feature[start_idx:end_idx, :].copy()
         feature_label_batch = self.current_feature_label[start_idx:end_idx].copy()
