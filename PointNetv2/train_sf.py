@@ -13,7 +13,6 @@ import provider
 from Parameters import Parameters
 from Dataset_hdf5 import DatasetHDF5
 
-
 # ===============get basic folder=====================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
@@ -167,8 +166,8 @@ def train():
                 min_loss = loss
 
         # Save the extracted global feature
-        # if para.model == 'ldgcnn':
-        #     save_global_feature(sess, ops, saver, end_points)
+        if para.model == 'ldgcnn':
+            save_global_feature(sess, ops, saver, end_points)
 
 
 def train_one_epoch(sess, ops, train_writer):
@@ -295,7 +294,6 @@ def eval_one_epoch(sess, ops, test_writer):
 
 def save_global_feature(sess, ops, saver, layers):
     feature_name = 'global_feature'
-    file_name_vec = ['train_' + feature_name, 'test_' + feature_name]
     datasets = [trainDataset, testDataset]
     # Restore variables that achieves the best validation accuracy from the disk.
     saver.restore(sess, os.path.join(LOG_DIR, f"{para.expName[:6]}.ckpt"))
@@ -304,7 +302,6 @@ def save_global_feature(sess, ops, saver, layers):
 
     # Extract the features from training set and validation set.
     for r in range(2):
-        file_name = file_name_vec[r]
         dataset = datasets[r]
         global_feature_vec = np.array([])
         label_vec = np.array([])
@@ -342,8 +339,7 @@ def save_global_feature(sess, ops, saver, layers):
 def train_classifier():
     with tf.Graph().as_default():
         with tf.device(''):
-            pointclouds_pl, pointclouds_other_pl, labels_pl = MODEL.placeholder_inputs_other(para.batchSize,
-                                                                                             para.pointNumber)
+            pointclouds_feature_pl, labels_pl = MODEL_CLS.placeholder_inputs_feature(para.batchSize, 1024)
             is_training_pl = tf.compat.v1.placeholder(tf.bool, shape=())
 
             # Note the global_step=batch parameter to minimize.
@@ -353,7 +349,7 @@ def train_classifier():
             tf.compat.v1.summary.scalar('bn_decay', bn_decay)
 
             # Get model and loss
-            pred, layers = MODEL_CLS.get_model(pointclouds_pl, pointclouds_other_pl, is_training_pl, bn_decay=bn_decay)
+            pred, layers = MODEL_CLS.get_model(pointclouds_feature_pl, is_training_pl, bn_decay=bn_decay)
 
             loss = MODEL_CLS.get_loss(pred, labels_pl)
             tf.compat.v1.summary.scalar('loss', loss)
@@ -388,9 +384,9 @@ def train_classifier():
         # Add summary writers
         # merged = tf.merge_all_summaries()
         merged = tf.compat.v1.summary.merge_all()
-        train_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, para.expName[:6] + 'train_cls'), sess.graph)
+        train_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, para.expName[:6] + 'train_cls'),
+                                                       sess.graph)
         test_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, para.expName[:6] + 'test_cls'), sess.graph)
-
 
         # We retrain the classifier three times to see the stable accuracy.
         # It takes much less time to retrain the classifier than to
@@ -406,8 +402,7 @@ def train_classifier():
         # sess.run(init)
         sess.run(init, {is_training_pl: True})
 
-        ops = {'pointclouds_pl': pointclouds_pl,
-               'pointclouds_other_pl': pointclouds_other_pl,
+        ops = {'pointclouds_feature_pl': pointclouds_feature_pl,
                'labels_pl': labels_pl,
                'is_training_pl': is_training_pl,
                'pred': pred,
@@ -417,7 +412,7 @@ def train_classifier():
                'step': batch}
         min_loss = np.inf
         for epoch in range(para.class_max_epoch):
-            log_string('**** EPOCH %03d ****' % (epoch))
+            log_string('**** EPOCH %03d ****' % epoch)
             sys.stdout.flush()
 
             loss = train_classifier_one_epoch(sess, ops, train_writer)
@@ -457,7 +452,7 @@ def train_classifier_one_epoch(sess, ops, train_writer):
         cur_batch_label[0:bsize] = current_label
 
         # Input the features and labels to the graph.
-        feed_dict = {ops['pointclouds_pl']: cur_batch_feature,
+        feed_dict = {ops['pointclouds_feature_pl']: cur_batch_feature,
                      ops['labels_pl']: cur_batch_label,
                      ops['is_training_pl']: is_training}
 
@@ -517,7 +512,7 @@ def eval_classifier_one_epoch(sess, ops, test_writer):
         cur_batch_label[0:bsize] = current_label
 
         # Input the features and labels to the graph.
-        feed_dict = {ops['pointclouds_pl']: cur_batch_feature,
+        feed_dict = {ops['pointclouds_feature_pl']: cur_batch_feature,
                      ops['labels_pl']: cur_batch_label,
                      ops['is_training_pl']: is_training}
 

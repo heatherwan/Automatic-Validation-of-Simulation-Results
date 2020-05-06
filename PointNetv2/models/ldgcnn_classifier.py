@@ -13,6 +13,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 
 
+def placeholder_inputs_feature(batch_size, num_dim):
+    pointclouds_feature_pl = tf.compat.v1.placeholder(tf.float32, shape=(batch_size, num_dim))
+    labels_pl = tf.compat.v1.placeholder(tf.int32, shape=batch_size)
+    return pointclouds_feature_pl, labels_pl
+
+
 def get_model(feature, is_training, bn_decay=None):
     # Fully connected layers: classifier
     layers = {}
