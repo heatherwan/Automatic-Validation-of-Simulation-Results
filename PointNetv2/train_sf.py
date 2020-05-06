@@ -312,6 +312,7 @@ def save_global_feature(sess, ops, saver, layers):
 
         while dataset.has_next_batch():
             batch_data, batch_other, batch_label = dataset.next_batch(augment=False)
+            print(batch_label)
             bsize = batch_data.shape[0]
             cur_batch_data[0:bsize, ...] = batch_data
             cur_batch_other[0:bsize, ...] = batch_other
@@ -331,8 +332,7 @@ def save_global_feature(sess, ops, saver, layers):
             else:
                 global_feature_vec = np.concatenate([global_feature_vec, global_feature[0:bsize, ...]])
                 label_vec = np.concatenate([label_vec, cur_batch_label[0:bsize]])
-        print(global_feature_vec.shape)
-        print(label_vec)
+
         # Save all global features to the disk.
         dataset.set_feature(global_feature_vec, label_vec)
 
