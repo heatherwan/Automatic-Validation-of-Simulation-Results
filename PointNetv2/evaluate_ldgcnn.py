@@ -92,85 +92,87 @@ def evaluate():
            'loss': loss,
            'weights': weights}
 
-    # Restore variables from disk.
-    saver_cnn.restore(sess, f"{LOG_MODEL}/{para.expName[:6]}.ckpt")
-    saver_fc.restore(sess, f"{LOG_MODEL}/{para.expName[:6]}_cls.ckpt")
-    log_string("Model restored.")
+    with tf.Session(config=config) as sess:
+        with tf.device(''):
+            # Restore variables from disk.
+            saver_cnn.restore(sess, f"{LOG_MODEL}/{para.expName[:6]}.ckpt")
+            saver_fc.restore(sess, f"{LOG_MODEL}/{para.expName[:6]}_cls.ckpt")
+            log_string("Model restored.")
 
-    is_training = False
-    log_string(str(datetime.now()))
+            is_training = False
+            log_string(str(datetime.now()))
 
-    # Make sure batch data is of same size
-    cur_batch_data = np.zeros((para.testBatchSize, para.pointNumber, 3))
-    cur_batch_other = np.zeros((para.testBatchSize, para.pointNumber, testDataset.num_channel() - 3))
-    cur_batch_label = np.zeros(para.testBatchSize, dtype=np.int32)
+            # Make sure batch data is of same size
+            cur_batch_data = np.zeros((para.testBatchSize, para.pointNumber, 3))
+            cur_batch_other = np.zeros((para.testBatchSize, para.pointNumber, testDataset.num_channel() - 3))
+            cur_batch_label = np.zeros(para.testBatchSize, dtype=np.int32)
 
-    # set variable for statistics
-    total_correct = 0
-    total_seen = 0
-    pred_label = []
-    loss_sum = 0
-    batch_idx = 0
-    total_seen_class = [0 for _ in range(para.outputClassN)]
-    total_correct_class = [0 for _ in range(para.outputClassN)]
+            # set variable for statistics
+            total_correct = 0
+            total_seen = 0
+            pred_label = []
+            loss_sum = 0
+            batch_idx = 0
+            total_seen_class = [0 for _ in range(para.outputClassN)]
+            total_correct_class = [0 for _ in range(para.outputClassN)]
 
-    fout = open(os.path.join(EVAL, f'{para.expName[:6]}_all_pred_label.txt'), 'w')
-    fout.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
-    fout2 = open(os.path.join(EVAL, f'{para.expName[:6]}_wrong_pred_prob.txt'), 'w')
-    fout2.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
+            fout = open(os.path.join(EVAL, f'{para.expName[:6]}_all_pred_label.txt'), 'w')
+            fout.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
+            fout2 = open(os.path.join(EVAL, f'{para.expName[:6]}_wrong_pred_prob.txt'), 'w')
+            fout2.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
 
-    while testDataset.has_next_batch():
-        batch_data, batch_other, batch_label = testDataset.next_batch(augment=False)
-        bsize = batch_data.shape[0]
-        cur_batch_data[0:bsize, ...] = batch_data
-        cur_batch_other[0:bsize, ...] = batch_other
-        cur_batch_label[0:bsize] = batch_label
+            while testDataset.has_next_batch():
+                batch_data, batch_other, batch_label = testDataset.next_batch(augment=False)
+                bsize = batch_data.shape[0]
+                cur_batch_data[0:bsize, ...] = batch_data
+                cur_batch_other[0:bsize, ...] = batch_other
+                cur_batch_label[0:bsize] = batch_label
 
-        feed_dict_cnn = {ops['pointclouds_pl']: cur_batch_data,
-                         ops['pointclouds_other_pl']: cur_batch_other,
-                         ops['labels_pl']: cur_batch_label,
-                         ops['is_training_pl']: is_training}
+                feed_dict_cnn = {ops['pointclouds_pl']: cur_batch_data,
+                                 ops['pointclouds_other_pl']: cur_batch_other,
+                                 ops['labels_pl']: cur_batch_label,
+                                 ops['is_training_pl']: is_training}
 
-        global_feature = np.squeeze(layers['global_feature'].eval(feed_dict=feed_dict_cnn))
-        global_feature = np.concatenate([global_feature, np.zeros((
-            global_feature.shape[0], para.class_feature - global_feature.shape[1]))], axis=-1)
+                global_feature = np.squeeze(layers['global_feature'].eval(feed_dict=feed_dict_cnn))
+                global_feature = np.concatenate([global_feature, np.zeros((
+                    global_feature.shape[0], para.class_feature - global_feature.shape[1]))], axis=-1)
 
-        feed_dict = {ops['features']: global_feature,
-                     ops['labels_pl']: cur_batch_label,
-                     ops['is_training_pl']: is_training}
-        # Calculate the loss and classification scores.
-        loss_val, pred_prob = sess.run([ops['loss'], ops['pred']],
-                                       feed_dict=feed_dict)
+                feed_dict = {ops['features']: global_feature,
+                             ops['labels_pl']: cur_batch_label,
+                             ops['is_training_pl']: is_training}
+                # Calculate the loss and classification scores.
+                loss_val, pred_prob = sess.run([ops['loss'], ops['pred']],
+                                               feed_dict=feed_dict)
 
-        pred_prob2 = np.exp(pred_prob) / np.sum(np.exp(pred_prob), axis=1).reshape(para.batchSize, 1)
-        pred_val = np.argmax(pred_prob, 1)  # get the predict class number
-        correct_count = np.sum(pred_val[0:bsize] == batch_label[0:bsize])
-        total_correct += correct_count
-        total_seen += bsize
-        loss_sum += (loss_val * bsize)
+                pred_prob2 = np.exp(pred_prob) / np.sum(np.exp(pred_prob), axis=1).reshape(para.batchSize, 1)
+                pred_val = np.argmax(pred_prob, 1)  # get the predict class number
+                correct_count = np.sum(pred_val[0:bsize] == batch_label[0:bsize])
+                total_correct += correct_count
+                total_seen += bsize
+                loss_sum += (loss_val * bsize)
 
-        for i in range(bsize):
-            l = batch_label[i]
-            total_seen_class[l] += 1
-            total_correct_class[l] += (pred_val[i] == l)
-            fout.write(f'{batch_idx * para.testBatchSize + i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t'
-                       f'{pred_prob2[i][0]:.3f}\t{pred_prob2[i][1]:.3f}\t'
-                       f'{pred_prob2[i][2]:.3f}\t{pred_prob2[i][3]:.3f}\n')
-            if pred_val[i] != l:
-                fout2.write(f'{batch_idx * para.testBatchSize + i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t'
-                            f'{pred_prob2[i][0]:.3f}\t{pred_prob2[i][1]:.3f}\t'
-                            f'{pred_prob2[i][2]:.3f}\t{pred_prob2[i][3]:.3f}\n')
-        pred_label.extend(pred_val[0:bsize])
-        batch_idx += 1
-    log_string('Test result:')
-    log_string(f'mean loss: {(loss_sum / float(total_seen)):.3f}')
-    log_string(f'acc: {(total_correct / float(total_seen)):.3f}')
-    class_accuracies = np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float)
-    avg_class_acc = np.mean(class_accuracies)
-    log_string(f'avg class acc: {avg_class_acc:.3f}')
-    for i, name in para.classes.items():
-        log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
-    log_string(confusion_matrix(testDataset.current_label[:len(pred_label)], pred_label))
+                for i in range(bsize):
+                    l = batch_label[i]
+                    total_seen_class[l] += 1
+                    total_correct_class[l] += (pred_val[i] == l)
+                    fout.write(f'{batch_idx * para.testBatchSize + i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t'
+                               f'{pred_prob2[i][0]:.3f}\t{pred_prob2[i][1]:.3f}\t'
+                               f'{pred_prob2[i][2]:.3f}\t{pred_prob2[i][3]:.3f}\n')
+                    if pred_val[i] != l:
+                        fout2.write(f'{batch_idx * para.testBatchSize + i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t'
+                                    f'{pred_prob2[i][0]:.3f}\t{pred_prob2[i][1]:.3f}\t'
+                                    f'{pred_prob2[i][2]:.3f}\t{pred_prob2[i][3]:.3f}\n')
+                pred_label.extend(pred_val[0:bsize])
+                batch_idx += 1
+            log_string('Test result:')
+            log_string(f'mean loss: {(loss_sum / float(total_seen)):.3f}')
+            log_string(f'acc: {(total_correct / float(total_seen)):.3f}')
+            class_accuracies = np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float)
+            avg_class_acc = np.mean(class_accuracies)
+            log_string(f'avg class acc: {avg_class_acc:.3f}')
+            for i, name in para.classes.items():
+                log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
+            log_string(confusion_matrix(testDataset.current_label[:len(pred_label)], pred_label))
 
 
 if __name__ == '__main__':
