@@ -59,9 +59,11 @@ def get_loss(pred, label):
     # Change the label from an integer to the one_hot vector.
     labels = tf.one_hot(indices=label, depth=40)
     # Calculate the loss based on cross entropy method.
-    loss = tf.losses.softmax_cross_entropy(onehot_labels=labels, logits=pred, label_smoothing=0.2)
+    loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=labels, logits=pred, label_smoothing=0.2)
     # Calculate the mean loss of a batch input.
-    classify_loss = tf.reduce_mean(loss)
-    return classify_loss
+    mean_classify_loss = tf.reduce_mean(loss)
+    tf.compat.v1.summary.scalar('classify loss', mean_classify_loss)
+
+    return mean_classify_loss
 
 
