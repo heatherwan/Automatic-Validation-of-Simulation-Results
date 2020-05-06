@@ -327,11 +327,11 @@ def save_global_feature(sess, ops, saver, layers):
                 feed_dict=feed_dict, session=sess))
 
             if label_vec.shape[0] == 0:
-                global_feature_vec = global_feature
-                label_vec = cur_batch_label
+                global_feature_vec = global_feature[0:bsize, ...]
+                label_vec = cur_batch_label[0:bsize]
             else:
-                global_feature_vec = np.concatenate([global_feature_vec, global_feature])
-                label_vec = np.concatenate([label_vec, cur_batch_label])
+                global_feature_vec = np.concatenate([global_feature_vec, global_feature[0:bsize, ...]])
+                label_vec = np.concatenate([label_vec, cur_batch_label[0:bsize]])
         # Save all global features to the disk.
         dataset.set_feature(global_feature_vec, label_vec)
 
