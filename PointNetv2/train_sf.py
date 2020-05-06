@@ -379,14 +379,15 @@ def train_classifier():
         config.gpu_options.allow_growth = True
         config.allow_soft_placement = True
         config.log_device_placement = False
-        sess = tf.Session(config=config)
+        sess = tf.compat.v1.Session(config=config)
 
         # Add summary writers
         # merged = tf.merge_all_summaries()
         merged = tf.compat.v1.summary.merge_all()
-        train_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, para.expName[:6] + 'train_cls'),
-                                                       sess.graph)
-        test_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, para.expName[:6] + 'test_cls'), sess.graph)
+        train_writer_cls = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, para.expName[:6] + 'train_cls'),
+                                                           sess.graph)
+        test_writer_cls = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, para.expName[:6] + 'test_cls'),
+                                                          sess.graph)
 
         # We retrain the classifier three times to see the stable accuracy.
         # It takes much less time to retrain the classifier than to
@@ -415,9 +416,9 @@ def train_classifier():
             log_string('**** EPOCH %03d ****' % epoch)
             sys.stdout.flush()
 
-            loss = train_classifier_one_epoch(sess, ops, train_writer)
+            loss = train_classifier_one_epoch(sess, ops, train_writer_cls)
             trainDataset.reset_feature()
-            eval_classifier_one_epoch(sess, ops, test_writer)
+            eval_classifier_one_epoch(sess, ops, test_writer_cls)
             testDataset.reset_feature()
 
             if loss < min_loss:  # save the min loss model
@@ -426,7 +427,7 @@ def train_classifier():
                 min_loss = loss
 
 
-def train_classifier_one_epoch(sess, ops, train_writer):
+def train_classifier_one_epoch(sess, ops, train_writer_cls):
     """ ops: dict mapping from string to tf ops """
     is_training = True
     log_string(str(datetime.now()))
@@ -461,7 +462,7 @@ def train_classifier_one_epoch(sess, ops, train_writer):
                                                          ops['train_op'], ops['loss'], ops['pred']],
                                                         feed_dict=feed_dict)
 
-        train_writer.add_summary(summary, step)  # tensorboard
+        train_writer_cls.add_summary(summary, step)  # tensorboard
         pred_val = np.argmax(pred_val, 1)
         correct = np.sum(pred_val[0:bsize] == current_label[0:bsize])
         total_correct += correct
@@ -486,7 +487,7 @@ def train_classifier_one_epoch(sess, ops, train_writer):
     return loss_sum / float(total_seen)
 
 
-def eval_classifier_one_epoch(sess, ops, test_writer):
+def eval_classifier_one_epoch(sess, ops, test_writer_cls):
     """ ops: dict mapping from string to tf ops """
     is_training = False
     log_string(str(datetime.now()))
@@ -521,7 +522,7 @@ def eval_classifier_one_epoch(sess, ops, test_writer):
                                                          ops['train_op'], ops['loss'], ops['pred']],
                                                         feed_dict=feed_dict)
 
-        test_writer.add_summary(summary, step)  # tensorboard
+        test_writer_cls.add_summary(summary, step)  # tensorboard
         pred_val = np.argmax(pred_val, 1)
         correct = np.sum(pred_val[0:bsize] == current_label[0:bsize])
         total_correct += correct
@@ -549,8 +550,16 @@ def eval_classifier_one_epoch(sess, ops, test_writer):
 if __name__ == "__main__":
     start_time = time.time()
     if para.model == 'ldgcnn':
+        start_time = time.time()
         train()
+        end_time = time.time()
+        run_time = (end_time - start_time) / 60
+        print("train() ", run_time)
+        start_time = time.time()
         train_classifier()
+        end_time = time.time()
+        run_time = (end_time - start_time) / 60
+        print("train_cls() ", run_time)
     else:
         train()
     end_time = time.time()
