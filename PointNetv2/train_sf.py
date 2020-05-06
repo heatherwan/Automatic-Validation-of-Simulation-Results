@@ -323,8 +323,7 @@ def save_global_feature(sess, ops, saver, layers):
                          ops['is_training_pl']: is_training}
 
             # Extract the global features from the input batch data.
-            global_feature = np.squeeze(layers[feature_name].eval(
-                feed_dict=feed_dict, session=sess))
+            global_feature = np.squeeze(layers[feature_name].eval(feed_dict=feed_dict, session=sess))
 
             if label_vec.shape[0] == 0:
                 global_feature_vec = global_feature[0:bsize, ...]
@@ -332,6 +331,8 @@ def save_global_feature(sess, ops, saver, layers):
             else:
                 global_feature_vec = np.concatenate([global_feature_vec, global_feature[0:bsize, ...]])
                 label_vec = np.concatenate([label_vec, cur_batch_label[0:bsize]])
+        print(global_feature_vec.shape)
+        print(label_vec)
         # Save all global features to the disk.
         dataset.set_feature(global_feature_vec, label_vec)
 
