@@ -339,7 +339,7 @@ def save_global_feature(sess, ops, saver, layers):
 def train_classifier():
     with tf.Graph().as_default():
         with tf.device(''):
-            pointclouds_feature_pl, labels_pl = MODEL_CLS.placeholder_inputs_feature(para.batchSize, 1024)
+            pointclouds_feature_pl, labels_pl = MODEL_CLS.placeholder_inputs_feature(para.batchSize)
             is_training_pl = tf.compat.v1.placeholder(tf.bool, shape=())
 
             # Note the global_step=batch parameter to minimize.
@@ -492,7 +492,7 @@ def eval_classifier_one_epoch(sess, ops, test_writer):
     log_string(str(datetime.now()))
 
     # Make sure batch data is of same size
-    cur_batch_feature = np.zeros((para.batchSize, 1024))
+    cur_batch_feature = np.zeros((para.batchSize, para.class_feature))
     cur_batch_label = np.zeros(para.batchSize, dtype=np.int32)
 
     # set variable for statistics
