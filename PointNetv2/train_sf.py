@@ -447,10 +447,10 @@ def train_classifier_one_epoch(sess, ops, train_writer_cls):
 
     while trainDataset.has_next_feature():
         # Shuffle train files
-        current_feature, current_label = trainDataset.next_feature()
-        bsize = current_feature.shape[0]
-        cur_batch_feature[0:bsize, ...] = current_feature
-        cur_batch_label[0:bsize] = current_label
+        batch_feature, batch_label = trainDataset.next_feature()
+        bsize = batch_feature.shape[0]
+        cur_batch_feature[0:bsize, ...] = batch_feature
+        cur_batch_label[0:bsize] = batch_label
 
         # Input the features and labels to the graph.
         feed_dict = {ops['pointclouds_feature_pl']: cur_batch_feature,
@@ -464,14 +464,14 @@ def train_classifier_one_epoch(sess, ops, train_writer_cls):
 
         train_writer_cls.add_summary(summary, step)  # tensorboard
         pred_val = np.argmax(pred_val, 1)
-        correct = np.sum(pred_val[0:bsize] == current_label[0:bsize])
+        correct = np.sum(pred_val[0:bsize] == batch_label[0:bsize])
         total_correct += correct
         total_seen += bsize
         loss_sum += loss_val * bsize
         total_pred.extend(pred_val[0:bsize])
         batch_idx += 1
         for i in range(0, bsize):
-            l = current_label[i]
+            l = batch_label[i]
             total_seen_class[l] += 1
             total_correct_class[l] += (pred_val[i] == l)
 
@@ -483,7 +483,7 @@ def train_classifier_one_epoch(sess, ops, train_writer_cls):
     log_string(f'avg class acc: {avg_class_acc:.3f}')
     for i, name in para.classes.items():
         log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
-    log_string(confusion_matrix(trainDataset.current_label[:len(total_pred)], total_pred))
+    log_string(confusion_matrix(trainDataset.current_feature_label[:len(total_pred)], total_pred))
     return loss_sum / float(total_seen)
 
 
@@ -507,10 +507,10 @@ def eval_classifier_one_epoch(sess, ops, test_writer_cls):
 
     while testDataset.has_next_feature():
         # Shuffle train files
-        current_feature, current_label = testDataset.next_feature()
-        bsize = cur_batch_feature.shape[0]
-        cur_batch_feature[0:bsize, ...] = current_feature
-        cur_batch_label[0:bsize] = current_label
+        batch_feature, batch_label = testDataset.next_feature()
+        bsize = batch_feature.shape[0]
+        cur_batch_feature[0:bsize, ...] = batch_feature
+        cur_batch_label[0:bsize] = batch_label
 
         # Input the features and labels to the graph.
         feed_dict = {ops['pointclouds_feature_pl']: cur_batch_feature,
@@ -524,14 +524,14 @@ def eval_classifier_one_epoch(sess, ops, test_writer_cls):
 
         test_writer_cls.add_summary(summary, step)  # tensorboard
         pred_val = np.argmax(pred_val, 1)
-        correct = np.sum(pred_val[0:bsize] == current_label[0:bsize])
+        correct = np.sum(pred_val[0:bsize] == batch_label[0:bsize])
         total_correct += correct
         total_seen += bsize
         loss_sum += loss_val * bsize
         total_pred.extend(pred_val[0:bsize])
         batch_idx += 1
         for i in range(0, bsize):
-            l = current_label[i]
+            l = batch_label[i]
             total_seen_class[l] += 1
             total_correct_class[l] += (pred_val[i] == l)
 
@@ -543,7 +543,7 @@ def eval_classifier_one_epoch(sess, ops, test_writer_cls):
     log_string(f'avg class acc: {avg_class_acc:.3f}')
     for i, name in para.classes.items():
         log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
-    log_string(confusion_matrix(trainDataset.current_label[:len(total_pred)], total_pred))
+    log_string(confusion_matrix(testDataset.current_feature_label[:len(total_pred)], total_pred))
     return loss_sum / float(total_seen)
 
 
