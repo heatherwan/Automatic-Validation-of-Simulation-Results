@@ -64,12 +64,11 @@ def evaluate():
 
         # simple model
         _, layers = MODEL.get_model_other(pointclouds_pl, pointclouds_other_pl, is_training_pl)
-        pred, _ = MODEL_CLS.get_model(pointclouds_feature_pl)
+        pred, _ = MODEL_CLS.get_model(pointclouds_feature_pl, is_training_pl)
         loss = MODEL_CLS.get_loss(pred, labels_pl)
 
         # Add ops to save and restore all the variables.
-        # Add ops to save and restore all the variables.
-        variable_names = [v.name for v in tf.global_variables()]
+        # variable_names = [v.name for v in tf.global_variables()]
         variables = tf.global_variables()
         # Variables before #43 belong to the feature extractor.
         saver_cnn = tf.train.Saver(variables[0:44])
