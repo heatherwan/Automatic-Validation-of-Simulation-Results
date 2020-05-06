@@ -128,7 +128,7 @@ def calc_ldgcnn_feature(point_cloud, pointclouds_other, is_training, bn_decay=No
 
 def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
     """ Classification PointNet, input is BxNx3, output Bx40 """
-    batch_size = point_cloud.get_shape()[0].value
+    batch_size = point_cloud.get_shape()[0]  # .value
     layers = {}
 
     # Extract global feature
