@@ -535,7 +535,7 @@ def eval_classifier_one_epoch(sess, ops, test_writer_cls):
             total_seen_class[l] += 1
             total_correct_class[l] += (pred_val[i] == l)
 
-    log_string('Train result:')
+    log_string('Test result:')
     log_string(f'mean loss: {loss_sum / float(total_seen):.3f}')
     log_string(f'accuracy: {total_correct / float(total_seen):.3f}')
     class_accuracies = np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float)

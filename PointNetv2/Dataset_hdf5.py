@@ -119,10 +119,11 @@ class DatasetHDF5(object):
 
     def reset_feature(self):
         """ reset order of h5 files """
-        idx = np.arange(len(self.current_feature))
-        np.random.shuffle(idx)
-        self.current_feature = self.current_feature[idx, ...]
-        self.current_feature_label = self.current_feature_label[idx, ...]
+        if self.shuffle:
+            idx = np.arange(len(self.current_feature))
+            np.random.shuffle(idx)
+            self.current_feature = self.current_feature[idx, ...]
+            self.current_feature_label = self.current_feature_label[idx, ...]
         self.feature_batch_idx = 0
 
 
