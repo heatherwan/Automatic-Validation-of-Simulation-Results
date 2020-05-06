@@ -296,7 +296,7 @@ def save_global_feature(sess, ops, saver, layers):
     feature_name = 'global_feature'
     datasets = [trainDataset, testDataset]
     # Restore variables that achieves the best validation accuracy from the disk.
-    saver.restore(sess, os.path.join(LOG_DIR, f"{para.expName[:6]}.ckpt"))
+    saver.restore(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}.ckpt"))
     log_string("Model restored.")
     is_training = False
 
@@ -432,7 +432,7 @@ def train_classifier_one_epoch(sess, ops, train_writer):
     log_string(str(datetime.now()))
 
     # Make sure batch data is of same size
-    cur_batch_feature = np.zeros((para.batchSize, 1024))
+    cur_batch_feature = np.zeros((para.batchSize, para.class_feature))
     cur_batch_label = np.zeros(para.batchSize, dtype=np.int32)
 
     # set variable for statistics

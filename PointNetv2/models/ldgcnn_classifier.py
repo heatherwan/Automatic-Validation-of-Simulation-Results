@@ -8,13 +8,15 @@ import numpy as np
 import sys
 import os
 from utils import tf_util
+from Parameters import Parameters
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
+para = Parameters()
 
 
-def placeholder_inputs_feature(batch_size, num_dim):
-    pointclouds_feature_pl = tf.compat.v1.placeholder(tf.float32, shape=(batch_size, num_dim))
+def placeholder_inputs_feature(batch_size):
+    pointclouds_feature_pl = tf.compat.v1.placeholder(tf.float32, shape=(batch_size, para.class_feature))
     labels_pl = tf.compat.v1.placeholder(tf.int32, shape=batch_size)
     return pointclouds_feature_pl, labels_pl
 
