@@ -53,7 +53,7 @@ def calc_ldgcnn_feature(point_cloud, pointclouds_other, is_training, bn_decay=No
 
     # net: B*N*1*64
     # Extract the biggest feature from k convolutional edge features.     
-    net = tf.reduce_max(net, axis=-2, keep_dims=True)
+    net = tf.reduce_max(net, axis=-2, keepdims=True)
     net1 = net
     print(f'First EdgeConv layers: {net1.shape}')
 
@@ -74,7 +74,7 @@ def calc_ldgcnn_feature(point_cloud, pointclouds_other, is_training, bn_decay=No
                          bn=True, is_training=is_training,
                          scope='dgcnn2', bn_decay=bn_decay)
     # net: B*N*1*64
-    net = tf.reduce_max(net, axis=-2, keep_dims=True)
+    net = tf.reduce_max(net, axis=-2, keepdims=True)
     net2 = net
 
     adj_matrix = tf_util.pairwise_distance(net)
@@ -92,7 +92,7 @@ def calc_ldgcnn_feature(point_cloud, pointclouds_other, is_training, bn_decay=No
                          bn=True, is_training=is_training,
                          scope='dgcnn3', bn_decay=bn_decay)
     # net: B*N*1*64
-    net = tf.reduce_max(net, axis=-2, keep_dims=True)
+    net = tf.reduce_max(net, axis=-2, keepdims=True)
     net3 = net
 
     adj_matrix = tf_util.pairwise_distance(net)
@@ -109,7 +109,7 @@ def calc_ldgcnn_feature(point_cloud, pointclouds_other, is_training, bn_decay=No
                          bn=True, is_training=is_training,
                          scope='dgcnn4', bn_decay=bn_decay)
     # net: B*N*1*128
-    net = tf.reduce_max(net, axis=-2, keep_dims=True)
+    net = tf.reduce_max(net, axis=-2, keepdims=True)
     net4 = net
 
     # input: B*N*1*323
@@ -120,7 +120,7 @@ def calc_ldgcnn_feature(point_cloud, pointclouds_other, is_training, bn_decay=No
                          bn=True, is_training=is_training,
                          scope='agg', bn_decay=bn_decay)
     # net: B*1*1*1024
-    net = tf.reduce_max(net, axis=1, keep_dims=True)
+    net = tf.reduce_max(net, axis=1, keepdims=True)
     # net: B*1024
     net = tf.squeeze(net)
     return net
