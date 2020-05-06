@@ -448,7 +448,7 @@ def train_classifier_one_epoch(sess, ops, train_writer_cls):
     while trainDataset.has_next_feature():
         # Shuffle train files
         current_feature, current_label = trainDataset.next_feature()
-        bsize = cur_batch_feature.shape[0]
+        bsize = current_feature.shape[0]
         cur_batch_feature[0:bsize, ...] = current_feature
         cur_batch_label[0:bsize] = current_label
 
