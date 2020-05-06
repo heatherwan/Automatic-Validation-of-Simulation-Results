@@ -112,7 +112,7 @@ class DatasetHDF5(object):
         start_idx = self.batch_idx * self.batch_size
         end_idx = min((self.batch_idx + 1) * self.batch_size, self.current_feature.shape[0])
 
-        feature_batch = self.current_feature[start_idx:end_idx, 0:self.npoints, :].copy()
+        feature_batch = self.current_feature[start_idx:end_idx, :].copy()
         feature_label_batch = self.current_feature_label[start_idx:end_idx].copy()
         self.feature_batch_idx += 1
         return feature_batch, feature_label_batch
@@ -124,6 +124,7 @@ class DatasetHDF5(object):
         self.current_feature = self.current_feature[idx, ...]
         self.current_feature_label = self.current_feature_label[idx, ...]
         self.feature_batch_idx = 0
+
 
 if __name__ == '__main__':
     d = DatasetHDF5([os.path.join(DATADIR,'testdataset_154_1024_dim5.hdf5')])
