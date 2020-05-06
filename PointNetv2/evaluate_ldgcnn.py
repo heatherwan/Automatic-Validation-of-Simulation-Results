@@ -92,7 +92,7 @@ def evaluate():
            'loss': loss,
            'weights': weights}
 
-    with tf.Session(config=config) as sess:
+    with tf.compat.v1.Session(config=config) as sess:
         with tf.device(''):
             # Restore variables from disk.
             saver_cnn.restore(sess, f"{LOG_MODEL}/{para.expName[:6]}.ckpt")
