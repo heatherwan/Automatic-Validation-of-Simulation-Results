@@ -46,7 +46,7 @@ def get_model(feature, is_training, bn_decay=None):
 
     net = tf_util.dropout(net, keep_prob=0.5, is_training=is_training,
                           scope=layer_name + 'dp3')
-    # net: B*40
+    # net: B*4
     net = tf_util.fully_connected(net, para.outputClassN, activation_fn=None, scope='fc4')
     layers[layer_name + 'fc4'] = net
 
@@ -57,7 +57,7 @@ def get_loss(pred, label):
     """ pred: B*NUM_CLASSES,
       label: B, """
     # Change the label from an integer to the one_hot vector.
-    labels = tf.one_hot(indices=label, depth=40)
+    labels = tf.one_hot(indices=label, depth=para.outputClassN)
     # Calculate the loss based on cross entropy method.
     loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=labels, logits=pred, label_smoothing=0.2)
     # Calculate the mean loss of a batch input.
