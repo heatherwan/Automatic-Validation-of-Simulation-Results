@@ -68,7 +68,8 @@ def evaluate():
         loss = MODEL_CLS.get_loss(pred, labels_pl)
 
         # Add ops to save and restore all the variables.
-        # variable_names = [v.name for v in tf.global_variables()]
+        variable_names = [v.name for v in tf.compat.v1.global_variables()]
+        print(variable_names)
         variables = tf.compat.v1.global_variables()
         # Variables before #43 belong to the feature extractor.
         saver_cnn = tf.compat.v1.train.Saver(variables[0:44])
