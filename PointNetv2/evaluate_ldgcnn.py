@@ -69,7 +69,8 @@ def evaluate():
 
         # Add ops to save and restore all the variables.
         variable_names = [v.name for v in tf.compat.v1.global_variables()]
-        print(variable_names)
+        for i, v in enumerate(variable_names):
+            print(i, '  ', v)
         input('press')
         variables = tf.compat.v1.global_variables()
         # Variables before #43 belong to the feature extractor.
