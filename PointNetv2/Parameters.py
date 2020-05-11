@@ -42,17 +42,17 @@ class Parameters:
             self.logDir = 'log'
             if not os.path.isdir(self.logDir):
                 os.mkdir(self.logDir)
-                os.mkdir(os.path.join(self.logDir, f'{self.expName[:6]}train'))
-                os.mkdir(os.path.join(self.logDir, f'{self.expName[:6]}test'))
-                os.mkdir(os.path.join(self.logDir, f'{self.expName[:6]}trainold'))
-                os.mkdir(os.path.join(self.logDir, f'{self.expName[:6]}testold'))
-            else:
-                for file in os.listdir(os.path.join(self.logDir, f'{self.expName[:6]}train')):
-                    shutil.move(os.path.join(self.logDir, f'{self.expName[:6]}train', file),
-                                os.path.join(self.logDir, f'{self.expName[:6]}trainold', file))
-                for file in os.listdir(os.path.join(self.logDir, f'{self.expName[:6]}test')):
-                    shutil.move(os.path.join(self.logDir, f'{self.expName[:6]}test', file),
-                                os.path.join(self.logDir, f'{self.expName[:6]}testold', file))
+                # os.mkdir(os.path.join(self.logDir, f'{self.expName[:6]}train'))
+                # os.mkdir(os.path.join(self.logDir, f'{self.expName[:6]}test'))
+                # os.mkdir(os.path.join(self.logDir, f'{self.expName[:6]}trainold'))
+                # os.mkdir(os.path.join(self.logDir, f'{self.expName[:6]}testold'))
+            # else:
+            #     for file in os.listdir(os.path.join(self.logDir, f'{self.expName[:6]}train')):
+            #         shutil.move(os.path.join(self.logDir, f'{self.expName[:6]}train', file),
+            #                     os.path.join(self.logDir, f'{self.expName[:6]}trainold', file))
+            #     for file in os.listdir(os.path.join(self.logDir, f'{self.expName[:6]}test')):
+            #         shutil.move(os.path.join(self.logDir, f'{self.expName[:6]}test', file),
+            #                     os.path.join(self.logDir, f'{self.expName[:6]}testold', file))
         else:
             self.evallog = 'evallog'
             if not os.path.isdir(self.evallog):
