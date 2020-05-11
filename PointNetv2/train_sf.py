@@ -129,9 +129,9 @@ def train():
 
         # Add summary writers
         merged = tf.compat.v1.summary.merge_all()
-        train_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, 'train'),
+        train_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, para.expName[:6] + 'train'),
                                                        sess.graph)
-        test_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, 'test'),
+        test_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, para.expName[:6] + 'test'),
                                                       sess.graph)
         # Init variables
         init = tf.compat.v1.global_variables_initializer()
@@ -551,16 +551,8 @@ def eval_classifier_one_epoch(sess, ops, test_writer_cls):
 if __name__ == "__main__":
     start_time = time.time()
     if para.model == 'ldgcnn':
-        start_time = time.time()
         train()
-        end_time = time.time()
-        run_time = (end_time - start_time) / 60
-        print("train() ", run_time)
-        start_time = time.time()
         train_classifier()
-        end_time = time.time()
-        run_time = (end_time - start_time) / 60
-        print("train_cls() ", run_time)
     else:
         train()
     end_time = time.time()
