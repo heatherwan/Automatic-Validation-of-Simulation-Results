@@ -31,6 +31,9 @@ class Parameters:
         self.class_max_epoch = 100
         self.class_optimizer = 'momentum'
 
+        self.expName = f'exp423_point{self.pointNumber}_batch{self.batchSize}_out{self.outputClassN}' \
+                       f'_weighted{self.weight_scaler}'  # save model path
+
         # ==============Files setting===========================
         self.logmodelDir = 'logmodel'
         if not os.path.isdir(self.logmodelDir):
@@ -58,9 +61,6 @@ class Parameters:
         self.dataDir = os.path.join(BASE_DIR, 'datasets')
         self.TRAIN_FILES = [os.path.join(self.dataDir, 'traindataset_651_1024_dim5.hdf5')]
         self.TEST_FILES = [os.path.join(self.dataDir, 'testdataset_163_1024_dim5.hdf5')]
-
-        self.expName = f'exp423_point{self.pointNumber}_batch{self.batchSize}_out{self.outputClassN}' \
-                       f'_weighted{self.weight_scaler}'  # save model path
 
         self.classes = {1: 'EM1_contact', 2: 'EM3_radius', 3: 'EM4_hole', 0: 'Good'}
         # self.classes = {1: 'EM13_contactradius', 2: 'EM4_hole', 0: 'Good'}
