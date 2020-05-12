@@ -30,12 +30,19 @@ def calc_ldgcnn_feature(point_cloud, pointclouds_other, is_training, bn_decay=No
     # B: batch size; N: number of points, C: channels; k: number of nearest neighbors
     # point_cloud: B*N*3
     k = 20
+    # parameters for record the graph
+    end_points = {}
+    minSF = tf.reshape(tf.math.argmin(pointclouds_other[:, :, 0], axis=1), (-1, 1))
+
     # ======try to add more features here
     point_cloud = tf.concat(axis=2, values=[point_cloud, pointclouds_other])
 
     # adj_matrix: B*N*N
     adj_matrix = tf_util.pairwise_distance(point_cloud)
     nn_idx = tf_util.knn(adj_matrix, k=k)
+
+    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
+    end_points['knn1'] = allSF_dist
 
     point_cloud = tf.expand_dims(point_cloud, axis=-2)
 
@@ -62,6 +69,9 @@ def calc_ldgcnn_feature(point_cloud, pointclouds_other, is_training, bn_decay=No
     adj_matrix = tf_util.pairwise_distance(net)
     nn_idx = tf_util.knn(adj_matrix, k=k)
 
+    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
+    end_points['knn2'] = allSF_dist
+
     # net: B*N*1*67 
     # Link the Hierarchical features.
     net = tf.concat([point_cloud, net1], axis=-1)
@@ -81,6 +91,9 @@ def calc_ldgcnn_feature(point_cloud, pointclouds_other, is_training, bn_decay=No
     adj_matrix = tf_util.pairwise_distance(net)
     nn_idx = tf_util.knn(adj_matrix, k=k)
 
+    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
+    end_points['knn3'] = allSF_dist
+
     # net: B*N*1*131
     net = tf.concat([point_cloud, net1, net2], axis=-1)
 
@@ -98,6 +111,9 @@ def calc_ldgcnn_feature(point_cloud, pointclouds_other, is_training, bn_decay=No
 
     adj_matrix = tf_util.pairwise_distance(net)
     nn_idx = tf_util.knn(adj_matrix, k=k)
+
+    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
+    end_points['knn4'] = allSF_dist
 
     # net: B*N*1*195
     net = tf.concat([point_cloud, net1, net2, net3], axis=-1)
@@ -124,26 +140,25 @@ def calc_ldgcnn_feature(point_cloud, pointclouds_other, is_training, bn_decay=No
     net = tf.reduce_max(net, axis=1, keepdims=True)
     # net: B*1024
     net = tf.squeeze(net)
-    return net
+    return net, end_points
 
 
 def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
     """ Classification PointNet, input is BxNx3, output Bx40 """
     batch_size = point_cloud.get_shape()[0]  # .value
-    layers = {}
 
     # Extract global feature
-    net = calc_ldgcnn_feature(point_cloud, pointclouds_other, is_training, bn_decay)
+    net, end_points = calc_ldgcnn_feature(point_cloud, pointclouds_other, is_training, bn_decay)
 
     # MLP on global point cloud vector
     net = tf.reshape(net, [batch_size, -1])
-    layers['global_feature'] = net
+    end_points['global_feature'] = net
 
-    # Fully connected layers: classifier
+    # Fully connected end_points: classifier
     # net: B*512
     net = tf_util.fully_connected(net, 512, bn=True, is_training=is_training,
                                   scope='fc1', bn_decay=bn_decay)
-    layers['fc1'] = net
+    end_points['fc1'] = net
     # Each element is kept or dropped independently, and the drop rate is 0.5.
     net = tf_util.dropout(net, keep_prob=0.5, is_training=is_training,
                           scope='dp1')
@@ -151,14 +166,14 @@ def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
     # net: B*256
     net = tf_util.fully_connected(net, 256, bn=True, is_training=is_training,
                                   scope='fc2', bn_decay=bn_decay)
-    layers['fc2'] = net
+    end_points['fc2'] = net
     net = tf_util.dropout(net, keep_prob=0.5, is_training=is_training,
                           scope='dp2')
 
     # net: B*outclass
     net = tf_util.fully_connected(net, para.outputClassN, activation_fn=None, scope='fc3')
-    layers['fc3'] = net
-    return net, layers
+    end_points['fc3'] = net
+    return net, end_points
 
 
 def get_loss_weight(pred, label, end_points, classweight):

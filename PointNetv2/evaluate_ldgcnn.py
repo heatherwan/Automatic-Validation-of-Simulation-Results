@@ -63,7 +63,7 @@ def evaluate():
         weights = tf.compat.v1.placeholder(tf.float32, [None])
 
         # simple model
-        _, layers = MODEL.get_model_other(pointclouds_pl, pointclouds_other_pl, is_training_pl)
+        _, end_points = MODEL.get_model_other(pointclouds_pl, pointclouds_other_pl, is_training_pl)
         pred, _ = MODEL_CLS.get_model(pointclouds_feature_pl, is_training_pl)
         loss = MODEL_CLS.get_loss(pred, labels_pl)
 
@@ -92,7 +92,8 @@ def evaluate():
            'is_training_pl': is_training_pl,
            'pred': pred,
            'loss': loss,
-           'weights': weights}
+           'weights': weights,
+           'knn': end_points}
 
     with tf.compat.v1.Session(config=config) as sess:
         with tf.device(''):
@@ -135,9 +136,14 @@ def evaluate():
                                  ops['labels_pl']: cur_batch_label,
                                  ops['is_training_pl']: is_training}
 
-                global_feature = np.squeeze(layers['global_feature'].eval(feed_dict=feed_dict_cnn))
+                global_feature = np.squeeze(end_points['global_feature'].eval(feed_dict=feed_dict_cnn))
                 global_feature = np.concatenate([global_feature, np.zeros((
                     global_feature.shape[0], para.class_feature - global_feature.shape[1]))], axis=-1)
+
+                # get knn graph
+                all_knn_idx = {}
+                for i in range(1, 5):
+                    all_knn_idx[i] = np.squeeze(end_points[f'knn{i}'].eval(feed_dict=feed_dict_cnn))
 
                 feed_dict = {ops['features']: global_feature,
                              ops['labels_pl']: cur_batch_label,
@@ -175,6 +181,9 @@ def evaluate():
             for i, name in para.classes.items():
                 log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
             log_string(confusion_matrix(testDataset.current_label[:len(pred_label)], pred_label))
+
+            for k, v in all_knn_idx.items():
+                v.tofile(f'evallog/{para.expName[:6]}_{k}.txt', sep=" ", format="%.3f")
 
 
 if __name__ == '__main__':
