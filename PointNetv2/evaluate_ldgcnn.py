@@ -143,7 +143,7 @@ def evaluate():
                 # get knn graph
                 all_knn_idx = {}
                 for i in range(1, 5):
-                    all_knn_idx[i] = np.squeeze(end_points[f'knn{i}'].eval(feed_dict=feed_dict_cnn))
+                    all_knn_idx[f'knn{i}'] = np.squeeze(end_points[f'knn{i}'].eval(feed_dict=feed_dict_cnn))
 
                 feed_dict = {ops['features']: global_feature,
                              ops['labels_pl']: cur_batch_label,
