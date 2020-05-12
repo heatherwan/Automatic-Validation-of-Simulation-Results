@@ -124,6 +124,7 @@ def evaluate():
             fout2 = open(os.path.join(EVAL, f'{para.expName[:6]}_wrong_pred_prob.txt'), 'w')
             fout2.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
 
+            all_knn_idx = {}
             while testDataset.has_next_batch():
                 batch_data, batch_other, batch_label = testDataset.next_batch(augment=False)
                 bsize = batch_data.shape[0]
@@ -141,15 +142,11 @@ def evaluate():
                     global_feature.shape[0], para.class_feature - global_feature.shape[1]))], axis=-1)
 
                 # get knn graph
-                all_knn_idx = {}
-
                 for i in range(1, 5):
                     knn_idx = np.squeeze(end_points[f'knn{i}'].eval(feed_dict=feed_dict_cnn))
                     if batch_idx == 0:
                         all_knn_idx[f'knn{i}'] = knn_idx
-                        print('batch0')
                     else:
-                        print('batch!0')
                         all_knn_idx[f'knn{i}'] = np.append(all_knn_idx[f'knn{i}'], knn_idx[0:bsize], axis=0)
 
                 feed_dict = {ops['features']: global_feature,
