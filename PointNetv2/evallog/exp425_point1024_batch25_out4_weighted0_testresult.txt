@@ -1,0 +1,16 @@
+{'gpu': True, 'model': 'dgcnn', 'outputClassN': 4, 'pointNumber': 1024, 'dim': 6, 'batchSize': 25, 'testBatchSize': 25, 'max_epoch': 250, 'learningRate': 0.002, 'momentum': 0.9, 'optimizer': 'adam', 'decay_step': 20000, 'decay_rate': 0.7, 'weight_scaler': 0, 'class_model': 'ldgcnn_classifier', 'class_feature': 1024, 'class_max_epoch': 100, 'class_optimizer': 'momentum', 'expName': 'exp425_point1024_batch25_out4_weighted0', 'logmodelDir': 'logmodel', 'evallog': 'evallog', 'dataDir': '/tf/pointnet/Automatic-Validation-of-Simulation-Results/PointNetv2/datasets', 'TRAIN_FILES': ['/tf/pointnet/Automatic-Validation-of-Simulation-Results/PointNetv2/datasets/traindataset_651_minSF_1024_dim5.hdf5'], 'TEST_FILES': ['/tf/pointnet/Automatic-Validation-of-Simulation-Results/PointNetv2/datasets/testdataset_163_minSF_1024_dim5.hdf5'], 'classes': {1: 'EM1_contact', 2: 'EM3_radius', 3: 'EM4_hole', 0: 'Good'}}
+Model restored.
+2020-05-12 08:25:59.695738
+Test result:
+mean loss: 0.656
+acc: 0.939
+avg class acc: 0.932
+EM1_contact:	0.964
+EM3_radius:	0.870
+  EM4_hole:	0.961
+      Good:	0.934
+ 57   1   1   2
+  1  27   0   0
+  0   3  20   0
+  2   0   0  49
+running time:	0.07777359088261922 mins
