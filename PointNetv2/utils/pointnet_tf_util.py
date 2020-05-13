@@ -106,7 +106,6 @@ def pointnet_sa_module(xyz, points, npoint, radius, nsample, mlp, mlp2, group_al
             new_points: (batch_size, npoint, mlp[-1] or mlp2[-1]) TF tensor
             idx: (batch_size, npoint, nsample) int32 -- indices for local regions
     """
-    data_format = 'NCHW' if use_nchw else 'NHWC'
     with tf.compat.v1.variable_scope(scope) as sc:
         # Sample and Grouping
         if group_all:
@@ -121,8 +120,7 @@ def pointnet_sa_module(xyz, points, npoint, radius, nsample, mlp, mlp2, group_al
             new_points = tf_util.conv2d(new_points, num_out_channel, [1, 1],
                                         padding='VALID', stride=[1, 1],
                                         bn=bn, is_training=is_training,
-                                        scope='conv%d' % (i), bn_decay=bn_decay,
-                                        data_format=data_format)
+                                        scope='conv%d' % i, bn_decay=bn_decay)
         if use_nchw:
             new_points = tf.transpose(a=new_points, perm=[0, 2, 3, 1])
 
@@ -151,8 +149,7 @@ def pointnet_sa_module(xyz, points, npoint, radius, nsample, mlp, mlp2, group_al
                 new_points = tf_util.conv2d(new_points, num_out_channel, [1, 1],
                                             padding='VALID', stride=[1, 1],
                                             bn=bn, is_training=is_training,
-                                            scope='conv_post_%d' % (i), bn_decay=bn_decay,
-                                            data_format=data_format)
+                                            scope='conv_post_%d' % (i), bn_decay=bn_decay)
             if use_nchw:
                 new_points = tf.transpose(a=new_points, perm=[0, 2, 3, 1])
 
@@ -176,7 +173,6 @@ def pointnet_sa_module_msg(xyz, points, npoint, radius_list, nsample_list, mlp_l
             new_xyz: (batch_size, npoint, 3) TF tensor
             new_points: (batch_size, npoint, \sum_k{mlp[k][-1]}) TF tensor
     """
-    data_format = 'NCHW' if use_nchw else 'NHWC'
     with tf.compat.v1.variable_scope(scope) as sc:
         new_xyz = gather_point(xyz, farthest_point_sample(npoint, xyz))
         new_points_list = []
