@@ -69,8 +69,8 @@ def sample_and_group_all(xyz, points, use_xyz=True):
     Note:
         Equivalent to sample_and_group with npoint=1, radius=inf, use (0,0,0) as the centroid
     """
-    batch_size = xyz.get_shape()[0].value
-    nsample = xyz.get_shape()[1].value
+    batch_size = xyz.get_shape()[0]  # .value
+    nsample = xyz.get_shape()[1]  # .value
     new_xyz = tf.constant(np.tile(np.array([0, 0, 0]).reshape((1, 1, 3)), (batch_size, 1, 1)),
                           dtype=tf.float32)  # (batch_size, 1, 3)
     idx = tf.constant(np.tile(np.array(range(nsample)).reshape((1, 1, nsample)), (batch_size, 1, 1)))
@@ -110,7 +110,7 @@ def pointnet_sa_module(xyz, points, npoint, radius, nsample, mlp, mlp2, group_al
     with tf.compat.v1.variable_scope(scope) as sc:
         # Sample and Grouping
         if group_all:
-            nsample = xyz.get_shape()[1].value
+            nsample = xyz.get_shape()[1]  # .value
             new_xyz, new_points, idx, grouped_xyz = sample_and_group_all(xyz, points, use_xyz)
         else:
             new_xyz, new_points, idx, grouped_xyz = sample_and_group(npoint, radius, nsample, xyz, points, knn, use_xyz)
