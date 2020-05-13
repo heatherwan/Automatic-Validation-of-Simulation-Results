@@ -91,9 +91,9 @@ def conv1d(inputs,
     with tf.compat.v1.variable_scope(scope) as sc:
         assert (data_format == 'NHWC' or data_format == 'NCHW')
         if data_format == 'NHWC':
-            num_in_channels = inputs.get_shape()[-1].value
+            num_in_channels = inputs.get_shape()[-1]  # .value
         elif data_format == 'NCHW':
-            num_in_channels = inputs.get_shape()[1].value
+            num_in_channels = inputs.get_shape()[1]  # .value
         kernel_shape = [kernel_size,
                         num_in_channels, num_output_channels]
         kernel = _variable_with_weight_decay('weights',
@@ -158,9 +158,9 @@ def conv2d(inputs,
         kernel_h, kernel_w = kernel_size
         assert (data_format == 'NHWC' or data_format == 'NCHW')
         if data_format == 'NHWC':
-            num_in_channels = inputs.get_shape()[-1].value
+            num_in_channels = inputs.get_shape()[-1]  # .value
         elif data_format == 'NCHW':
-            num_in_channels = inputs.get_shape()[1].value
+            num_in_channels = inputs.get_shape()[1]  # .value
         kernel_shape = [kernel_h, kernel_w,
                         num_in_channels, num_output_channels]
         kernel = _variable_with_weight_decay('weights',
@@ -224,7 +224,7 @@ def conv2d_transpose(inputs,
   """
     with tf.compat.v1.variable_scope(scope) as sc:
         kernel_h, kernel_w = kernel_size
-        num_in_channels = inputs.get_shape()[-1].value
+        num_in_channels = inputs.get_shape()[-1]  # .value
         kernel_shape = [kernel_h, kernel_w,
                         num_output_channels, num_in_channels]  # reversed to conv2d
         kernel = _variable_with_weight_decay('weights',
@@ -243,9 +243,9 @@ def conv2d_transpose(inputs,
             return dim_size
 
         # caculate output shape
-        batch_size = inputs.get_shape()[0].value
-        height = inputs.get_shape()[1].value
-        width = inputs.get_shape()[2].value
+        batch_size = inputs.get_shape()[0]  # .value
+        height = inputs.get_shape()[1]  # .value
+        width = inputs.get_shape()[2]  # .value
         out_height = get_deconv_dim(height, stride_h, kernel_h, padding)
         out_width = get_deconv_dim(width, stride_w, kernel_w, padding)
         output_shape = [batch_size, out_height, out_width, num_output_channels]
@@ -301,7 +301,7 @@ def conv3d(inputs,
   """
     with tf.compat.v1.variable_scope(scope) as sc:
         kernel_d, kernel_h, kernel_w = kernel_size
-        num_in_channels = inputs.get_shape()[-1].value
+        num_in_channels = inputs.get_shape()[-1]  # .value
         kernel_shape = [kernel_d, kernel_h, kernel_w,
                         num_in_channels, num_output_channels]
         kernel = _variable_with_weight_decay('weights',
@@ -346,7 +346,7 @@ def fully_connected(inputs,
     Variable tensor of size B x num_outputs.
   """
     with tf.compat.v1.variable_scope(scope) as sc:
-        num_input_units = inputs.get_shape()[-1].value
+        num_input_units = inputs.get_shape()[-1]  # .value
         weights = _variable_with_weight_decay('weights',
                                               shape=[num_input_units, num_outputs],
                                               use_xavier=use_xavier,
@@ -484,7 +484,7 @@ def batch_norm_template_unused(inputs, is_training, scope, moments_dims, bn_deca
       normed:        batch-normalized maps
   """
     with tf.compat.v1.variable_scope(scope) as sc:
-        num_channels = inputs.get_shape()[-1].value
+        num_channels = inputs.get_shape()[-1]  # .value
         beta = _variable_on_cpu(name='beta', shape=[num_channels],
                                 initializer=tf.compat.v1.constant_initializer(0))
         gamma = _variable_on_cpu(name='gamma', shape=[num_channels],
