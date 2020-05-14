@@ -5,21 +5,30 @@ Created on Fri Mar 27 14:39:59 2020
 @author: wantinglin
 """
 import math
-import os
 import sys
 import time
 
 import h5py
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import open3d as o3d
+import os
+import pandas as pd
 import pyvista as pv
-import vtk
 import trimesh
+import vtk
 from scipy import spatial
 from vtk.util import numpy_support
 from vtk.util.numpy_support import vtk_to_numpy
+from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d import proj3d
+
 import CalCurvature as CC
-from compare_result import compare, output_wrong
+
+# from compare_result import compare, output_wrong
+matplotlib.use('tkagg')
+matplotlib.matplotlib_fname()
 
 np.set_printoptions(threshold=sys.maxsize)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -72,7 +81,8 @@ def get_Nearpoints(data, MinSF, NNeighbors):
     dd, indexes = spatial.cKDTree(coord).query(MinSF[1:], NNeighbors)
     nearestpoints = data[indexes, :]
     # print(nearestpoints.shape)
-    return indexes, nearestpoints
+
+    return dd, indexes, nearestpoints
 
 
 def get_neighborpolys(indexes, polys):
@@ -113,18 +123,6 @@ def get_files(folder, category):
     return files
 
 
-def dist(p1, p2):
-    distance = math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2 + (p1[2] - p2[2]) ** 2)
-    return distance
-
-
-def get_dist(MinSF, nearpoints):
-    distance = []
-    for point in nearpoints[:, 1:]:
-        distance.append(dist(point, MinSF[1:]))
-    return np.array(distance)
-
-
 def get_normals(data, visual=False):
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(data[:, 1:])
@@ -134,7 +132,7 @@ def get_normals(data, visual=False):
     return np.asarray(pcd.normals)
 
 
-def readfilestoh5(export_filename, train_test_folder, NNeighbors=1024, dim=5):
+def readfilestoh5(export_filename, train_test_folder, NNeighbors=1024, dim=5, minSF_importance=10):
     """
 
     :param NNeighbors:
@@ -143,11 +141,15 @@ def readfilestoh5(export_filename, train_test_folder, NNeighbors=1024, dim=5):
     :param dim: features output: 5-distance, 6-normal, 7-curvature, 10 normal+curvature
     :return:
     """
-    export_filename = f'{export_filename}_{NNeighbors}_dim{dim}.hdf5'
+
+    if dim == 6:
+        export_filename = f'{export_filename}_{NNeighbors}_dim{dim}_SF{minSF_importance}.hdf5'
+    else:
+        export_filename = f'{export_filename}_{NNeighbors}_dim{dim}.hdf5'
+
     with h5py.File(export_filename, "w") as f:
         all_data = []
         all_label = []
-        all_other = []
         for num, cat in classes.items():
             print(cat)
             now = time.time()
@@ -158,13 +160,14 @@ def readfilestoh5(export_filename, train_test_folder, NNeighbors=1024, dim=5):
                 # get points near MinSF point
                 poly, data = readVTP(filename)
                 MinSF = get_MinSF(data)
-                indexes, nearpoints = get_Nearpoints(data, MinSF, NNeighbors)
+                distance, indexes, nearpoints = get_Nearpoints(data, MinSF, NNeighbors)
 
-                # get distance
-                distance = get_dist(MinSF, nearpoints)
+                # set minSF
+                minP = np.zeros(NNeighbors)
+                minP[0] = 10
 
                 # get normals
-                if dim == 6 or dim == 10:
+                if dim == 8 or dim == 10:
                     normals = get_normals(data)[indexes]
 
                 # get gaussian and mean curvature
@@ -181,96 +184,76 @@ def readfilestoh5(export_filename, train_test_folder, NNeighbors=1024, dim=5):
                             m_curvature = np.insert(m_curvature, idx, 0)
 
                 # gather data into hdf5 format
-                all_data.append(nearpoints[:, 1:])
                 if dim == 5:
-                    other = np.concatenate((nearpoints[:, 0].reshape(-1, 1),
+                    other = np.concatenate((nearpoints.reshape(NNeighbors, 4),
                                             distance.reshape(-1, 1)), axis=1)
                 elif dim == 6:
-                    other = np.concatenate((nearpoints[:, 0].reshape(-1, 1),
+                    other = np.concatenate((nearpoints.reshape(NNeighbors, 4),
+                                            distance.reshape(-1, 1),
+                                            minP.reshape(-1, 1)), axis=1)
+                elif dim == 8:
+                    other = np.concatenate((nearpoints.reshape(NNeighbors, 4),
                                             distance.reshape(-1, 1),
                                             normals), axis=1)
                 elif dim == 7:
-                    other = np.concatenate((nearpoints[:, 0].reshape(-1, 1),
+                    other = np.concatenate((nearpoints.reshape(NNeighbors, 4),
                                             distance.reshape(-1, 1),
                                             k_curvature.reshape(-1, 1),
                                             m_curvature.reshape(-1, 1)), axis=1)
                 elif dim == 10:
-                    other = np.concatenate((nearpoints[:, 0].reshape(-1, 1),
+                    other = np.concatenate((nearpoints.reshape(NNeighbors, 4),
                                             distance.reshape(-1, 1),
+                                            normals,
                                             k_curvature.reshape(-1, 1),
-                                            m_curvature.reshape(-1, 1),
-                                            normals), axis=1)
-                all_other.append(other)
-
+                                            m_curvature.reshape(-1, 1)), axis=1)
+                all_data.append(other)
             print(f'total find time = {time.time() - now}')
         data = f.create_dataset("data", data=all_data)
-        other = f.create_dataset("other", data=all_other)
         label = f.create_dataset("label", data=all_label)
 
 
-def visualize_selected_points(filename, df=None, single=True, name_a=None, name_b=None, NNeighbors=1024):
+def visualize_selected_points(filename, NNeighbors=1024, normal=False, curvature=False):
     poly, data = readVTP(filename)
     MinSF = get_MinSF(data)
-    points = data[:, 1:]
-    _, nearpoints2000 = get_Nearpoints(data, MinSF, NNeighbors*2)
+
+    _, _, nearpoints2000 = get_Nearpoints(data, MinSF, NNeighbors * 2)
     nearpoints2000 = nearpoints2000[:, 1:]
 
-    indexes, nearpoints1000 = get_Nearpoints(data, MinSF, NNeighbors)
-    nearpoints1000 = nearpoints1000[:, 1:]
-    neighborpolys, connected_points = get_neighborpolys(indexes, poly)
+    _, indexes, nearpoints1000 = get_Nearpoints(data, MinSF, NNeighbors)
 
-    mesh = trimesh.Trimesh(vertices=nearpoints1000, faces=neighborpolys)
-    k_curvature, m_curvature = get_curvatures(mesh)
+    if curvature:
+        neighborpolys, connected_points = get_neighborpolys(indexes, poly)
+        mesh = trimesh.Trimesh(vertices=nearpoints1000[:, 1:], faces=neighborpolys)
+        k_curvature, m_curvature = get_curvatures(mesh)
 
-    # sometimes the selected point is not connected to mesh
-    if NNeighbors > len(connected_points):
-        print(f'not connected {NNeighbors - len(connected_points)}')
-        no_curvature = set(range(1024)) - connected_points
-        for idx in no_curvature:
-            k_curvature = np.insert(k_curvature, idx, 0)
-            m_curvature = np.insert(m_curvature, idx, 0)
+        # sometimes the selected point is not connected to mesh
+        if NNeighbors > len(connected_points):
+            print(f'not connected {NNeighbors - len(connected_points)}')
+            no_curvature = set(range(1024)) - connected_points
+            for idx in no_curvature:
+                k_curvature = np.insert(k_curvature, idx, 0)
+                m_curvature = np.insert(m_curvature, idx, 0)
 
     # Make PolyData
     minpoint = pv.PolyData(MinSF[1:])
-    point_cloud1 = pv.PolyData(nearpoints1000)
+    point_cloud1 = pv.PolyData(nearpoints1000[:, 1:])
     point_cloud2 = pv.PolyData(nearpoints2000)
     plotter = pv.Plotter()
-
     # plotter.add_mesh(points, color='white', point_size=2., render_points_as_spheres=True)
     plotter.add_mesh(point_cloud2, color='white',
                      point_size=2., render_points_as_spheres=True)
     plotter.add_mesh(point_cloud1, scalars=nearpoints1000[:, 0], stitle='safety factor',
                      point_size=5., render_points_as_spheres=True)
     plotter.add_mesh(minpoint, color='white', point_size=8, render_points_as_spheres=True)
-    if df is not None:
-        if single:
-            plotter.add_text(f"no{df['  no']}, predict:{classes[df.pred]}, "
-                             f"label:{classes[df.real]}")
-        else:
-            plotter.add_text(f"no{df.iloc[0]}, {name_a} predict:{classes[df.pred]}, "
-                             f"{name_b} predict:{classes[df.pred2]}, "
-                             f"label:{classes[df.real]}")
     plotter.show_grid()
-    plotter.show(auto_close=True)
+    plotter.show()
 
     # visualize normal
-    normals = get_normals(data, visual=True)[indexes]
-
-    visualize_color_by_array(m_curvature, mesh)
-    visualize_color_by_array(k_curvature, mesh)
-
-
-def visualize_pred_result_single(filename):
-    data = output_wrong(filename)
-
-    for index, row in data.iterrows():
-        visualize_selected_points(row.file, row, single=True)
-
-
-def visulaize_pred_result_compare(file1, file2, expname):
-    data = compare(file1, file2, expname)
-    for index, row in data.iterrows():
-        visualize_selected_points(row.file, row, single=False, name_a='PointNet', name_b='PointGCN')
+    if normal:
+        normals = get_normals(data, visual=True)[indexes]
+    if curvature:
+        visualize_color_by_array(m_curvature, mesh)
+        visualize_color_by_array(k_curvature, mesh)
 
 
 def visualize_color_by_array(curvature, mesh):
@@ -284,65 +267,140 @@ def visualize_color_by_array(curvature, mesh):
     mesh.show(background=[0, 0, 0, 255])
 
 
-def visualize_curvatures(filename, use_all, NNeighbors=1024):
-    # read data and selected needed points
+def get_wrong_filename(filenamepath, wrongpath):
+    filename = pd.read_csv(filenamepath, sep='\t', index_col=0)
+    wrong = pd.read_csv(wrongpath, sep='\t', index_col=0)
+
+    wrong['filename'] = filename.loc[wrong.index, :]
+    wrong.to_csv(f"{wrongpath.replace('.txt', '')}_result_all.txt", sep='\t', float_format='%1.3f')
+    return wrong
+
+
+def get_allfilename(datafolder, type='Train'):
+    data = []
+    for cls in os.listdir(f'{datafolder}/{type}'):
+        for data in os.listdir(os.path.join(f'{datafolder}/{type}', cls)):
+            data.append(os.path.join(f'{datafolder}/{type}', cls, data))
+
+    fout = open(os.path.join(resultDir, f'{datafolder}_{type}.txt'), 'w')
+    fout.write(f'no\tfilepath\n')
+    for i, train in enumerate(data):
+        fout.write(f'{i}\t{train}\n')
+
+
+def visualize_graph(filename, NNeighbors=1024, predict=None):
     poly, data = readVTP(filename)
     MinSF = get_MinSF(data)
-    indexes, nearpoints = get_Nearpoints(data, MinSF, NNeighbors)
-    neighborpolys, connected_points = get_neighborpolys(indexes, poly)
 
-    # use all or less points
-    if use_all:
-        mesh = trimesh.Trimesh(vertices=data[:, 1:], faces=poly)
-    else:
-        mesh = trimesh.Trimesh(vertices=nearpoints[:, 1:], faces=neighborpolys)
-    # mesh.show(background=[0, 0, 0, 255])
+    _, indexes, nearpoints1000 = get_Nearpoints(data, MinSF, NNeighbors)
+    n = 7
+    pcCoordinates = nearpoints1000[:, 1:]
+    tree = spatial.cKDTree(pcCoordinates)
+    dd, ii = tree.query(pcCoordinates, k=n)
 
-    # extract curvatures
-    start = time.time()
-    k_curvature, m_curvature = get_curvatures(mesh)
-    print(f'time: {time.time() - start}')
-    visualize_color_by_array(k_curvature, mesh)
-    visualize_color_by_array(m_curvature, mesh)
+    fig = plt.figure(figsize=(12, 12))
+    ax = plt.axes(projection="3d")
+    ax.view_init(azim=170, elev=-120)
+    # Data for a three-dimensional line
+    sc = ax.scatter3D(nearpoints1000[:, 1], nearpoints1000[:, 2], nearpoints1000[:, 3], s=1,
+                      c=nearpoints1000[:, 0], marker='o', cmap="bwr")
+    ax.scatter3D(MinSF[1], MinSF[2], MinSF[3], c='yellow', s=10)
+    for row in ii:
+        a = np.repeat(row[0], n - 1)
+        b = np.asarray(row[1:])
+        a = pcCoordinates[a]
+        b = pcCoordinates[b]
+        for i in range(n - 1):
+            ax.plot3D([a[i, 0], b[i, 0]], [a[i, 1], b[i, 1]], zs=[a[i, 2], b[i, 2]], color='grey')
+    # ax.text(0, 0, 0, f'{filename} predict:{predict}', color='red')
+    ax.text2D(0, 1, f'{filename}\npredict:{predict}', transform=ax.transAxes)
 
-    # sometimes the selected point is not connected to mesh
-    if NNeighbors > len(connected_points):
-        print(f'not connected {NNeighbors - len(connected_points)}')
-        no_curvature = set(range(1024)) - connected_points
-        for idx in no_curvature:
-            k_curvature = np.insert(k_curvature, idx, 0)
-            m_curvature = np.insert(m_curvature, idx, 0)
-    # visualize normal
-    normals = get_normals(data, visual=True)[indexes]
+    plt.colorbar(sc)
+    plt.show()
+
+
+def get_min_SF_graph(knn, ls, NNeighbors=1024):
+    filename = pd.read_csv('result_folder/testdatafile_0705.txt', sep='\t')
+    # print(filename)
+    for i, file in enumerate(filename.filepath):
+        if i in ls:
+            poly, data = readVTP(file)
+            MinSF = get_MinSF(data)
+
+            _, _, nearpoints2000 = get_Nearpoints(data, MinSF, NNeighbors * 2)
+            nearpoints2000 = nearpoints2000[:, 1:]
+
+            distance, indexes, nearpoints1000 = get_Nearpoints(data, MinSF, NNeighbors)
+
+            plotter = pv.Plotter(shape=(2, 3))
+
+            for j in range(len(knn) + 2):
+                plotter.subplot(j // 3, j % 3)
+
+                point_cloudall = pv.PolyData(nearpoints2000)
+                plotter.add_mesh(point_cloudall, color='white',
+                                 point_size=2., render_points_as_spheres=True)
+                if j == 0:
+                    point_cloud = pv.PolyData(nearpoints1000[:, 1:])
+                    plotter.add_mesh(point_cloud, scalars=nearpoints1000[:, 0], stitle='safety factor',
+                                     point_size=5., render_points_as_spheres=True, interpolate_before_map=True)
+                elif j == 1:
+                    point_cloud = pv.PolyData(nearpoints1000[:, 1:])
+                    plotter.add_mesh(point_cloud, scalars=distance, stitle='distance',
+                                     point_size=5., render_points_as_spheres=True, interpolate_before_map=True)
+                else:
+                    point_cloud = pv.PolyData(nearpoints1000[:, 1:])
+                    plotter.add_mesh(point_cloud, scalars=knn[j - 2][i], stitle=f'knn{j-1}',
+                                     point_size=5., render_points_as_spheres=True, interpolate_before_map=True)
+
+                minpoint = pv.PolyData(MinSF[1:])
+                plotter.add_mesh(minpoint, scalars=MinSF[0], point_size=8, render_points_as_spheres=True)
+                # plotter.show_grid()
+
+            plotter.link_views()
+            plotter.show(title=f'{i}_{file[19:]}')
 
 
 def main():
     # =============generate h5df dataset=========================================
-    export_filename = f"outputdataset/traindataset_460"
-    readfilestoh5(export_filename, 'wanting_split/train')
+    export_filename = f"outputdataset/traindataset_651"
+    readfilestoh5(export_filename, 'Fourth_new_data/Train', NNeighbors=1024, dim=6)
 
-    export_filename = f"outputdataset/testdataset_154"
-    readfilestoh5(export_filename, 'wanting_split/test')
+    export_filename = f"outputdataset/testdataset_163"
+    readfilestoh5(export_filename, 'Fourth_new_data/Test', NNeighbors=1024, dim=6)
     # ===========================================================================
 
-    # =============visualize result with prediction======================================
-    # # 1. single file
-    # file = 'all_pred_label.txt'
-    # visualize_pred_result_single(file)
-    # # 2. comparison with 2 files
-    # file1 = 'pred_label_1024.txt'
-    # file2 = 'pred_label_GCN1024.txt'
-    # visulaize_pred_result_compare(file1, file2, 'GCN')
-    # ====================================================================================
+    # ============get visulaization with files in test_same folder===========================
+    # filenamepath = 'result_folder/testdatafile_0705.txt'
+    # wrongfilepath = 'result_folder/exp423_wrong_pred_prob.txt'
+    # wrongfile_df = get_wrong_filename(filenamepath, wrongfilepath)
+    #
+    # for pred, file in zip(wrongfile_df.pred, wrongfile_df.filename):
+    #     visualize_graph(file, predict=pred)
+    # visualize_selected_points(file)
 
-    # ============get curvatures example====================================================
-    filename = 'wanting_split/test/EM3_radius/' \
-               '10000252_FF_P5024849_Revb07_Drucklast_V17_Fv_Min.odb__AA_DECKEL.vtu.vtp'
-    file = 'all_pred_labelgdcnn.txt'
-    use_all = False
-    # visualize_curvatures(filename, use_all)
-    # visualize_pred_result_single(file)
     # =======================================================================================
+
+    # ============get visulaization in dgcnn graph============================
+    # sample_num = 163
+    # expname = '428'
+    # knn1 = np.fromfile(f'result_folder/exp{expname}_knn1.txt', sep=" ").reshape(sample_num, 1024)
+    # knn2 = np.fromfile(f'result_folder/exp{expname}_knn2.txt', sep=" ").reshape(sample_num, 1024)
+    # knn3 = np.fromfile(f'result_folder/exp{expname}_knn3.txt', sep=" ").reshape(sample_num, 1024)
+    # knn4 = np.fromfile(f'result_folder/exp{expname}_knn4.txt', sep=" ").reshape(sample_num, 1024)
+    # # knn5 = np.fromfile(f'result_folder/exp{expname}_knn5.txt', sep=" ").reshape(sample_num, 1024)
+    # list = [49, 50, 51, 96, 108, 111, 121]  # 1, 3, 4, 13, 18, 22, 31, 17,30,35,
+    # list422 = [17, 28, 29, 44, 45, 48, 49, 55, 61, 97, 98, 131, 158, 159, 160]
+    # list423 = [21, 44, 55, 57, 97, 98, 112]
+    # list424 = [4, 17, 36, 43, 55, 57, 153, 158]
+    # list425 = [21, 28, 45, 48, 61, 97, 112, 119, 120, 141]
+    # list428 = [17, 55, 97, 98, 158, 159]
+    # get_min_SF_graph([knn1, knn2, knn3, knn4], list428)
+
+    # =======================================================================================
+    datafolder = 'Fourth_new_data'
+    get_allfilename(datafolder, 'Train')
+    get_allfilename(datafolder, 'Test')
 
 
 if __name__ == '__main__':
