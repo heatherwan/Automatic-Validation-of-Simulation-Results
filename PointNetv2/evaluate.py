@@ -56,13 +56,12 @@ def log_string(out_str):
 
 def evaluate():
     with tf.device(''):
-        pointclouds_pl, pointclouds_other_pl, labels_pl = MODEL.placeholder_inputs_other(para.testBatchSize,
-                                                                                         para.pointNumber)
+        pointclouds_pl, labels_pl = MODEL.placeholder_inputs_other(para.testBatchSize, para.pointNumber)
         is_training_pl = tf.compat.v1.placeholder(tf.bool, shape=())
         weights = tf.compat.v1.placeholder(tf.float32, [None])
 
         # simple model
-        pred, end_points = MODEL.get_model_other(pointclouds_pl, pointclouds_other_pl, is_training_pl)
+        pred, end_points = MODEL.get_model_other(pointclouds_pl, is_training_pl)
         loss = MODEL.get_loss_weight(pred, labels_pl, end_points, weights)
         tf.compat.v1.summary.scalar('loss', loss)
 
@@ -81,7 +80,6 @@ def evaluate():
     log_string("Model restored.")
 
     ops = {'pointclouds_pl': pointclouds_pl,
-           'pointclouds_other_pl': pointclouds_other_pl,
            'labels_pl': labels_pl,
            'is_training_pl': is_training_pl,
            'pred': pred,
@@ -97,8 +95,7 @@ def eval_one_epoch(sess, ops):
     log_string(str(datetime.now()))
 
     # Make sure batch data is of same size
-    cur_batch_data = np.zeros((para.testBatchSize, para.pointNumber, 3))
-    cur_batch_other = np.zeros((para.testBatchSize, para.pointNumber, testDataset.num_channel() - 3))
+    cur_batch_data = np.zeros((para.testBatchSize, para.pointNumber, testDataset.num_channel()))
     cur_batch_label = np.zeros(para.testBatchSize, dtype=np.int32)
 
     # set variable for statistics
@@ -116,15 +113,13 @@ def eval_one_epoch(sess, ops):
     fout2.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
     all_knn_idx = {}
     while testDataset.has_next_batch():
-        batch_data, batch_other, batch_label = testDataset.next_batch(augment=False)
+        batch_data, batch_label = testDataset.next_batch(augment=False)
         bsize = batch_data.shape[0]
         cur_batch_data[0:bsize, ...] = batch_data
-        cur_batch_other[0:bsize, ...] = batch_other
         cur_batch_label[0:bsize] = batch_label
         batchWeight = provider.weights_calculation(cur_batch_label, testDataset.weight_dict)
 
         feed_dict = {ops['pointclouds_pl']: cur_batch_data,
-                     ops['pointclouds_other_pl']: cur_batch_other,
                      ops['labels_pl']: cur_batch_label,
                      ops['is_training_pl']: is_training,
                      ops['weights']: batchWeight}
