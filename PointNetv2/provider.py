@@ -8,18 +8,17 @@ para = Parameters()
 h5py.get_config().default_file_mode = 'r'
 
 
-def shuffle_data_other(data, other, labels):
+def shuffle_data(data, labels):
     """ Shuffle data and labels.
         Input:
-          data: B,N,... numpy array
-          other: B,additional features,... numpy array
+          data: B,N,C numpy array
           label: B,... numpy array
         Return:
-          shuffled data, other, label and shuffle indices
+          shuffled data, label and shuffle indices
     """
     idx = np.arange(len(labels))
     np.random.shuffle(idx)
-    return data[idx, ...], other[idx, ...], labels[idx], idx
+    return data[idx, ...], labels[idx], idx
 
 
 def shuffle_points(batch_data):
@@ -145,9 +144,8 @@ def random_scale_point_cloud(batch_data, scale_low=0.8, scale_high=1.25):
 def load_h5_other(h5_filename):
     f = h5py.File(h5_filename)
     data = f["data"][:]
-    other = f["other"][:]
     label = f["label"][:]
-    return data, other, label
+    return data, label
 
 
 def loadDataFile_other(filename):

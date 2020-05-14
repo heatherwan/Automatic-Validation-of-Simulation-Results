@@ -84,7 +84,7 @@ def get_bn_decay(batch):
 def train():
     with tf.Graph().as_default():
         with tf.device(''):
-            pointclouds_pl, pointclouds_other_pl, labels_pl = MODEL.placeholder_inputs_other(para.batchSize,
+            pointclouds_pl, labels_pl = MODEL.placeholder_inputs_other(para.batchSize,
                                                                                              para.pointNumber)
             is_training_pl = tf.compat.v1.placeholder(tf.bool, shape=())
             weights = tf.compat.v1.placeholder(tf.float32, [None])
@@ -97,7 +97,7 @@ def train():
             tf.compat.v1.summary.scalar('bn_decay', bn_decay)
 
             # Get model and loss
-            pred, end_points = MODEL.get_model_other(pointclouds_pl, pointclouds_other_pl, is_training_pl,
+            pred, end_points = MODEL.get_model_other(pointclouds_pl, is_training_pl,
                                                      bn_decay=bn_decay)
             MODEL.get_para_num()
             loss = MODEL.get_loss_weight(pred, labels_pl, end_points, weights)
@@ -139,7 +139,6 @@ def train():
         sess.run(init, {is_training_pl: True})
 
         ops = {'pointclouds_pl': pointclouds_pl,
-               'pointclouds_other_pl': pointclouds_other_pl,
                'labels_pl': labels_pl,
                'is_training_pl': is_training_pl,
                'pred': pred,
@@ -176,8 +175,7 @@ def train_one_epoch(sess, ops, train_writer):
     log_string(str(datetime.now()))
 
     # Make sure batch data is of same size
-    cur_batch_data = np.zeros((para.batchSize, para.pointNumber, 3))
-    cur_batch_other = np.zeros((para.batchSize, para.pointNumber, trainDataset.num_channel() - 3))
+    cur_batch_data = np.zeros((para.batchSize, para.pointNumber, trainDataset.num_channel()))
     cur_batch_label = np.zeros(para.batchSize, dtype=np.int32)
 
     # set variable for statistics
@@ -190,17 +188,15 @@ def train_one_epoch(sess, ops, train_writer):
     total_correct_class = [0 for _ in range(para.outputClassN)]
 
     while trainDataset.has_next_batch():
-        batch_data, batch_other, batch_label = trainDataset.next_batch(augment=True)
+        batch_data, batch_label = trainDataset.next_batch(augment=True)
         # batch_data = provider.random_point_dropout(batch_data)
         bsize = batch_data.shape[0]
         cur_batch_data[0:bsize, ...] = batch_data
-        cur_batch_other[0:bsize, ...] = batch_other
         cur_batch_label[0:bsize] = batch_label
 
         batchWeight = provider.weights_calculation(cur_batch_label, trainDataset.weight_dict)
 
         feed_dict = {ops['pointclouds_pl']: cur_batch_data,
-                     ops['pointclouds_other_pl']: cur_batch_other,
                      ops['labels_pl']: cur_batch_label,
                      ops['is_training_pl']: is_training,
                      ops['weights']: batchWeight}
@@ -239,8 +235,7 @@ def eval_one_epoch(sess, ops, test_writer):
     log_string(str(datetime.now()))
 
     # Make sure batch data is of same size
-    cur_batch_data = np.zeros((para.testBatchSize, para.pointNumber, 3))
-    cur_batch_other = np.zeros((para.testBatchSize, para.pointNumber, testDataset.num_channel() - 3))
+    cur_batch_data = np.zeros((para.testBatchSize, para.pointNumber, testDataset.num_channel()))
     cur_batch_label = np.zeros(para.testBatchSize, dtype=np.int32)
 
     # set variable for statistics
@@ -252,15 +247,13 @@ def eval_one_epoch(sess, ops, test_writer):
     total_seen_class = [0 for _ in range(para.outputClassN)]
     total_correct_class = [0 for _ in range(para.outputClassN)]
     while testDataset.has_next_batch():
-        batch_data, batch_other, batch_label = testDataset.next_batch(augment=False)
+        batch_data, batch_label = testDataset.next_batch(augment=False)
         bsize = batch_data.shape[0]
         cur_batch_data[0:bsize, ...] = batch_data
-        cur_batch_other[0:bsize, ...] = batch_other
         cur_batch_label[0:bsize] = batch_label
         batchWeight = provider.weights_calculation(cur_batch_label, testDataset.weight_dict)
 
         feed_dict = {ops['pointclouds_pl']: cur_batch_data,
-                     ops['pointclouds_other_pl']: cur_batch_other,
                      ops['labels_pl']: cur_batch_label,
                      ops['is_training_pl']: is_training,
                      ops['weights']: batchWeight}
@@ -306,20 +299,17 @@ def save_global_feature(sess, ops, saver, layers):
         global_feature_vec = np.array([])
         label_vec = np.array([])
         # Make sure batch data is of same size
-        cur_batch_data = np.zeros((para.batchSize, para.pointNumber, 3))
-        cur_batch_other = np.zeros((para.batchSize, para.pointNumber, trainDataset.num_channel() - 3))
+        cur_batch_data = np.zeros((para.batchSize, para.pointNumber, trainDataset.num_channel()))
         cur_batch_label = np.zeros(para.batchSize, dtype=np.int32)
 
         while dataset.has_next_batch():
-            batch_data, batch_other, batch_label = dataset.next_batch(augment=False)
+            batch_data, batch_label = dataset.next_batch(augment=False)
             print(batch_label)
             bsize = batch_data.shape[0]
             cur_batch_data[0:bsize, ...] = batch_data
-            cur_batch_other[0:bsize, ...] = batch_other
             cur_batch_label[0:bsize] = batch_label
             # Input the point cloud and labels to the graph.
             feed_dict = {ops['pointclouds_pl']: cur_batch_data,
-                         ops['pointclouds_other_pl']: cur_batch_other,
                          ops['labels_pl']: cur_batch_label,
                          ops['is_training_pl']: is_training}
 

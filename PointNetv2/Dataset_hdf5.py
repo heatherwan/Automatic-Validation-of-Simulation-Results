@@ -29,7 +29,6 @@ class DatasetHDF5(object):
 
         self.file_idxs = np.arange(0, len(self.h5_files))
         self.current_data = None
-        self.current_other = None
         self.current_label = None
         self.current_feature = None
         self.current_feature_label = None
@@ -43,7 +42,6 @@ class DatasetHDF5(object):
         if self.shuffle:
             np.random.shuffle(self.file_idxs)
         self.current_data = None
-        self.current_other = None
         self.current_label = None
         self.current_file_idx = 0
         self.batch_idx = 0
@@ -62,12 +60,12 @@ class DatasetHDF5(object):
 
     def _load_data_file(self, filename):
         # print(filename)
-        self.current_data, self.current_other, self.current_label = provider.load_h5_other(filename)
+        self.current_data, self.current_label = provider.load_h5_other(filename)
         self.current_label = np.squeeze(self.current_label)
         self.batch_idx = 0
         if self.shuffle:
-            self.current_data, self.current_other, self.current_label, _ = provider.shuffle_data_other(
-                self.current_data, self.current_other, self.current_label)
+            self.current_data, self.current_label, _ = provider.shuffle_data_other(
+                self.current_data, self.current_label)
 
     def _has_next_batch_in_file(self):
         return self.batch_idx * self.batch_size < self.current_data.shape[0]
@@ -92,12 +90,11 @@ class DatasetHDF5(object):
         end_idx = min((self.batch_idx + 1) * self.batch_size, self.current_data.shape[0])
 
         data_batch = self.current_data[start_idx:end_idx, 0:self.npoints, :].copy()
-        other_batch = self.current_other[start_idx:end_idx, 0:self.npoints, :].copy()
         label_batch = self.current_label[start_idx:end_idx].copy()
         self.batch_idx += 1
         if augment:
             data_batch = self._augment_batch_data(data_batch)
-        return data_batch, other_batch, label_batch
+        return data_batch, label_batch
 
     # functions for features
     def set_feature(self, global_feature, labels):
