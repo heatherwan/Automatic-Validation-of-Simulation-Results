@@ -127,34 +127,24 @@ def calc_ldgcnn_feature(point_cloud, is_training, bn_decay=None):
     return net, end_points
 
 
-def get_model_other(point_cloud, pointclouds_other, is_training, bn_decay=None):
+def get_model_other(point_cloud, is_training, bn_decay=None):
     """ Classification PointNet, input is BxNx3, output Bx40 """
     batch_size = point_cloud.get_shape()[0]  # .value
 
     # Extract global feature
-    net, end_points = calc_ldgcnn_feature(point_cloud, pointclouds_other, is_training, bn_decay)
+    net, end_points = calc_ldgcnn_feature(point_cloud, is_training, bn_decay)
 
     # MLP on global point cloud vector
     net = tf.reshape(net, [batch_size, -1])
     end_points['global_feature'] = net
 
     # Fully connected end_points: classifier
-    # net: B*512
-    net = tf_util.fully_connected(net, 512, bn=True, is_training=is_training,
-                                  scope='fc1', bn_decay=bn_decay)
+    net = tf_util.fully_connected(net, 512, bn=True, is_training=is_training, scope='fc1', bn_decay=bn_decay)
     end_points['fc1'] = net
-    # Each element is kept or dropped independently, and the drop rate is 0.5.
-    net = tf_util.dropout(net, keep_prob=0.5, is_training=is_training,
-                          scope='dp1')
-
-    # net: B*256
-    net = tf_util.fully_connected(net, 256, bn=True, is_training=is_training,
-                                  scope='fc2', bn_decay=bn_decay)
+    net = tf_util.dropout(net, keep_prob=0.5, is_training=is_training, scope='dp1')
+    net = tf_util.fully_connected(net, 256, bn=True, is_training=is_training, scope='fc2', bn_decay=bn_decay)
     end_points['fc2'] = net
-    net = tf_util.dropout(net, keep_prob=0.5, is_training=is_training,
-                          scope='dp2')
-
-    # net: B*outclass
+    net = tf_util.dropout(net, keep_prob=0.5, is_training=is_training, scope='dp2')
     net = tf_util.fully_connected(net, para.outputClassN, activation_fn=None, scope='fc3')
     end_points['fc3'] = net
     return net, end_points
