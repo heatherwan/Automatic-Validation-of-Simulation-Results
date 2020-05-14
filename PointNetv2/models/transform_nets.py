@@ -98,7 +98,7 @@ def feature_transform_net(inputs, is_training, bn_decay=None, K=64):
     return transform
 
 
-def input_transform_net_dgcnn(edge_feature, is_training, bn_decay=None, K=3, is_dist=False):
+def input_transform_net_dgcnn(edge_feature, is_training, bn_decay=None, K=3):
     """ Input (XYZ) Transform Net, input is BxNx3 gray image
     Return:
       Transformation matrix of size 3xK """
@@ -109,26 +109,26 @@ def input_transform_net_dgcnn(edge_feature, is_training, bn_decay=None, K=3, is_
     net = tf_util.conv2d(edge_feature, 64, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
-                         scope='tconv1', bn_decay=bn_decay, is_dist=is_dist)
+                         scope='tconv1', bn_decay=bn_decay)
     net = tf_util.conv2d(net, 128, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
-                         scope='tconv2', bn_decay=bn_decay, is_dist=is_dist)
+                         scope='tconv2', bn_decay=bn_decay)
 
     net = tf.reduce_max(input_tensor=net, axis=-2, keepdims=True)
 
     net = tf_util.conv2d(net, 1024, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
-                         scope='tconv3', bn_decay=bn_decay, is_dist=is_dist)
+                         scope='tconv3', bn_decay=bn_decay)
     net = tf_util.max_pool2d(net, [num_point, 1],
                              padding='VALID', scope='tmaxpool')
 
     net = tf.reshape(net, [batch_size, -1])
     net = tf_util.fully_connected(net, 512, bn=True, is_training=is_training,
-                                  scope='tfc1', bn_decay=bn_decay, is_dist=is_dist)
+                                  scope='tfc1', bn_decay=bn_decay)
     net = tf_util.fully_connected(net, 256, bn=True, is_training=is_training,
-                                  scope='tfc2', bn_decay=bn_decay, is_dist=is_dist)
+                                  scope='tfc2', bn_decay=bn_decay)
 
     with tf.compat.v1.variable_scope('transform_XYZ') as sc:
         # assert(K==3)
