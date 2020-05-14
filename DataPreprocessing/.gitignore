@@ -10,5 +10,8 @@ test
 test_3cat
 train
 train_3cat
+test_same
+Fourth_new_data
 # Ignore all STL files
 *.STL
+*.txt
