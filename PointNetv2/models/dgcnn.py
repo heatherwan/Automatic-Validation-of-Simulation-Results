@@ -32,16 +32,18 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     edge_feature = tf_util.get_edge_feature(point_cloud[:, :, :3], nn_idx=nn_idx, k=k)
     with tf.compat.v1.variable_scope('transform_net1') as sc:
         transform = input_transform_net_dgcnn(edge_feature, is_training, bn_decay, K=3)
-    point_cloud[:, :, :3] = tf.matmul(point_cloud[:, :, :3], transform)
+    point_cloud_transform = tf.matmul(point_cloud[:, :, :3], transform)
 
     # get the distance to minSF of 1024 points
     allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)  # B N 1
     end_points['knn1'] = allSF_dist
 
     # # 2. graph for first EdgeConv with transform(x,y,z), SF, distance, minSF
-    adj_matrix = tf_util.pairwise_distance(point_cloud)  # B N C=6
+    point_cloud_all = tf.concat(axis=2, values=[point_cloud_transform, point_cloud[:, :, 3:]])
+
+    adj_matrix = tf_util.pairwise_distance(point_cloud_all)  # B N C=6
     nn_idx = tf_util.knn(adj_matrix, k=k)
-    edge_feature = tf_util.get_edge_feature(point_cloud, nn_idx=nn_idx, k=k)
+    edge_feature = tf_util.get_edge_feature(point_cloud_all, nn_idx=nn_idx, k=k)
     net = tf_util.conv2d(edge_feature, 64, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
