@@ -156,8 +156,9 @@ def train():
 
             loss = train_one_epoch(sess, ops, train_writer)
             trainDataset.reset()
-            eval_one_epoch(sess, ops, test_writer)
-            testDataset.reset()
+            if epoch % 10 == 0:  # test every 10 epoch
+                eval_one_epoch(sess, ops, test_writer)
+                testDataset.reset()
 
             if loss < min_loss:  # save the min loss model
                 save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}.ckpt"))
@@ -304,7 +305,6 @@ def save_global_feature(sess, ops, saver, layers):
 
         while dataset.has_next_batch():
             batch_data, batch_label = dataset.next_batch(augment=False)
-            print(batch_label)
             bsize = batch_data.shape[0]
             cur_batch_data[0:bsize, ...] = batch_data
             cur_batch_label[0:bsize] = batch_label
