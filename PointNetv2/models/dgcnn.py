@@ -22,14 +22,14 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     """
     batch_size = point_cloud.get_shape()[0]  # .value
     end_points = {}
-    k = 20
+
     # get MinSF index
     minSF = tf.reshape(tf.math.argmin(point_cloud[:, :, 3], axis=1), (-1, 1))
 
     # # 1. graph for transform net with only x,y,z
     adj_matrix = tf_util.pairwise_distance(point_cloud[:, :, :3])  # B N C=3 => B N N
-    nn_idx = tf_util.knn(adj_matrix, k=k)
-    edge_feature = tf_util.get_edge_feature(point_cloud[:, :, :3], nn_idx=nn_idx, k=k)
+    nn_idx = tf_util.knn(adj_matrix, k=para.k)
+    edge_feature = tf_util.get_edge_feature(point_cloud[:, :, :3], nn_idx=nn_idx, k=para.k)
     with tf.compat.v1.variable_scope('transform_net1') as sc:
         transform = input_transform_net_dgcnn(edge_feature, is_training, bn_decay, K=3)
     point_cloud_transform = tf.matmul(point_cloud[:, :, :3], transform)
@@ -42,8 +42,8 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     point_cloud_all = tf.concat(axis=2, values=[point_cloud_transform, point_cloud[:, :, 3:]])
 
     adj_matrix = tf_util.pairwise_distance(point_cloud_all)  # B N C=6
-    nn_idx = tf_util.knn(adj_matrix, k=k)
-    edge_feature = tf_util.get_edge_feature(point_cloud_all, nn_idx=nn_idx, k=k)
+    nn_idx = tf_util.knn(adj_matrix, k=para.k)
+    edge_feature = tf_util.get_edge_feature(point_cloud_all, nn_idx=nn_idx, k=para.k)
     net = tf_util.conv2d(edge_feature, 64, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
@@ -57,8 +57,8 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
 
     # # 3. graph for second EdgeConv with C = 64
     adj_matrix = tf_util.pairwise_distance(net)
-    nn_idx = tf_util.knn(adj_matrix, k=k)
-    edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=k)
+    nn_idx = tf_util.knn(adj_matrix, k=para.k)
+    edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=para.k)
     net = tf_util.conv2d(edge_feature, 64, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
@@ -72,8 +72,8 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
 
     # # 4. graph for third EdgeConv with C = 64
     adj_matrix = tf_util.pairwise_distance(net)
-    nn_idx = tf_util.knn(adj_matrix, k=k)
-    edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=k)
+    nn_idx = tf_util.knn(adj_matrix, k=para.k)
+    edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=para.k)
     net = tf_util.conv2d(edge_feature, 64, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
@@ -87,9 +87,9 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
 
     # # 5. graph for fourth EdgeConv with C = 64
     adj_matrix = tf_util.pairwise_distance(net)
-    nn_idx = tf_util.knn(adj_matrix, k=k)
+    nn_idx = tf_util.knn(adj_matrix, k=para.k)
 
-    edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=k)
+    edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=para.k)
     net = tf_util.conv2d(edge_feature, 128, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
