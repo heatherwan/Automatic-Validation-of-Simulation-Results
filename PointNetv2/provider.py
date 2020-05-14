@@ -8,7 +8,7 @@ para = Parameters()
 h5py.get_config().default_file_mode = 'r'
 
 
-def shuffle_data(data, labels):
+def shuffle_data_other(data, labels):
     """ Shuffle data and labels.
         Input:
           data: B,N,C numpy array
