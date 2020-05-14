@@ -56,14 +56,14 @@ def log_string(out_str):
 
 def evaluate():
     with tf.device(''):
-        pointclouds_pl, pointclouds_other_pl, labels_pl = MODEL.placeholder_inputs_other(para.testBatchSize,
+        pointclouds_pl, labels_pl = MODEL.placeholder_inputs_other(para.testBatchSize,
                                                                                          para.pointNumber)
         pointclouds_feature_pl, labels_feature_pl = MODEL_CLS.placeholder_inputs_feature(para.batchSize)
         is_training_pl = tf.compat.v1.placeholder(tf.bool, shape=())
         weights = tf.compat.v1.placeholder(tf.float32, [None])
 
         # simple model
-        _, end_points = MODEL.get_model_other(pointclouds_pl, pointclouds_other_pl, is_training_pl)
+        _, end_points = MODEL.get_model_other(pointclouds_pl, is_training_pl)
         pred, _ = MODEL_CLS.get_model(pointclouds_feature_pl, is_training_pl)
         loss = MODEL_CLS.get_loss(pred, labels_pl)
 
@@ -82,10 +82,8 @@ def evaluate():
     config.gpu_options.allow_growth = True
     config.allow_soft_placement = True
     config.log_device_placement = True
-    # sess = tf.compat.v1.Session(config=config)
 
     ops = {'pointclouds_pl': pointclouds_pl,
-           'pointclouds_other_pl': pointclouds_other_pl,
            'features': pointclouds_feature_pl,
            'labels_pl': labels_pl,
            'labels_features': labels_feature_pl,
@@ -106,8 +104,7 @@ def evaluate():
             log_string(str(datetime.now()))
 
             # Make sure batch data is of same size
-            cur_batch_data = np.zeros((para.testBatchSize, para.pointNumber, 3))
-            cur_batch_other = np.zeros((para.testBatchSize, para.pointNumber, testDataset.num_channel() - 3))
+            cur_batch_data = np.zeros((para.testBatchSize, para.pointNumber, testDataset.num_channel()))
             cur_batch_label = np.zeros(para.testBatchSize, dtype=np.int32)
 
             # set variable for statistics
@@ -126,14 +123,12 @@ def evaluate():
 
             all_knn_idx = {}
             while testDataset.has_next_batch():
-                batch_data, batch_other, batch_label = testDataset.next_batch(augment=False)
+                batch_data, batch_label = testDataset.next_batch(augment=False)
                 bsize = batch_data.shape[0]
                 cur_batch_data[0:bsize, ...] = batch_data
-                cur_batch_other[0:bsize, ...] = batch_other
                 cur_batch_label[0:bsize] = batch_label
 
                 feed_dict_cnn = {ops['pointclouds_pl']: cur_batch_data,
-                                 ops['pointclouds_other_pl']: cur_batch_other,
                                  ops['labels_pl']: cur_batch_label,
                                  ops['is_training_pl']: is_training}
 
