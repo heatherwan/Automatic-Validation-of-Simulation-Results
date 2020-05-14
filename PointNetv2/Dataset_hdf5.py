@@ -19,6 +19,7 @@ class DatasetHDF5(object):
     parameters:
     list_filename: list of .hdf5 files
     """
+
     def __init__(self, list_filename, batch_size=32, npoints=1024, dim=5, shuffle=True):
         self.h5_files = list_filename
         print(self.h5_files)
@@ -47,13 +48,13 @@ class DatasetHDF5(object):
         self.batch_idx = 0
 
     def _augment_batch_data(self, batch_data):
-        rotated_data = provider.rotate_point_cloud(batch_data)
-        # rotated_data = provider.rotate_perturbation_point_cloud(rotated_data)
-        # jittered_data = provider.random_scale_point_cloud(rotated_data[:, :, 0:3])
-        # jittered_data = provider.shift_point_cloud(jittered_data)
-        jittered_data = provider.jitter_point_cloud(rotated_data)
-        # rotated_data[:, :, 0:3] = jittered_data
-        return jittered_data  # provider.shuffle_points(jittered_data)
+        rotated_data = provider.rotate_point_cloud(batch_data[:, :, :3])
+        rotated_data = provider.rotate_perturbation_point_cloud(rotated_data)
+        jittered_data = provider.random_scale_point_cloud(rotated_data)
+        jittered_data = provider.shift_point_cloud(jittered_data)
+        jittered_data = provider.jitter_point_cloud(jittered_data)
+        batch_data[:, :, :3] = jittered_data
+        return provider.shuffle_points(batch_data)
 
     def _get_data_filename(self):
         return self.h5_files[self.file_idxs[self.current_file_idx]]
@@ -125,7 +126,7 @@ class DatasetHDF5(object):
 
 
 if __name__ == '__main__':
-    d = DatasetHDF5([os.path.join(DATADIR,'testdataset_154_1024_dim5.hdf5')])
+    d = DatasetHDF5([os.path.join(DATADIR, 'testdataset_154_1024_dim5.hdf5')])
     # print(d.shuffle)
     # print(d.has_next_batch())
     while d.has_next_batch():
