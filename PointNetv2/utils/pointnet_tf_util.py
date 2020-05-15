@@ -76,6 +76,7 @@ def sample_and_group_all(xyz, points, use_xyz=True):
                           dtype=tf.float32)  # (batch_size, 1, 3)
     idx = tf.constant(np.tile(np.array(range(nsample)).reshape((1, 1, nsample)), (batch_size, 1, 1)))
     # ==============================================================================================
+    print(xyz.get_shape())
     grouped_xyz = tf.reshape(xyz, (batch_size, 1, nsample, 3))  # (batch_size, npoint=1, nsample, 3)
 
     if points is not None:
