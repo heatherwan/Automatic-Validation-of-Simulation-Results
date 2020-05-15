@@ -202,6 +202,7 @@ def pointnet_sa_module_msg(xyz, points, npoint, radius_list, nsample_list, mlp_l
                 grouped_points = tf_util.conv2d(grouped_points, num_out_channel, [1, 1],
                                                 padding='VALID', stride=[1, 1], bn=bn, is_training=is_training,
                                                 scope='conv%d_%d' % (i, j), bn_decay=bn_decay)
+                print(f'conv{j} {grouped_points.get_shape()}')
             if use_nchw:
                 grouped_points = tf.transpose(a=grouped_points, perm=[0, 2, 3, 1])
             new_points = tf.reduce_max(input_tensor=grouped_points, axis=[2])  # max pooling
