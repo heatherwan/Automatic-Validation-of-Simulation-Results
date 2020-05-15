@@ -76,7 +76,6 @@ def sample_and_group_all(xyz, points, use_xyz=True):
                           dtype=tf.float32)  # (batch_size, 1, 3)
     idx = tf.constant(np.tile(np.array(range(nsample)).reshape((1, 1, nsample)), (batch_size, 1, 1)))
     # ==============================================================================================
-    print(xyz.get_shape())
     grouped_xyz = tf.reshape(xyz, (batch_size, 1, nsample, 3))  # (batch_size, npoint=1, nsample, 3)
 
     if points is not None:
@@ -185,15 +184,11 @@ def pointnet_sa_module_msg(xyz, points, npoint, radius_list, nsample_list, mlp_l
             nsample = nsample_list[i]
             idx, pts_cnt = query_ball_point(radius, nsample, xyz, new_xyz)
             grouped_xyz = group_point(xyz, idx)
-            print(f'new neighbor points xyz {grouped_xyz.get_shape()}')
             grouped_xyz -= tf.tile(tf.expand_dims(new_xyz, 2), [1, 1, nsample, 1])
-            print(f'new neighbor points xyz {grouped_xyz.get_shape()}')
             if points is not None:
                 grouped_points = group_point(points, idx)
-                print(f'new neighbor points  {grouped_points.get_shape()}')
                 if use_xyz:
                     grouped_points = tf.concat([grouped_points, grouped_xyz], axis=-1)
-                    print(f'new neighbor points with xyz {grouped_points.get_shape()}')
             else:
                 grouped_points = grouped_xyz
             if use_nchw:
@@ -202,7 +197,6 @@ def pointnet_sa_module_msg(xyz, points, npoint, radius_list, nsample_list, mlp_l
                 grouped_points = tf_util.conv2d(grouped_points, num_out_channel, [1, 1],
                                                 padding='VALID', stride=[1, 1], bn=bn, is_training=is_training,
                                                 scope='conv%d_%d' % (i, j), bn_decay=bn_decay)
-                print(f'conv{j} {grouped_points.get_shape()}')
             if use_nchw:
                 grouped_points = tf.transpose(a=grouped_points, perm=[0, 2, 3, 1])
             new_points = tf.reduce_max(input_tensor=grouped_points, axis=[2])  # max pooling
