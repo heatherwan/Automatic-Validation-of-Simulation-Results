@@ -25,7 +25,7 @@ def placeholder_inputs_other(batch_size, num_point):
 
 
 # DensePoint: 2 PPools + 3 PConvs + 1 global pool; narrowness k = 24; group number g = 2
-def get_model_other_pointnet(point_cloud, is_training, bn_decay=None):
+def get_model_other(point_cloud, is_training, bn_decay=None):
     """
             PointNet2 with multi-scale grouping
             Semantic segmentation network that uses feature propogation layers
