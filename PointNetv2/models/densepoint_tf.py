@@ -19,10 +19,9 @@ para = Parameters()
 
 # Add input placeholder
 def placeholder_inputs_other(batch_size, num_point):
-    pointclouds_pl = tf.compat.v1.placeholder(tf.float32, shape=(batch_size, num_point, 3))
-    pointclouds_other_pl = tf.compat.v1.placeholder(tf.float32, shape=(batch_size, num_point, para.dim - 3))
+    pointclouds_pl = tf.compat.v1.placeholder(tf.float32, shape=(batch_size, num_point, para.dim))
     labels_pl = tf.compat.v1.placeholder(tf.int32, shape=batch_size)
-    return pointclouds_pl, pointclouds_other_pl, labels_pl
+    return pointclouds_pl, labels_pl
 
 
 # DensePoint: 2 PPools + 3 PConvs + 1 global pool; narrowness k = 24; group number g = 2
@@ -45,7 +44,6 @@ def get_model_other_pointnet(point_cloud, is_training, bn_decay=None):
     batch_size = point_cloud.get_shape()[0]  # .value
     end_points = {}
     # concatenate all features together
-    # point_cloud = tf.concat(axis=2, values=[point_cloud, pointclouds_other])
 
     l0_xyz = point_cloud
     l0_points = None
