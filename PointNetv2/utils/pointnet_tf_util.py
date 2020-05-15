@@ -77,7 +77,7 @@ def sample_and_group_all(xyz, points, use_xyz=True):
     idx = tf.constant(np.tile(np.array(range(nsample)).reshape((1, 1, nsample)), (batch_size, 1, 1)))
     # ==============================================================================================
     print(xyz.get_shape())
-    grouped_xyz = tf.reshape(xyz, (batch_size, 1, nsample, 3))  # (batch_size, npoint=1, nsample, 3)
+    grouped_xyz = tf.reshape(xyz, (batch_size, 1, nsample, 6))  # (batch_size, npoint=1, nsample, 3)
 
     if points is not None:
         if use_xyz:
@@ -206,6 +206,7 @@ def pointnet_sa_module_msg(xyz, points, npoint, radius_list, nsample_list, mlp_l
             if use_nchw:
                 grouped_points = tf.transpose(a=grouped_points, perm=[0, 2, 3, 1])
             new_points = tf.reduce_max(input_tensor=grouped_points, axis=[2])  # max pooling
+            print(f'maxpooling {new_points.get_shape()}')
             new_points_list.append(new_points)
         new_points_concat = tf.concat(new_points_list, axis=-1)
         return new_xyz, new_points_concat
