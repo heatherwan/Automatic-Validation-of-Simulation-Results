@@ -53,6 +53,7 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     l1_xyz, l1_points = pointnet_sa_module_msg(l0_xyz, l0_points, 512, [0.1, 0.2, 0.4], [16, 32, 128],
                                                [[32, 32, 64], [64, 64, 128], [64, 96, 128]], is_training, bn_decay,
                                                scope='layer1', use_nchw=True)
+    print('ls shape ', l1_xyz.get_shape())
     # input B 512 320 => 128+128+256 = 512  max pooling in small group n = 32 64 128
     l2_xyz, l2_points = pointnet_sa_module_msg(l1_xyz, l1_points, 128, [0.2, 0.4, 0.8], [32, 64, 128],
                                                [[64, 64, 128], [128, 128, 256], [128, 128, 256]], is_training, bn_decay,
