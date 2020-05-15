@@ -71,10 +71,13 @@ def sample_and_group_all(xyz, points, use_xyz=True):
     """
     batch_size = xyz.get_shape()[0]  # .value
     nsample = xyz.get_shape()[1]  # .value
+    # =====================================no use==================================================
     new_xyz = tf.constant(np.tile(np.array([0, 0, 0]).reshape((1, 1, 3)), (batch_size, 1, 1)),
                           dtype=tf.float32)  # (batch_size, 1, 3)
     idx = tf.constant(np.tile(np.array(range(nsample)).reshape((1, 1, nsample)), (batch_size, 1, 1)))
+    # ==============================================================================================
     grouped_xyz = tf.reshape(xyz, (batch_size, 1, nsample, 3))  # (batch_size, npoint=1, nsample, 3)
+
     if points is not None:
         if use_xyz:
             new_points = tf.concat([xyz, points], axis=2)  # (batch_size, 16, 259)
@@ -110,7 +113,7 @@ def pointnet_sa_module(xyz, points, npoint, radius, nsample, mlp, mlp2, group_al
         # Sample and Grouping
         if group_all:
             nsample = xyz.get_shape()[1]  # .value
-            new_xyz, new_points, idx, grouped_xyz = sample_and_group_all(xyz, points, use_xyz)
+            new_xyz, new_points, idx, grouped_xyz = sample_and_group_all(xyz, points, use_xyz)  # new_xyz and idx are not used
         else:
             new_xyz, new_points, idx, grouped_xyz = sample_and_group(npoint, radius, nsample, xyz, points, knn, use_xyz)
 
@@ -194,7 +197,7 @@ def pointnet_sa_module_msg(xyz, points, npoint, radius_list, nsample_list, mlp_l
                                                 padding='VALID', stride=[1, 1], bn=bn, is_training=is_training,
                                                 scope='conv%d_%d' % (i, j), bn_decay=bn_decay)
             if use_nchw: grouped_points = tf.transpose(a=grouped_points, perm=[0, 2, 3, 1])
-            new_points = tf.reduce_max(input_tensor=grouped_points, axis=[2])
+            new_points = tf.reduce_max(input_tensor=grouped_points, axis=[2])  # max pooling
             new_points_list.append(new_points)
         new_points_concat = tf.concat(new_points_list, axis=-1)
         return new_xyz, new_points_concat
