@@ -58,7 +58,7 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
                                                [[64, 64, 128], [128, 128, 256], [128, 128, 256]], is_training, bn_decay,
                                                scope='layer2')
 
-    print('ls shape ', l2_xyz.getshape())
+    print('ls shape ', l2_xyz.get_shape())
     # input B 128 512 => 1024, max pooling in all pointcloud = 128
     # MLP layer to gather 3 scale features
     _, l3_points, _ = pointnet_sa_module(l2_xyz, l2_points, npoint=None, radius=None, nsample=None,
