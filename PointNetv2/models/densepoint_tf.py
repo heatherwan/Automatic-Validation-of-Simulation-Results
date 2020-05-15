@@ -49,26 +49,22 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     # l0_points = None
     l0_xyz = tf.slice(point_cloud, [0, 0, 0], [-1, -1, 3])
     l0_points = tf.slice(point_cloud, [0, 0, 3], [-1, -1, 3])
-    print('ls shape ', l0_xyz.get_shape(), ' ', l0_points.get_shape())
 
     # Set abstraction layers
     # input B 1024 1 3 => 64+128+128 = 320  max pooling in small group n = 16 32 128
     l1_xyz, l1_points = pointnet_sa_module_msg(l0_xyz, l0_points, 512, [0.1, 0.2, 0.4], [16, 32, 128],
                                                [[32, 32, 64], [64, 64, 128], [64, 96, 128]], is_training, bn_decay,
                                                scope='layer1')  # , use_nchw=True
-    print('ls shape ', l1_xyz.get_shape(), ' ', l1_points.get_shape())
     # input B 512 320 => 128+256+256 = 640  max pooling in small group n = 32 64 128
     l2_xyz, l2_points = pointnet_sa_module_msg(l1_xyz, l1_points, 128, [0.2, 0.4, 0.8], [32, 64, 128],
                                                [[64, 64, 128], [128, 128, 256], [128, 128, 256]], is_training, bn_decay,
                                                scope='layer2')
 
-    print('ls shape ', l2_xyz.get_shape(), ' ', l2_points.get_shape())
     # input B 128 640 => 1024, max pooling in all pointcloud = 128
     # MLP layer to gather 3 scale features
     _, l3_points, _ = pointnet_sa_module(l2_xyz, l2_points, npoint=None, radius=None, nsample=None,
                                          mlp=[256, 512, 1024], mlp2=None, group_all=True, is_training=is_training,
                                          bn_decay=bn_decay, scope='layer3')
-    print('ls shape ', l3_points.get_shape())
 
     # input B 1 1024
     # Fully connected layers

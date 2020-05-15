@@ -177,7 +177,6 @@ def pointnet_sa_module_msg(xyz, points, npoint, radius_list, nsample_list, mlp_l
     """
     with tf.compat.v1.variable_scope(scope) as sc:
         new_xyz = gather_point(xyz, farthest_point_sample(npoint, xyz))
-        print(f'new xyz after pooling {new_xyz.get_shape()}')
         new_points_list = []
         for i in range(len(radius_list)):
             radius = radius_list[i]
@@ -191,20 +190,15 @@ def pointnet_sa_module_msg(xyz, points, npoint, radius_list, nsample_list, mlp_l
                     grouped_points = tf.concat([grouped_points, grouped_xyz], axis=-1)
             else:
                 grouped_points = grouped_xyz
-            print(f'maxpooling {grouped_points.get_shape()}')
             if use_nchw:
                 grouped_points = tf.transpose(a=grouped_points, perm=[0, 3, 1, 2])
             for j, num_out_channel in enumerate(mlp_list[i]):
                 grouped_points = tf_util.conv2d(grouped_points, num_out_channel, [1, 1],
                                                 padding='VALID', stride=[1, 1], bn=bn, is_training=is_training,
                                                 scope='conv%d_%d' % (i, j), bn_decay=bn_decay)
-                print(f'maxpooling {grouped_points.get_shape()}')
-            print(f'maxpooling {grouped_points.get_shape()}')
             if use_nchw:
                 grouped_points = tf.transpose(a=grouped_points, perm=[0, 2, 3, 1])
-            print(f'maxpooling {grouped_points.get_shape()}')
             new_points = tf.reduce_max(input_tensor=grouped_points, axis=[2])  # max pooling
-            print(f'maxpooling {new_points.get_shape()}')
             new_points_list.append(new_points)
         new_points_concat = tf.concat(new_points_list, axis=-1)
         return new_xyz, new_points_concat
