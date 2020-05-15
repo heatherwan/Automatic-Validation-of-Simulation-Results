@@ -45,8 +45,10 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     end_points = {}
     # concatenate all features together
 
-    l0_xyz = point_cloud
-    l0_points = None
+    # l0_xyz = point_cloud
+    # l0_points = None
+    l0_xyz = tf.slice(point_cloud, [0, 0, 0], [-1, -1, 3])
+    l0_points = tf.slice(point_cloud, [0, 0, 3], [-1, -1, 3])
 
     # Set abstraction layers
     # input B 1024 1 3 => 64+128+128 = 320  max pooling in small group n = 16 32 128
