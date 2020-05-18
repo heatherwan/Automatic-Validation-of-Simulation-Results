@@ -107,9 +107,7 @@ def pointnet_sa_module_msg(xyz, features, is_training, bn_decay, scope=None, bn=
                                                             padding='VALID', stride=[1, 1], bn=bn,
                                                             is_training=is_training,
                                                             scope='PhiConv', bn_decay=bn_decay)
-                print('after phi ', new_grouped_features.get_shape())
                 new_features = tf.reduce_max(input_tensor=new_grouped_features, axis=[2])  # max pooling
-                print('after phi ', new_features.get_shape())
 
                 # conv_psi
                 new_features = tf_util.conv1d(new_features, mlp // 4, kernel_size=1,

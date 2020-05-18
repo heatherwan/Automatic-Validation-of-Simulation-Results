@@ -27,7 +27,7 @@ def placeholder_inputs_other(batch_size, num_point):
 
 def get_model_other(point_cloud, is_training, bn_decay=None):
     """
-        DesnsePoint with 2 PPools + 3 PConvs + 1 global pooling narrowness k = 24; group number g = 2
+        DesnsePoint with 3 PPools + 8 PConvs + 1 global pooling narrowness k = 24; group number g = 4
 
     """
     batch_size = point_cloud.get_shape()[0]  # .value
@@ -37,23 +37,26 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     l0_xyz = tf.slice(point_cloud, [0, 0, 0], [-1, -1, 3])  # start point, len
     l0_points = tf.slice(point_cloud, [0, 0, 3], [-1, -1, para.dim - 3])  # start from fourth dimension
 
-    # first stage: 1 PPool, 0 EnhancedPConv
-    # In: B 1024 1 3, B 1024 1 6-3
-    l1_xyz, l1_points = pointnet_sa_module_msg(l0_xyz, l0_points, is_training, bn_decay,
-                                               npoint=512, radius=0.25, nsample=64, mlp=96,
-                                               scope='PPool1', ppool=True)
-    # Out: B 512 1 3, B 512 1 96
-    # second stage: 1 PPool, 3 EnhancedPConv
-    # B 128 1 3, B 128 1 93
-    l2_xyz, l2_points = pointnet_sa_module_msg(l1_xyz, l1_points, is_training, bn_decay,
-                                               npoint=128, radius=0.32, nsample=64, mlp=93,
-                                               scope='PPool2', ppool=True)
+    # first stage: 1 PPool, 3 EnhancedPConv
+    all_xyz, all_points = pointnet_sa_module_msg(l0_xyz, l0_points, is_training, bn_decay,
+                                                 npoint=512, radius=0.25, nsample=64, mlp=93,
+                                                 scope='PPool1', ppool=True)
 
-    all_xyz = l2_xyz
-    all_points = l2_points
+    for i in range(4):  # B 128 1 93 -> 24
+        all_xyz, all_points = pointnet_sa_module_msg(all_xyz, all_points, is_training, bn_decay,
+                                                     npoint=512, radius=0.32, nsample=16, mlp=96,
+                                                     scope=f'PConv{i + 1}', pooling_no=i)
 
-    k = 24
-    for i in range(3):  # B 128 1 93 -> 24
+    # second stage: 2 PPool, 3 EnhancedPConv
+    all_xyz, all_points = pointnet_sa_module_msg(all_xyz, all_points, is_training, bn_decay,
+                                                 npoint=256, radius=0.3, nsample=32, mlp=96,
+                                                 scope='PPool2', ppool=True)
+
+    all_xyz, all_points = pointnet_sa_module_msg(all_xyz, all_points, is_training, bn_decay,
+                                                 npoint=128, radius=0.32, nsample=64, mlp=93,
+                                                 scope='PPool3', ppool=True)
+
+    for i in range(4):  # B 128 1 93 -> 24
         all_xyz, all_points = pointnet_sa_module_msg(all_xyz, all_points, is_training, bn_decay,
                                                      npoint=128, radius=0.39, nsample=16, mlp=96,
                                                      scope=f'PConv{i + 1}', pooling_no=i)
