@@ -45,7 +45,7 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     for i in range(4):  # B 128 1 93 -> 24
         all_xyz, all_points = pointnet_sa_module_msg(all_xyz, all_points, is_training, bn_decay,
                                                      npoint=512, radius=0.32, nsample=16, mlp=96,
-                                                     scope=f'PConv{i + 1}', pooling_no=i)
+                                                     scope=f'PConv1_{i + 1}', pooling_no=i)
 
     # second stage: 2 PPool, 3 EnhancedPConv
     all_xyz, all_points = pointnet_sa_module_msg(all_xyz, all_points, is_training, bn_decay,
@@ -59,7 +59,7 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     for i in range(4):  # B 128 1 93 -> 24
         all_xyz, all_points = pointnet_sa_module_msg(all_xyz, all_points, is_training, bn_decay,
                                                      npoint=128, radius=0.39, nsample=16, mlp=96,
-                                                     scope=f'PConv{i + 1}', pooling_no=i)
+                                                     scope=f'PConv2_{i + 1}', pooling_no=i)
 
     l3_points = pointnet_sa_module_msg(all_xyz, all_points, is_training, bn_decay,
                                        mlp=512, scope='GloPool')
