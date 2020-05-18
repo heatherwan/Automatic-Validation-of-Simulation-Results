@@ -107,12 +107,15 @@ def pointnet_sa_module_msg(xyz, features, is_training, bn_decay, scope=None, bn=
                                                             padding='VALID', stride=[1, 1], bn=bn,
                                                             is_training=is_training,
                                                             scope='PhiConv', bn_decay=bn_decay)
-                print(new_grouped_features.get_shape())
-                # conv_psi
-                new_grouped_features = tf_util.conv1d(new_grouped_features, mlp // 4, kernel_size=1,
-                                                      padding='VALID', stride=1, bn=bn, is_training=is_training,
-                                                      scope='PsiConv', bn_decay=bn_decay)
+                print('after phi ', new_grouped_features.get_shape())
                 new_features = tf.reduce_max(input_tensor=new_grouped_features, axis=[2])  # max pooling
+                print('after phi ', new_features.get_shape())
+
+                # conv_psi
+                new_features = tf_util.conv1d(new_features, mlp // 4, kernel_size=1,
+                                              padding='VALID', stride=1, bn=bn, is_training=is_training,
+                                              scope='PsiConv', bn_decay=bn_decay)
+
                 # features: B N 1 Cin, B N 1 Cout/4 => B N 1 Cin+Cout/4
                 all_new_features = tf.concat([features, new_features], axis=-1)
                 # batch normalize the concatenate output

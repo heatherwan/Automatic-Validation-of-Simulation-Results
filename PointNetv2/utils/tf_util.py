@@ -95,6 +95,7 @@ def conv1d(inputs,
                                              use_xavier=use_xavier,
                                              stddev=stddev,
                                              wd=weight_decay)
+
         outputs = tf.nn.conv1d(input=inputs, filters=kernel,
                                stride=stride,
                                padding=padding)
