@@ -10,7 +10,7 @@ import sys
 import os
 from utils import tf_util
 from Parameters import Parameters
-from utils.pointnet_tf_util import pointnet_sa_module, pointnet_sa_module_msg
+from utils.densepoint_tf_util import pointnet_sa_module, pointnet_sa_module_msg
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
@@ -24,49 +24,42 @@ def placeholder_inputs_other(batch_size, num_point):
     return pointclouds_pl, labels_pl
 
 
-# DensePoint: 2 PPools + 3 PConvs + 1 global pool; narrowness k = 24; group number g = 2
 def get_model_other(point_cloud, is_training, bn_decay=None):
     """
-            PointNet2 with multi-scale grouping
-            Semantic segmentation network that uses feature propogation layers
+        DesnsePoint with 2 PPools + 3 PConvs + 1 global pooling narrowness k = 24; group number g = 2
 
-            Parameters
-            ----------
-            num_classes: int
-                Number of semantics classes to predict over -- size of softmax classifier that run for each point
-            input_channels: int = 6
-                Number of input channels in the feature descriptor for each point.  If the point cloud is Nx9, this
-                value should be 6 as in an Nx9 point cloud, 3 of the channels are xyz, and 6 are feature descriptors
-            use_xyz: bool = True
-                Whether or not to use the xyz position of a point as a feature
-        """
-    """ Classification DensePoint, input is BxNx3, output Bx4 """
+    """
     batch_size = point_cloud.get_shape()[0]  # .value
     end_points = {}
     # concatenate all features together
 
-    # l0_xyz = point_cloud
-    # l0_points = None
-    l0_xyz = tf.slice(point_cloud, [0, 0, 0], [-1, -1, 3])
-    l0_points = tf.slice(point_cloud, [0, 0, 3], [-1, -1, 3])
+    l0_xyz = tf.slice(point_cloud, [0, 0, 0], [-1, -1, 3])  # start point, len
+    l0_points = tf.slice(point_cloud, [0, 0, 3], [-1, -1, para.dim - 3])  # start from fourth dimension
 
-    # Set abstraction layers
-    # input B 1024 1 3 => 64+128+128 = 320  max pooling in small group n = 16 32 128
-    l1_xyz, l1_points = pointnet_sa_module_msg(l0_xyz, l0_points, 512, [0.1, 0.2, 0.4], [16, 32, 128],
-                                               [[32, 32, 64], [64, 64, 128], [64, 96, 128]], is_training, bn_decay,
-                                               scope='layer1')  # , use_nchw=True
-    # input B 512 320 => 128+256+256 = 640  max pooling in small group n = 32 64 128
-    l2_xyz, l2_points = pointnet_sa_module_msg(l1_xyz, l1_points, 128, [0.2, 0.4, 0.8], [32, 64, 128],
-                                               [[64, 64, 128], [128, 128, 256], [128, 128, 256]], is_training, bn_decay,
-                                               scope='layer2')
+    # first stage: 1 PPool, 0 EnhancedPConv
+    # In: B 1024 1 3, B 1024 1 6-3
+    l1_xyz, l1_points = pointnet_sa_module_msg(l0_xyz, l0_points, is_training, bn_decay,
+                                               npoint=512, radius=0.25, nsample=64, mlp=96,
+                                               scope='PPool1', ppool=True)
+    # Out: B 512 1 3, B 512 1 96
+    # second stage: 1 PPool, 3 EnhancedPConv
+    # B 128 1 3, B 128 1 93
+    l2_xyz, l2_points = pointnet_sa_module_msg(l1_xyz, l1_points, is_training, bn_decay,
+                                               npoint=128, radius=0.32, nsample=64, mlp=93,
+                                               scope='PPool2', ppool=True)
 
-    # input B 128 640 => 1024, max pooling in all pointcloud = 128
-    # MLP layer to gather 3 scale features
-    _, l3_points, _ = pointnet_sa_module(l2_xyz, l2_points, npoint=None, radius=None, nsample=None,
-                                         mlp=[256, 512, 1024], mlp2=None, group_all=True, is_training=is_training,
-                                         bn_decay=bn_decay, scope='layer3')
+    all_xyz = l2_xyz
+    all_points = l2_points
 
-    # input B 1 1024
+    k = 24
+    for i in range(3):  # B 128 1 93 -> 24
+        all_xyz, all_points = pointnet_sa_module_msg(all_xyz, all_points, is_training, bn_decay,
+                                                     npoint=128, radius=0.39, nsample=16, mlp=96,
+                                                     scope=f'PConv{i + 1}', pooling_no=i)
+
+    l3_points = pointnet_sa_module_msg(all_xyz, all_points, is_training, bn_decay,
+                                       mlp=512, scope='GloPool')
+
     # Fully connected layers
     # TODO: change the input pf first layer
 
