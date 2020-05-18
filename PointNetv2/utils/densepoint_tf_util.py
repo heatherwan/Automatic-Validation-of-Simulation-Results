@@ -103,12 +103,12 @@ def pointnet_sa_module_msg(xyz, features, is_training, bn_decay, scope=None, bn=
                 # new_xyz: B N 3, grouped_features: B N S C+3
                 # conv_phi function: grouped version
                 # TODO: implement group convolution
-                new_grouped_features = tf_util.conv2d(grouped_features, mlp, [1, 1],
+                new_grouped_features = tf_util.conv2d(grouped_features, mlp, kernel_size=[1, 1],
                                                       padding='VALID', stride=[1, 1], bn=bn, is_training=is_training,
                                                       scope='PhiConv', bn_decay=bn_decay)
                 # conv_psi
-                new_grouped_features = tf_util.conv1d(new_grouped_features, mlp / 4, [1, 1],
-                                                      padding='VALID', stride=[1, 1], bn=bn, is_training=is_training,
+                new_grouped_features = tf_util.conv1d(new_grouped_features, mlp / 4, kernel_size=1,
+                                                      padding='VALID', stride=1, bn=bn, is_training=is_training,
                                                       scope='PsiConv', bn_decay=bn_decay)
                 new_features = tf.reduce_max(input_tensor=new_grouped_features, axis=[2])  # max pooling
                 # features: B N 1 Cin, B N 1 Cout/4 => B N 1 Cin+Cout/4
