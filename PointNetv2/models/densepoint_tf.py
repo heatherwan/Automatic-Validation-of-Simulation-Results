@@ -4,13 +4,14 @@ Reference code: https://github.com/Yochengliu/DensePoint
 @author: Wanting Lin
 
 """
-import tensorflow as tf
-import numpy as np
-import sys
 import os
-from utils import tf_util
+import sys
+
+import tensorflow as tf
+
 from Parameters import Parameters
-from utils.densepoint_tf_util import pointnet_sa_module, pointnet_sa_module_msg
+from utils import tf_util
+from utils.densepoint_tf_util import pointnet_sa_module_msg
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
@@ -61,8 +62,6 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
                                        mlp=512, scope='GloPool')
 
     # Fully connected layers
-    # TODO: change the input pf first layer
-
     net = tf.reshape(l3_points, [batch_size, -1])
     net = tf_util.fully_connected(net, 512, bn=True, is_training=is_training,
                                   scope='fc1', bn_decay=bn_decay)
