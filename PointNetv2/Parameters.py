@@ -10,13 +10,13 @@ sys.path.append(os.path.join(BASE_DIR, 'models'))
 class Parameters:
     def __init__(self, evaluation=False):
         # ==============Network setting===========================
-        self.gpu = False
-        self.model = 'ldgcnn'  # 'pointnet_cls'# 'dgcnn' # 'lgdcnn'
+        self.gpu = True
+        self.model = 'densepoint_tf'  # 'pointnet_cls'# 'dgcnn' # 'lgdcnn' #'densepoint_tf'
         self.outputClassN = 4
         self.pointNumber = 1024
-        self.dim = 5  # 3 coordinate, 1 safety factor, 1 distance from Min SF, 3 normals
-        self.batchSize = 2
-        self.testBatchSize = 2
+        self.dim = 6  # 3 coordinate, 1 safety factor, 1 distance from Min SF, 1 minSF, 3 normals, 2 curcatures
+        self.batchSize = 25
+        self.testBatchSize = 25
         self.max_epoch = 200
         self.learningRate = 2e-3
         self.momentum = 0.9
@@ -24,6 +24,9 @@ class Parameters:
         self.decay_step = 20000  # 1 epoch 1000 step
         self.decay_rate = 0.7
         self.weight_scaler = 0  # 0 = no weight
+        
+        # parameter for dgcnn and ldgcnn
+        self.k = 20
 
         # LDGCNN The parameters of retrained classifier
         self.class_model = 'ldgcnn_classifier'
@@ -31,7 +34,7 @@ class Parameters:
         self.class_max_epoch = 100
         self.class_optimizer = 'momentum'
 
-        self.expName = f'exp423_point{self.pointNumber}_batch{self.batchSize}_out{self.outputClassN}' \
+        self.expName = f'exp433_point{self.pointNumber}_batch{self.batchSize}_out{self.outputClassN}' \
                        f'_weighted{self.weight_scaler}'  # save model path
 
         # ==============Files setting===========================
@@ -59,8 +62,8 @@ class Parameters:
                 os.mkdir(self.evallog)
 
         self.dataDir = os.path.join(BASE_DIR, 'datasets')
-        self.TRAIN_FILES = [os.path.join(self.dataDir, 'traindataset_651_1024_dim5.hdf5')]
-        self.TEST_FILES = [os.path.join(self.dataDir, 'testdataset_163_1024_dim5.hdf5')]
+        self.TRAIN_FILES = [os.path.join(self.dataDir, 'traindataset_651_1024_dim6_SF10.hdf5')]
+        self.TEST_FILES = [os.path.join(self.dataDir, 'testdataset_163_1024_dim6_SF10.hdf5')]
 
         self.classes = {1: 'EM1_contact', 2: 'EM3_radius', 3: 'EM4_hole', 0: 'Good'}
         # self.classes = {1: 'EM13_contactradius', 2: 'EM4_hole', 0: 'Good'}
