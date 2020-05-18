@@ -645,3 +645,51 @@ def get_edge_feature(point_cloud, nn_idx, k=20):
 
     edge_feature = tf.concat([point_cloud_central, point_cloud_neighbors - point_cloud_central], axis=-1)
     return edge_feature
+
+
+def conv2d_group(inputs, num_output_channels,
+                 kernel_size, group_num,
+                 scope,
+                 stride=[1, 1],
+                 padding='SAME',
+                 use_xavier=True,
+                 stddev=1e-3,
+                 weight_decay=0.0,
+                 activation_fn=tf.nn.relu,
+                 bn=False,
+                 bn_decay=None,
+                 is_training=None):
+    """
+
+    """
+    with tf.compat.v1.variable_scope(scope) as sc:
+        kernel_h, kernel_w = kernel_size
+        num_in_channels = inputs.get_shape()[-1]  # .value
+        kernel_shape = [kernel_h, kernel_w,
+                        num_in_channels // group_num, num_output_channels]
+        kernel = _variable_with_weight_decay('weights',
+                                             shape=kernel_shape,
+                                             use_xavier=use_xavier,
+                                             stddev=stddev,
+                                             wd=weight_decay)
+        stride_h, stride_w = stride
+
+        inputs = tf.split(inputs, group_num, axis=3)
+        filters = tf.split(kernel, group_num, axis=3)
+        outputs = tf.concat(
+            [tf.nn.conv2d(i, filters=kernel,
+                          strides=[1, stride_h, stride_w, 1],
+                          padding=padding) for i, f in zip(inputs, filters)], axis=-1)
+
+        biases = _variable_on_cpu('biases', [num_output_channels],
+                                  tf.compat.v1.constant_initializer(0.0))
+        outputs = tf.nn.bias_add(outputs, biases)
+
+        if bn:
+            outputs = batch_norm_for_conv2d(outputs, is_training,
+                                            bn_decay=bn_decay, scope='bn')
+
+        if activation_fn is not None:
+            outputs = activation_fn(outputs)
+        return outputs
+
