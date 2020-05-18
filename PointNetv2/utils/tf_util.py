@@ -675,11 +675,11 @@ def conv2d_group(inputs, num_output_channels,
         stride_h, stride_w = stride
 
         inputs = tf.split(inputs, group_num, axis=3)
-        filters = tf.split(kernel, group_num, axis=3)
+        kernels = tf.split(kernel, group_num, axis=3)
         outputs = tf.concat(
-            [tf.nn.conv2d(i, filters=kernel,
+            [tf.nn.conv2d(i, f,
                           strides=[1, stride_h, stride_w, 1],
-                          padding=padding) for i, f in zip(inputs, filters)], axis=-1)
+                          padding=padding) for i, f in zip(inputs, kernels)], axis=3)
 
         biases = _variable_on_cpu('biases', [num_output_channels],
                                   tf.compat.v1.constant_initializer(0.0))
