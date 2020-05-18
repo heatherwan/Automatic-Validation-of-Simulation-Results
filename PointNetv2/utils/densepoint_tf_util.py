@@ -73,7 +73,7 @@ def group_all(xyz, features, use_xyz=True):
 
 def pointnet_sa_module_msg(xyz, features, is_training, bn_decay, scope=None, bn=True,
                            npoint=None, radius=None, nsample=None, mlp=None,
-                           ppool=None, pooling_no=None, use_xyz=True):
+                           ppool=None, use_xyz=True, group_num=1):
     """ PointNet Set Abstraction (SA) module with Multi-Scale Grouping (MSG)
         Input:
             xyz: (batch_size, ndataset, 3) TF tensor
@@ -92,7 +92,9 @@ def pointnet_sa_module_msg(xyz, features, is_training, bn_decay, scope=None, bn=
 
         if npoint is not None:
             new_xyz, grouped_features = sample_and_group(npoint, radius, nsample, xyz, features, use_xyz)
-            if ppool:
+            if ppool:  # ppool
+                grouped_features = tf_util.batch_norm_for_conv2d(grouped_features, is_training=is_training,
+                                                                 scope='BNConcat', bn_decay=bn_decay)
                 new_grouped_features = tf_util.conv2d(grouped_features, mlp, [1, 1],
                                                       padding='VALID', stride=[1, 1], bn=bn, is_training=is_training,
                                                       scope='PPool', bn_decay=bn_decay)
@@ -102,8 +104,8 @@ def pointnet_sa_module_msg(xyz, features, is_training, bn_decay, scope=None, bn=
             else:  # EnhancedPointConv
                 # new_xyz: B N 3, grouped_features: B N S C+3
                 # conv_phi function: grouped version
-                # TODO: implement group convolution
-                new_grouped_features = tf_util.conv2d_group(grouped_features, mlp, kernel_size=[1, 1], group_num=4,
+                new_grouped_features = tf_util.conv2d_group(grouped_features, mlp, kernel_size=[1, 1],
+                                                            group_num=group_num,
                                                             padding='VALID', stride=[1, 1], bn=bn,
                                                             is_training=is_training,
                                                             scope='PhiConv', bn_decay=bn_decay)
