@@ -39,14 +39,14 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
 
     # first stage: 1 PPool, 3 EnhancedPConv
     all_xyz, all_points = pointnet_sa_module_msg(l0_xyz, l0_points, is_training, bn_decay,
-                                                 npoint=512, radius=0.25, nsample=64, mlp=para.k_add*4-3,
+                                                 npoint=512, radius=0.25, nsample=64, mlp=para.k_add*4,
                                                  scope='PPool1', ppool=True)
 
-    for i in range(4):  # B 128 1 93 -> 24
-        all_xyz, all_points = pointnet_sa_module_msg(all_xyz, all_points, is_training, bn_decay,
-                                                     npoint=512, radius=0.39, nsample=32, mlp=para.k_add*4,
-                                                     group_num=para.group_num,
-                                                     scope=f'PConv1_{i + 1}')
+    # for i in range(4):  # B 128 1 93 -> 24
+    #     all_xyz, all_points = pointnet_sa_module_msg(all_xyz, all_points, is_training, bn_decay,
+    #                                                  npoint=512, radius=0.39, nsample=32, mlp=para.k_add*4,
+    #                                                  group_num=para.group_num,
+    #                                                  scope=f'PConv1_{i + 1}')
 
     # second stage: 2 PPool, 3 EnhancedPConv
 
