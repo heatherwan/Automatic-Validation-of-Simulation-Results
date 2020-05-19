@@ -3,10 +3,10 @@
 Author: Charles R. Qi
 Date: November 2016
 
-Updated by Yue Wang and Yongbin Sun
+Updated by Wanting Lin
+Date: May 2020
 """
 
-import numpy as np
 import tensorflow as tf
 
 

@@ -11,7 +11,7 @@ import tensorflow as tf
 
 from Parameters import Parameters
 from utils import tf_util
-from utils.densepoint_tf_util import pointnet_sa_module_msg
+from utils.densepoint_tf_util import densepoint_module
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
@@ -27,7 +27,7 @@ def placeholder_inputs_other(batch_size, num_point):
 
 def get_model_other(point_cloud, is_training, bn_decay=None):
     """
-        DesnsePoint with 3 PPools + 8 PConvs + 1 global pooling narrowness k = 24; group number g = 4
+        DesnsePoint with 2 PPools + 3 PConvs + 1 global pooling narrowness k = 24; group number g = 2
 
     """
     batch_size = point_cloud.get_shape()[0]  # .value
@@ -38,9 +38,9 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     l0_points = tf.slice(point_cloud, [0, 0, 3], [-1, -1, para.dim - 3])  # start from fourth dimension
 
     # first stage: 1 PPool, 3 EnhancedPConv
-    all_xyz, all_points = pointnet_sa_module_msg(l0_xyz, l0_points, is_training, bn_decay,
-                                                 npoint=512, radius=0.25, nsample=64, mlp=para.k_add*4,
-                                                 scope='PPool1', ppool=True)
+    all_xyz, all_points = densepoint_module(l0_xyz, l0_points, is_training, bn_decay,
+                                            npoint=512, radius=0.25, nsample=64, mlp=para.k_add*4,
+                                            scope='PPool1', ppool=True)
 
     # for i in range(4):  # B 128 1 93 -> 24
     #     all_xyz, all_points = pointnet_sa_module_msg(all_xyz, all_points, is_training, bn_decay,
@@ -49,19 +49,18 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     #                                                  scope=f'PConv1_{i + 1}')
 
     # second stage: 2 PPool, 3 EnhancedPConv
-
-    all_xyz, all_points = pointnet_sa_module_msg(all_xyz, all_points, is_training, bn_decay,
-                                                 npoint=128, radius=0.32, nsample=64, mlp=para.k_add*4-3,
-                                                 scope='PPool3', ppool=True)
+    all_xyz, all_points = densepoint_module(all_xyz, all_points, is_training, bn_decay,
+                                            npoint=128, radius=0.32, nsample=64, mlp=para.k_add*4-3,
+                                            scope='PPool3', ppool=True)
 
     for i in range(4):  # B 128 1 93 -> 24
-        all_xyz, all_points = pointnet_sa_module_msg(all_xyz, all_points, is_training, bn_decay,
-                                                     npoint=128, radius=0.39, nsample=16, mlp=para.k_add*4,
-                                                     group_num=para.group_num,
-                                                     scope=f'PConv2_{i + 1}')
+        all_xyz, all_points = densepoint_module(all_xyz, all_points, is_training, bn_decay,
+                                                npoint=128, radius=0.39, nsample=16, mlp=para.k_add*4,
+                                                group_num=para.group_num,
+                                                scope=f'PConv2_{i + 1}')
 
-    l3_points = pointnet_sa_module_msg(all_xyz, all_points, is_training, bn_decay,
-                                       mlp=512, scope='GloPool')
+    l3_points = densepoint_module(all_xyz, all_points, is_training, bn_decay,
+                                  mlp=512, scope='GloPool')
 
     # Fully connected layers
     net = tf.reshape(l3_points, [batch_size, -1])
@@ -100,4 +99,4 @@ def get_para_num():
         for dim in shape:
             variable_parametes *= dim
         total_parameters += variable_parametes
-    print(f'Total parameters number is {total_parameters}')
+    return total_parameters

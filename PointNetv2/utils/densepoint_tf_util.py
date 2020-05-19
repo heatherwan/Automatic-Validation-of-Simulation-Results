@@ -1,4 +1,5 @@
-""" DensePoint Layers
+"""
+DensePoint Layers in Tensorflow
 
 Author: Wanting Lin
 Date: May 2020
@@ -6,14 +7,11 @@ Date: May 2020
 """
 
 import os
-import sys
-
-from utils.cpp_modules import farthest_point_sample, gather_point, query_ball_point, group_point, knn_point, three_nn, \
-    three_interpolate
 
 import tensorflow as tf
-import numpy as np
+
 from utils import tf_util
+from utils.cpp_modules import farthest_point_sample, gather_point, query_ball_point, group_point
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(BASE_DIR)
@@ -23,9 +21,9 @@ def sample_and_group(npoint, radius, nsample, xyz, features, use_xyz=True):
     """
     Input:
         ===Parameters for query points=====
-        npoint: int32
-        radius: float32
-        nsample: int32
+        npoint: int32 - points selected by farthest sampling
+        radius: float32 - area for neighbor point search in local
+        nsample: int32 - #points for neighbor point search in local
         ======= Varaibles ======================
         xyz: (batch_size, ndataset, 3) TF tensor
         features: (batch_size, ndataset, channel) TF tensor, if None will just use xyz as features
@@ -55,12 +53,11 @@ def group_all(xyz, features, use_xyz=True):
     """
     concatenate xyz and other channels, and expand dimension for MLP
     Inputs:
-        xyz: (batch_size, ndataset, 3) TF tensor
-        features: (batch_size, ndataset, channel) TF tensor
+        xyz: (batch_size, npoint, 3) TF tensor
+        features: (batch_size, npoint, channel) TF tensor
         use_xyz: bool, if True concat XYZ with local point features, otherwise just use point features
     Outputs:
-        new_xyz: (batch_size, 1, 3) as (0,0,0)
-        new_features: (batch_size, 1, ndataset, 3+channel) TF tensor
+        new_features: (batch_size, 1, npoint, 3+channel) TF tensor
    """
     if use_xyz:
         new_features = tf.concat([xyz, features], axis=2)  # (batch_size, 16, 259)
@@ -71,22 +68,26 @@ def group_all(xyz, features, use_xyz=True):
     return new_features
 
 
-def pointnet_sa_module_msg(xyz, features, is_training, bn_decay, scope=None, bn=True,
-                           npoint=None, radius=None, nsample=None, mlp=None,
-                           ppool=None, use_xyz=True, group_num=1):
-    """ PointNet Set Abstraction (SA) module with Multi-Scale Grouping (MSG)
+def densepoint_module(xyz, features, is_training, bn_decay, scope=None, bn=True,
+                      npoint=None, radius=None, nsample=None, mlp=None,
+                      ppool=None, use_xyz=True, group_num=1):
+    """ DensePoint module with PPool, Enhanced PConv and Global Pooling
         Input:
-            xyz: (batch_size, ndataset, 3) TF tensor
-            features: (batch_size, ndataset, channel) TF tensor
+            xyz: (batch_size, npoint, 3) TF tensor
+            features: (batch_size, npoint, channel) TF tensor
             npoint: int32 -- #points sampled in farthest point sampling
-            radius: list of float32 -- search radius in local region
-            nsample: list of int32 -- how many points in each local region
-            mlp: list of list of int32 -- output size for MLP on each point
+            radius: float32 -- search radius in local region
+            nsample: int32 -- how many points selected in each local region
+            (if selected point less than expected, duplicate the selected)
+            mlp: int32 -- output size for SLP on each point
             use_xyz: bool, if True concat XYZ with local point features, otherwise just use point features
             use_nchw: bool, if True, use NCHW data format for conv2d, which is usually faster than NHWC format
         Return:
-            new_xyz: (batch_size, npoint, 3) TF tensor
-            new_features: (batch_size, npoint, \sum_k{mlp[k][-1]}) TF tensor
+            new_xyz: (batch_size, npoint, 3) TF tensor -centroid points
+            For PPool and Global Pooling:
+                new_features: (batch_size, npoint, Cin+3) TF tensor
+            For enhancedPConv:
+                all_new_features : (batch_size, npoint, cin+3+Cout/4)
     """
     with tf.compat.v1.variable_scope(scope) as sc:
 
@@ -133,36 +134,3 @@ def pointnet_sa_module_msg(xyz, features, is_training, bn_decay, scope=None, bn=
 
             new_features = tf.reduce_max(input_tensor=grouped_features, axis=[2])  # max pooling
             return new_features
-
-
-def pointnet_fp_module(xyz1, xyz2, points1, points2, mlp, is_training, bn_decay, scope, bn=True):
-    """ PointNet Feature Propogation (FP) Module
-        Input:
-            xyz1: (batch_size, ndataset1, 3) TF tensor
-            xyz2: (batch_size, ndataset2, 3) TF tensor, sparser than xyz1
-            points1: (batch_size, ndataset1, nchannel1) TF tensor
-            points2: (batch_size, ndataset2, nchannel2) TF tensor
-            mlp: list of int32 -- output size for MLP on each point
-        Return:
-            new_points: (batch_size, ndataset1, mlp[-1]) TF tensor
-    """
-    with tf.compat.v1.variable_scope(scope) as sc:
-        dist, idx = three_nn(xyz1, xyz2)
-        dist = tf.maximum(dist, 1e-10)
-        norm = tf.reduce_sum(input_tensor=(1.0 / dist), axis=2, keepdims=True)
-        norm = tf.tile(norm, [1, 1, 3])
-        weight = (1.0 / dist) / norm
-        interpolated_points = three_interpolate(points2, idx, weight)
-
-        if points1 is not None:
-            new_points1 = tf.concat(axis=2, values=[interpolated_points, points1])  # B,ndataset1,nchannel1+nchannel2
-        else:
-            new_points1 = interpolated_points
-        new_points1 = tf.expand_dims(new_points1, 2)
-        for i, num_out_channel in enumerate(mlp):
-            new_points1 = tf_util.conv2d(new_points1, num_out_channel, [1, 1],
-                                         padding='VALID', stride=[1, 1],
-                                         bn=bn, is_training=is_training,
-                                         scope='conv_%d' % (i), bn_decay=bn_decay)
-        new_points1 = tf.squeeze(new_points1, [2])  # B,ndataset1,mlp[-1]
-        return new_points1

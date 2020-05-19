@@ -7,14 +7,12 @@ Date: May 2020
 """
 
 import os
-import sys
 
-from utils.cpp_modules import farthest_point_sample, gather_point, query_ball_point, group_point, knn_point, three_nn, \
-    three_interpolate
-
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
+
 from utils import tf_util
+from utils.cpp_modules import farthest_point_sample, gather_point, query_ball_point, group_point, knn_point
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(BASE_DIR)
@@ -203,35 +201,3 @@ def pointnet_sa_module_msg(xyz, points, npoint, radius_list, nsample_list, mlp_l
         new_points_concat = tf.concat(new_points_list, axis=-1)
         return new_xyz, new_points_concat
 
-
-def pointnet_fp_module(xyz1, xyz2, points1, points2, mlp, is_training, bn_decay, scope, bn=True):
-    """ PointNet Feature Propogation (FP) Module
-        Input:
-            xyz1: (batch_size, ndataset1, 3) TF tensor
-            xyz2: (batch_size, ndataset2, 3) TF tensor, sparser than xyz1
-            points1: (batch_size, ndataset1, nchannel1) TF tensor
-            points2: (batch_size, ndataset2, nchannel2) TF tensor
-            mlp: list of int32 -- output size for MLP on each point
-        Return:
-            new_points: (batch_size, ndataset1, mlp[-1]) TF tensor
-    """
-    with tf.compat.v1.variable_scope(scope) as sc:
-        dist, idx = three_nn(xyz1, xyz2)
-        dist = tf.maximum(dist, 1e-10)
-        norm = tf.reduce_sum(input_tensor=(1.0 / dist), axis=2, keepdims=True)
-        norm = tf.tile(norm, [1, 1, 3])
-        weight = (1.0 / dist) / norm
-        interpolated_points = three_interpolate(points2, idx, weight)
-
-        if points1 is not None:
-            new_points1 = tf.concat(axis=2, values=[interpolated_points, points1])  # B,ndataset1,nchannel1+nchannel2
-        else:
-            new_points1 = interpolated_points
-        new_points1 = tf.expand_dims(new_points1, 2)
-        for i, num_out_channel in enumerate(mlp):
-            new_points1 = tf_util.conv2d(new_points1, num_out_channel, [1, 1],
-                                         padding='VALID', stride=[1, 1],
-                                         bn=bn, is_training=is_training,
-                                         scope='conv_%d' % (i), bn_decay=bn_decay)
-        new_points1 = tf.squeeze(new_points1, [2])  # B,ndataset1,mlp[-1]
-        return new_points1
