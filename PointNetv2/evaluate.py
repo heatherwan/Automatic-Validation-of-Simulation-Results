@@ -98,7 +98,7 @@ def eval_one_epoch(sess, ops):
     log_string(str(datetime.now()))
 
     # Make sure batch data is of same size
-    cur_batch_data = np.zeros((para.testBatchSize, para.pointNumber, testDataset.num_channel()))
+    cur_batch_data = np.zeros((para.testBatchSize, para.pointNumber, para.dim))
     cur_batch_label = np.zeros(para.testBatchSize, dtype=np.int32)
 
     # set variable for statistics
@@ -118,7 +118,7 @@ def eval_one_epoch(sess, ops):
     while testDataset.has_next_batch():
         batch_data, batch_label = testDataset.next_batch(augment=False)
         bsize = batch_data.shape[0]
-        cur_batch_data[0:bsize, ...] = batch_data
+        cur_batch_data[0:bsize, ...] = batch_data[:, :, :para.dim]
         cur_batch_label[0:bsize] = batch_label
         batchWeight = provider.weights_calculation(cur_batch_label, testDataset.weight_dict)
 
@@ -146,11 +146,11 @@ def eval_one_epoch(sess, ops):
             l = batch_label[i]
             total_seen_class[l] += 1
             total_correct_class[l] += (pred_val[i] == l)
-            fout.write(f'{batch_idx*para.testBatchSize+i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t'
+            fout.write(f'{batch_idx * para.testBatchSize + i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t'
                        f'{pred_prob2[i][0]:.3f}\t{pred_prob2[i][1]:.3f}\t'
                        f'{pred_prob2[i][2]:.3f}\t{pred_prob2[i][3]:.3f}\n')
             if pred_val[i] != l:
-                fout2.write(f'{batch_idx*para.testBatchSize+i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t'
+                fout2.write(f'{batch_idx * para.testBatchSize + i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t'
                             f'{pred_prob2[i][0]:.3f}\t{pred_prob2[i][1]:.3f}\t'
                             f'{pred_prob2[i][2]:.3f}\t{pred_prob2[i][3]:.3f}\n')
         pred_label.extend(pred_val[0:bsize])
@@ -172,8 +172,7 @@ def eval_one_epoch(sess, ops):
 
 def evaluate_ldgcnn():
     with tf.device(''):
-        pointclouds_pl, labels_pl = MODEL.placeholder_inputs_other(para.testBatchSize,
-                                                                                         para.pointNumber)
+        pointclouds_pl, labels_pl = MODEL.placeholder_inputs_other(para.testBatchSize, para.pointNumber)
         pointclouds_feature_pl, labels_feature_pl = MODEL_CLS.placeholder_inputs_feature(para.batchSize)
         is_training_pl = tf.compat.v1.placeholder(tf.bool, shape=())
         weights = tf.compat.v1.placeholder(tf.float32, [None])
@@ -220,7 +219,7 @@ def evaluate_ldgcnn():
             log_string(str(datetime.now()))
 
             # Make sure batch data is of same size
-            cur_batch_data = np.zeros((para.testBatchSize, para.pointNumber, testDataset.num_channel()))
+            cur_batch_data = np.zeros((para.testBatchSize, para.pointNumber, para.dim))
             cur_batch_label = np.zeros(para.testBatchSize, dtype=np.int32)
 
             # set variable for statistics
@@ -241,7 +240,7 @@ def evaluate_ldgcnn():
             while testDataset.has_next_batch():
                 batch_data, batch_label = testDataset.next_batch(augment=False)
                 bsize = batch_data.shape[0]
-                cur_batch_data[0:bsize, ...] = batch_data
+                cur_batch_data[0:bsize, ...] = batch_data[:, :, :para.dim]
                 cur_batch_label[0:bsize] = batch_label
 
                 feed_dict_cnn = {ops['pointclouds_pl']: cur_batch_data,
