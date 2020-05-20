@@ -194,7 +194,7 @@ def train_one_epoch(sess, ops, train_writer):
         batch_data, batch_label = trainDataset.next_batch(augment=True)
         # batch_data = provider.random_point_dropout(batch_data)
         bsize = batch_data.shape[0]
-        cur_batch_data[0:bsize, ...] = batch_data
+        cur_batch_data[0:bsize, :, :para.dim] = batch_data
         cur_batch_label[0:bsize] = batch_label
 
         batchWeight = provider.weights_calculation(cur_batch_label, trainDataset.weight_dict)
@@ -252,7 +252,7 @@ def eval_one_epoch(sess, ops, test_writer):
     while testDataset.has_next_batch():
         batch_data, batch_label = testDataset.next_batch(augment=False)
         bsize = batch_data.shape[0]
-        cur_batch_data[0:bsize, ...] = batch_data
+        cur_batch_data[0:bsize, :, :para.dim] = batch_data
         cur_batch_label[0:bsize] = batch_label
         batchWeight = provider.weights_calculation(cur_batch_label, testDataset.weight_dict)
 
@@ -308,7 +308,7 @@ def save_global_feature(sess, ops, saver, layers):
         while dataset.has_next_batch():
             batch_data, batch_label = dataset.next_batch(augment=False)
             bsize = batch_data.shape[0]
-            cur_batch_data[0:bsize, ...] = batch_data
+            cur_batch_data[0:bsize, :, :para.dim] = batch_data
             cur_batch_label[0:bsize] = batch_label
             # Input the point cloud and labels to the graph.
             feed_dict = {ops['pointclouds_pl']: cur_batch_data,
