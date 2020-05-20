@@ -37,6 +37,9 @@ def calc_ldgcnn_feature(point_cloud, is_training, bn_decay=None):
     end_points = {}
     minSF = tf.reshape(tf.math.argmin(point_cloud[:, :, 3], axis=1), (-1, 1))
 
+    point_cloud = tf_util.batch_norm_for_conv2d(point_cloud, is_training=is_training,
+                                                scope='BNConcat', bn_decay=bn_decay)
+
     # # 1. graph for first EdgeConv B N C=6
     adj_matrix = tf_util.pairwise_distance(point_cloud[:, :, :para.dim])  # B N C=6 => B*N*N
     nn_idx = tf_util.knn(adj_matrix, k=para.k)
