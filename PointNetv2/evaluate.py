@@ -165,7 +165,7 @@ def eval_one_epoch(sess, ops):
         log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
     log_string(confusion_matrix(testDataset.current_label[:len(pred_label)], pred_label))
 
-    if para.model == "dgcnn" or para.model == 'lgdcnn':
+    if para.model == "dgcnn" or para.model == 'ldgcnn':
         for k, v in all_knn_idx.items():
             v.tofile(f'evallog/{para.expName[:6]}_{k}.txt', sep=" ", format="%.3f")
 
