@@ -39,7 +39,7 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     end_points['knn1'] = allSF_dist
 
     # # 2. graph for first EdgeConv with transform(x,y,z), SF, distance, minSF
-    point_cloud_all = tf.concat(axis=2, values=[point_cloud_transform, point_cloud[:, :, 3:]])
+    point_cloud_all = tf.concat(axis=2, values=[point_cloud_transform, point_cloud[:, :, 3:para.dim+1]])
     point_cloud_all = tf_util.batch_norm_for_conv2d(point_cloud_all, is_training=is_training,
                                                     scope='BNConcat', bn_decay=bn_decay)
 
