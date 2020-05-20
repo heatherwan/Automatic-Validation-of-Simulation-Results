@@ -21,7 +21,7 @@ para = Parameters()
 
 # log
 MODEL = importlib.import_module(para.model)  # import network module
-if para.model == 'ldgcnn':
+if para.model == 'ldgcnn_cls':
     MODEL_CLS = importlib.import_module(para.class_model)
 LOG_DIR = para.logDir
 LOG_MODEL = para.logmodelDir
@@ -168,7 +168,7 @@ def train():
                 min_loss = loss
 
         # Save the extracted global feature
-        if para.model == 'ldgcnn':
+        if para.model == 'ldgcnn_cls':
             save_global_feature(sess, ops, saver, end_points)
 
 
@@ -542,7 +542,7 @@ def eval_classifier_one_epoch(sess, ops, test_writer_cls):
 
 if __name__ == "__main__":
     start_time = time.time()
-    if para.model == 'ldgcnn':
+    if para.model == 'ldgcnn_cls':
         train()
         train_classifier()
     else:

@@ -31,7 +31,7 @@ BN_DECAY_DECAY_STEP = float(para.decay_step)
 BN_DECAY_CLIP = 0.99
 
 MODEL = importlib.import_module(para.model)  # import network module
-if para.model == 'ldgcnn':
+if para.model == 'ldgcnn_cls':
     MODEL_CLS = importlib.import_module(para.class_model)
 
 LOG_MODEL = para.logmodelDir
@@ -165,7 +165,7 @@ def eval_one_epoch(sess, ops):
         log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
     log_string(confusion_matrix(testDataset.current_label[:len(pred_label)], pred_label))
 
-    if para.model == "dgcnn":
+    if para.model == "dgcnn" or para.model == 'lgdcnn':
         for k, v in all_knn_idx.items():
             v.tofile(f'evallog/{para.expName[:6]}_{k}.txt', sep=" ", format="%.3f")
 
@@ -303,7 +303,7 @@ def evaluate_ldgcnn():
 if __name__ == '__main__':
     with tf.Graph().as_default():
         start_time = time.time()
-        if para.model == 'ldgcnn':
+        if para.model == 'ldgcnn_cls':
             evaluate_ldgcnn()
         else:
             evaluate()
