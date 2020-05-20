@@ -35,6 +35,7 @@ if para.gpu:
         tf.config.experimental.set_memory_growth(gpu, True)
 else:
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
 BN_INIT_DECAY = 0.5
 BN_DECAY_DECAY_RATE = 0.5
 BN_DECAY_DECAY_STEP = float(para.decay_step)
@@ -84,8 +85,7 @@ def get_bn_decay(batch):
 def train():
     with tf.Graph().as_default():
         with tf.device(''):
-            pointclouds_pl, labels_pl = MODEL.placeholder_inputs_other(para.batchSize,
-                                                                                             para.pointNumber)
+            pointclouds_pl, labels_pl = MODEL.placeholder_inputs_other(para.batchSize, para.pointNumber)
             is_training_pl = tf.compat.v1.placeholder(tf.bool, shape=())
             weights = tf.compat.v1.placeholder(tf.float32, [None])
             print(is_training_pl)
@@ -97,8 +97,7 @@ def train():
             tf.compat.v1.summary.scalar('bn_decay', bn_decay)
 
             # Get model and loss
-            pred, end_points = MODEL.get_model_other(pointclouds_pl, is_training_pl,
-                                                     bn_decay=bn_decay)
+            pred, end_points = MODEL.get_model_other(pointclouds_pl, is_training_pl, bn_decay=bn_decay)
             para_num = MODEL.get_para_num()
             print(f'Total parameters number is {para_num}')
             LOG_FOUT.write(str(para_num) + '\n')
@@ -179,7 +178,7 @@ def train_one_epoch(sess, ops, train_writer):
     log_string(str(datetime.now()))
 
     # Make sure batch data is of same size
-    cur_batch_data = np.zeros((para.batchSize, para.pointNumber, trainDataset.num_channel()))
+    cur_batch_data = np.zeros((para.batchSize, para.pointNumber, para.dim))
     cur_batch_label = np.zeros(para.batchSize, dtype=np.int32)
 
     # set variable for statistics
@@ -239,7 +238,7 @@ def eval_one_epoch(sess, ops, test_writer):
     log_string(str(datetime.now()))
 
     # Make sure batch data is of same size
-    cur_batch_data = np.zeros((para.testBatchSize, para.pointNumber, testDataset.num_channel()))
+    cur_batch_data = np.zeros((para.testBatchSize, para.pointNumber, para.dim))
     cur_batch_label = np.zeros(para.testBatchSize, dtype=np.int32)
 
     # set variable for statistics
@@ -303,7 +302,7 @@ def save_global_feature(sess, ops, saver, layers):
         global_feature_vec = np.array([])
         label_vec = np.array([])
         # Make sure batch data is of same size
-        cur_batch_data = np.zeros((para.batchSize, para.pointNumber, trainDataset.num_channel()))
+        cur_batch_data = np.zeros((para.batchSize, para.pointNumber, para.dim))
         cur_batch_label = np.zeros(para.batchSize, dtype=np.int32)
 
         while dataset.has_next_batch():

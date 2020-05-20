@@ -38,7 +38,7 @@ def calc_ldgcnn_feature(point_cloud, is_training, bn_decay=None):
     minSF = tf.reshape(tf.math.argmin(point_cloud[:, :, 3], axis=1), (-1, 1))
 
     # # 1. graph for first EdgeConv B N C=6
-    adj_matrix = tf_util.pairwise_distance(point_cloud)  # B N C=6 => B*N*N
+    adj_matrix = tf_util.pairwise_distance(point_cloud[:, :, :para.dim])  # B N C=6 => B*N*N
     nn_idx = tf_util.knn(adj_matrix, k=para.k)
 
     # get the distance to minSF of 1024 points
@@ -176,5 +176,3 @@ def get_para_num():
             variable_parametes *= dim
         total_parameters += variable_parametes
     print(f'Total parameters number is {total_parameters}')
-
-
