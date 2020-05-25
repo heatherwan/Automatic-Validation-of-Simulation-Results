@@ -634,6 +634,7 @@ class Training_cv:
 
         while self.dataset.has_next_batch():
             batch_data, batch_label = self.dataset.next_batch(augment=True)
+            print(f'batch {batch_idx}: {batch_label}')
             # batch_data = provider.random_point_dropout(batch_data)
             bsize = batch_data.shape[0]
             cur_batch_data[0:bsize, ...] = batch_data[:, :, :para.dim]
@@ -692,6 +693,7 @@ class Training_cv:
         total_correct_class = [0 for _ in range(para.outputClassN)]
         while self.dataset.has_next_batch():
             batch_data, batch_label = self.dataset.next_batch(augment=False, train=False)
+            print(f'batch {batch_idx}: {batch_label}')
             bsize = batch_data.shape[0]
             cur_batch_data[0:bsize, ...] = batch_data[:, :, :para.dim]
             cur_batch_label[0:bsize] = batch_label

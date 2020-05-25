@@ -28,14 +28,13 @@ class DatasetHDF5_Kfold(object):
         self.npoints = npoints
         self.shuffle = shuffle
         self.dim = dim
-        self.cv = cv
 
         self.current_data = None
         self.current_label = None
         self.batch_idx = 0
 
         self.init_data(self.h5_file)
-        self.trainvalid_index = list(KFold(self.cv, shuffle=True, random_state=0).split(self.current_data))
+        self.trainvalid_index = list(KFold(cv, shuffle=True, random_state=0).split(self.current_data))
         self.train_data = None
         self.valid_data = None
         self.train_label = None
