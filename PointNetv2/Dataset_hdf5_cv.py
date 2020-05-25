@@ -67,14 +67,17 @@ class DatasetHDF5_Kfold(object):
         batch_data[:, :, :3] = jittered_data
         return provider.shuffle_points(batch_data)
 
-    def _has_next_batch_in_file(self):
-        return self.batch_idx * self.batch_size < self.train_data.shape[0]
+    def _has_next_batch_in_file(self, train=True):
+        if train:
+            return self.batch_idx * self.batch_size < self.train_data.shape[0]
+        else:
+            return self.batch_idx * self.batch_size < self.test_data.shape[0]
 
     def num_channel(self):
         return self.dim
 
-    def has_next_batch(self):
-        return self._has_next_batch_in_file()
+    def has_next_batch(self, train=True):
+        return self._has_next_batch_in_file(train)
 
     def next_batch(self, augment=False, train=True):
         """ returned dimension may be smaller than self.batch_size """
