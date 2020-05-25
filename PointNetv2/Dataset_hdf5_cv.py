@@ -52,10 +52,13 @@ class DatasetHDF5_Kfold(object):
         self.train_label = self.current_label[self.trainvalid_index[split][0]]
         self.valid_label = self.current_label[self.trainvalid_index[split][1]]
 
-    def reset(self):
-        if self.shuffle:
-            self.current_data, self.current_label, _ = provider.shuffle_data_other(
-                self.current_data, self.current_label)
+    def reset(self, train=True):
+        if train:
+            self.train_data, self.train_label, _ = provider.shuffle_data_other(
+                self.train_data, self.train_label)
+        else:
+            self.valid_data, self.valid_label, _ = provider.shuffle_data_other(
+                self.valid_data, self.valid_label)
         self.batch_idx = 0
 
     def _augment_batch_data(self, batch_data):
