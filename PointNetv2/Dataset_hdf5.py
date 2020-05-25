@@ -17,34 +17,28 @@ DATADIR = os.path.join(BASE_DIR, 'datasets')
 class DatasetHDF5(object):
     """
     parameters:
-    list_filename: list of .hdf5 files
+    filename: .hdf5 file
     """
 
-    def __init__(self, list_filename, batch_size=32, npoints=1024, dim=5, shuffle=True):
-        self.h5_files = list_filename
-        print(self.h5_files)
+    def __init__(self, filename, batch_size=32, npoints=1024, dim=5, shuffle=True):
+        self.h5_file = filename
         self.batch_size = batch_size
         self.npoints = npoints
         self.shuffle = shuffle
         self.dim = dim
 
-        self.file_idxs = np.arange(0, len(self.h5_files))
         self.current_data = None
         self.current_label = None
         self.current_feature = None
         self.current_feature_label = None
-        self.current_file_idx = 0
         self.batch_idx = 0
         self.feature_batch_idx = 0
         self.reset()
 
     def reset(self):
         """ reset order of h5 files """
-        if self.shuffle:
-            np.random.shuffle(self.file_idxs)
         self.current_data = None
         self.current_label = None
-        self.current_file_idx = 0
         self.batch_idx = 0
 
     def _augment_batch_data(self, batch_data):
@@ -56,11 +50,7 @@ class DatasetHDF5(object):
         batch_data[:, :, :3] = jittered_data
         return provider.shuffle_points(batch_data)
 
-    def _get_data_filename(self):
-        return self.h5_files[self.file_idxs[self.current_file_idx]]
-
     def _load_data_file(self, filename):
-        # print(filename)
         self.current_data, self.current_label = provider.load_h5_other(filename)
         self.current_label = np.squeeze(self.current_label)
         self.batch_idx = 0
@@ -75,12 +65,9 @@ class DatasetHDF5(object):
         return self.dim
 
     def has_next_batch(self):
-        if (self.current_data is None) or (not self._has_next_batch_in_file()):
-            if self.current_file_idx >= len(self.h5_files):
-                return False
-            self._load_data_file(self._get_data_filename())
+        if self.current_data is None:
+            self._load_data_file(self.h5_file)
             self.batch_idx = 0
-            self.current_file_idx += 1
             # get weight for each class
             self.weight_dict = provider.weight_dict_fc(self.current_label)
         return self._has_next_batch_in_file()
