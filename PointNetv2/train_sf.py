@@ -606,6 +606,7 @@ class Training_cv:
                 sys.stdout.flush()
 
                 loss = self.train_one_epoch(sess, ops, train_writer)
+                self.dataset.reset()
                 self.eval_one_epoch(sess, ops, test_writer)
                 self.dataset.reset()
 
