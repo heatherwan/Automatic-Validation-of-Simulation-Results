@@ -71,7 +71,7 @@ class DatasetHDF5_Kfold(object):
         if train:
             return self.batch_idx * self.batch_size < self.train_data.shape[0]
         else:
-            return self.batch_idx * self.batch_size < self.test_data.shape[0]
+            return self.batch_idx * self.batch_size < self.valid_data.shape[0]
 
     def num_channel(self):
         return self.dim
