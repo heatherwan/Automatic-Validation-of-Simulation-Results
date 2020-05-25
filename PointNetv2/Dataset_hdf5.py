@@ -57,6 +57,8 @@ class DatasetHDF5(object):
         if self.shuffle:
             self.current_data, self.current_label, _ = provider.shuffle_data_other(
                 self.current_data, self.current_label)
+        # get weight for each class
+        self.weight_dict = provider.weight_dict_fc(self.current_label)
 
     def _has_next_batch_in_file(self):
         return self.batch_idx * self.batch_size < self.current_data.shape[0]
@@ -68,8 +70,6 @@ class DatasetHDF5(object):
         if self.current_data is None:
             self._load_data_file(self.h5_file)
             self.batch_idx = 0
-            # get weight for each class
-            self.weight_dict = provider.weight_dict_fc(self.current_label)
         return self._has_next_batch_in_file()
 
     def next_batch(self, augment=False):
