@@ -35,7 +35,7 @@ class DatasetHDF5_Kfold(object):
         self.batch_idx = 0
 
         self.init_data(self.h5_file)
-        self.trainvalid_index = list(KFold(self.cv).split(self.current_data))
+        self.trainvalid_index = list(KFold(self.cv, shuffle=True, random_state=0).split(self.current_data))
         self.train_data = None
         self.valid_data = None
         self.train_label = None
