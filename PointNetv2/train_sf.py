@@ -7,6 +7,7 @@ import time
 import numpy as np
 import tensorflow as tf
 from sklearn.metrics import confusion_matrix
+from sklearn.metrics import classification_report
 from datetime import datetime
 
 import provider
@@ -528,8 +529,13 @@ class Training:
 
 
 class Training_cv:
-    def __init__(self, trainset):
+    def __init__(self, trainset, split_no=0):
         self.dataset = trainset
+        self.split_no = split_no
+        self.min_loss = np.inf
+        self.max_acc = 0
+        self.prediction = None
+        self.label = None
 
     def train(self):
         with tf.Graph().as_default():
@@ -580,9 +586,9 @@ class Training_cv:
 
             # Add summary writers
             merged = tf.compat.v1.summary.merge_all()
-            train_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, para.expName[:6] + 'train'),
+            train_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, para.expName[:6] + f'train_{i}'),
                                                            sess.graph)
-            test_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, para.expName[:6] + 'test'),
+            test_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, para.expName[:6] + f'test_{i}'),
                                                           sess.graph)
             # Init variables
             init = tf.compat.v1.global_variables_initializer()
@@ -600,20 +606,28 @@ class Training_cv:
                    'weights': weights,
                    'knn': end_points}
 
-            min_loss = np.inf
+            log_string(f'cross_validation_{i} result')
             for epoch in range(para.max_epoch):
                 log_string('**** EPOCH %03d ****' % epoch)
                 sys.stdout.flush()
 
-                loss = self.train_one_epoch(sess, ops, train_writer)
+                loss, acc = self.train_one_epoch(sess, ops, train_writer)
                 self.dataset.reset()
-                self.eval_one_epoch(sess, ops, test_writer)
-                self.dataset.reset(train=False)
 
-                if loss < min_loss:  # save the min loss model
-                    save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}.ckpt"))
+                if loss < self.min_loss:  # save the min loss model
+                    save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}_{i}.ckpt"))
                     log_string("Model saved in file: %s" % save_path)
-                    min_loss = loss
+                    self.min_loss = loss
+                    self.max_acc = acc
+                    # log evaluation if the loss is better
+                    self.eval_one_epoch(sess, ops, test_writer)
+                    self.dataset.reset(train=False)
+            # print out the final result for this validation split
+            log_string('Final Result')
+            log_string(f'Loss {self.min_loss}\n')
+            log_string(f'Accuracy {self.max_acc}\n')
+            log_string(classification_report(self.label, self.prediction, target_names=['Good', 'Contact', 'Radius', 'Hole']))
+            log_string(confusion_matrix(self.label, self.prediction))
 
     def train_one_epoch(self, sess, ops, train_writer):
         """ ops: dict mapping from string to tf ops """
@@ -672,7 +686,7 @@ class Training_cv:
         for i, name in para.classes.items():
             log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
         log_string(confusion_matrix(self.dataset.train_label[:len(total_pred)], total_pred))
-        return loss_sum / float(total_seen)
+        return loss_sum / float(total_seen), total_correct / float(total_seen)
 
     def eval_one_epoch(self, sess, ops, test_writer):
         """ ops: dict mapping from string to tf ops """
@@ -718,7 +732,9 @@ class Training_cv:
                 total_seen_class[l] += 1
                 total_correct_class[l] += (pred_val[i] == l)
             pred_label.extend(pred_val[0:bsize])
-
+        # TODO: update evaluation prediction self.prediction
+        self.prediction = pred_label
+        self.label = self.dataset.valid_label[:len(pred_label)]
         log_string('Test result:')
         log_string(f'mean loss: {(loss_sum / float(total_seen)):.3f}')
         log_string(f'acc: {(total_correct / float(total_seen)):.3f}')
@@ -739,7 +755,7 @@ if __name__ == "__main__":
         for i in range(para.split_num):
             log_string(f'split {i} result: \n')
             trainDataset.set_data(i)
-            tr = Training_cv(trainDataset)
+            tr = Training_cv(trainDataset, i)
             start_time = time.time()
             tr.train()
             end_time = time.time()
