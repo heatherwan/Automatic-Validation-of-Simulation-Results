@@ -1,0 +1,508 @@
+{'gpu': True, 'model': 'ldgcnn', 'outputClassN': 4, 'pointNumber': 1024, 'dim': 6, 'batchSize': 13, 'testBatchSize': 13, 'max_epoch': 20, 'learningRate': 0.002, 'momentum': 0.9, 'optimizer': 'adam', 'decay_step': 20000, 'decay_rate': 0.7, 'weight_scaler': 0, 'validation': True, 'split_num': 5, 'k': 20, 'group_num': 2, 'k_add': 24, 'class_model': 'ldgcnn_classifier', 'class_feature': 1024, 'class_max_epoch': 100, 'class_optimizer': 'momentum', 'expName': 'exp450_point1024_batch13_out4_weighted0', 'logmodelDir': 'logmodel', 'logDir': 'log', 'dataDir': '/tf/pointnet/Automatic-Validation-of-Simulation-Results/PointNetv2/datasets', 'TRAIN_FILES': '/tf/pointnet/Automatic-Validation-of-Simulation-Results/PointNetv2/datasets/traindataset_651_1024_dim6_SF1.hdf5', 'TEST_FILES': '/tf/pointnet/Automatic-Validation-of-Simulation-Results/PointNetv2/datasets/testdataset_163_1024_dim6_SF1.hdf5', 'classes': {1: 'EM1_contact', 2: 'EM3_radius', 3: 'EM4_hole', 0: 'Good'}}
+split 0 result: 
+
+None
+**** EPOCH 000 ****
+2020-05-25 14:18:08.215371
+Train result:
+mean loss: 2.289
+accuracy: 0.225
+avg class acc: 0.251
+EM1_contact:	0.689
+EM3_radius:	0.013
+  EM4_hole:	0.133
+      Good:	0.169
+ 33  17  29 116
+  7  62  13   8
+  1  71   1   4
+  1 100  36  21
+2020-05-25 14:18:24.951977
+Test result:
+mean loss: 1.465
+acc: 0.427
+avg class acc: 0.302
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.477
+      Good:	0.729
+ 35   0   0  13
+ 16   0   0   8
+  7   0   0   8
+ 23   0   0  21
+Model saved in file: logmodel/exp450.ckpt
+**** EPOCH 001 ****
+2020-05-25 14:18:29.620954
+Train result:
+mean loss: 2.342
+accuracy: 0.127
+avg class acc: 0.096
+EM1_contact:	0.011
+EM3_radius:	0.013
+  EM4_hole:	0.158
+      Good:	0.200
+ 39  21  23 112
+ 71   1   3  15
+ 66   1   1   9
+ 72  30  31  25
+2020-05-25 14:18:40.956500
+Test result:
+mean loss: 1.356
+acc: 0.374
+avg class acc: 0.259
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.182
+      Good:	0.854
+ 41   0   0   7
+ 24   0   0   0
+ 14   0   0   1
+ 36   0   0   8
+**** EPOCH 002 ****
+2020-05-25 14:18:44.940648
+Train result:
+mean loss: 2.080
+accuracy: 0.138
+avg class acc: 0.117
+EM1_contact:	0.067
+EM3_radius:	0.052
+  EM4_hole:	0.158
+      Good:	0.190
+ 37  14  32 112
+ 63   6   4  17
+ 58  12   4   3
+ 57  40  36  25
+2020-05-25 14:18:56.252250
+Test result:
+mean loss: 1.387
+acc: 0.359
+avg class acc: 0.249
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.205
+      Good:	0.792
+ 38   0   0  10
+ 24   0   0   0
+ 15   0   0   0
+ 35   0   0   9
+Model saved in file: logmodel/exp450.ckpt
+**** EPOCH 003 ****
+2020-05-25 14:19:00.549165
+Train result:
+mean loss: 2.033
+accuracy: 0.171
+avg class acc: 0.135
+EM1_contact:	0.044
+EM3_radius:	0.039
+  EM4_hole:	0.184
+      Good:	0.272
+ 53  11  20 111
+ 72   4   0  14
+ 61   8   3   5
+ 46  54  29  29
+2020-05-25 14:19:11.931126
+Test result:
+mean loss: 1.361
+acc: 0.328
+avg class acc: 0.229
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.250
+      Good:	0.667
+ 32   0   0  16
+ 15   0   0   9
+ 12   0   0   3
+ 33   0   0  11
+Model saved in file: logmodel/exp450.ckpt
+**** EPOCH 004 ****
+2020-05-25 14:19:16.194160
+Train result:
+mean loss: 2.011
+accuracy: 0.129
+avg class acc: 0.101
+EM1_contact:	0.011
+EM3_radius:	0.026
+  EM4_hole:	0.209
+      Good:	0.159
+ 31  15  23 126
+ 66   1   0  23
+ 58   8   2   9
+ 53  38  34  33
+2020-05-25 14:19:27.576907
+Test result:
+mean loss: 1.350
+acc: 0.366
+avg class acc: 0.251
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.045
+      Good:	0.958
+ 46   0   0   2
+ 24   0   0   0
+ 15   0   0   0
+ 42   0   0   2
+Model saved in file: logmodel/exp450.ckpt
+**** EPOCH 005 ****
+2020-05-25 14:19:31.901709
+Train result:
+mean loss: 1.922
+accuracy: 0.119
+avg class acc: 0.095
+EM1_contact:	0.022
+EM3_radius:	0.039
+  EM4_hole:	0.139
+      Good:	0.179
+ 35  22  22 116
+ 61   2   4  23
+ 62  10   3   2
+ 61  39  36  22
+2020-05-25 14:19:43.255372
+Test result:
+mean loss: 1.351
+acc: 0.443
+avg class acc: 0.312
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.477
+      Good:	0.771
+ 37   0   0  11
+ 23   0   0   1
+ 14   0   0   1
+ 23   0   0  21
+Model saved in file: logmodel/exp450.ckpt
+**** EPOCH 006 ****
+2020-05-25 14:19:47.480196
+Train result:
+mean loss: 1.826
+accuracy: 0.152
+avg class acc: 0.114
+EM1_contact:	0.000
+EM3_radius:	0.013
+  EM4_hole:	0.228
+      Good:	0.215
+ 42  17  16 120
+ 71   0   4  15
+ 59   9   1   8
+ 67  28  27  36
+2020-05-25 14:19:58.984518
+Test result:
+mean loss: 1.340
+acc: 0.382
+avg class acc: 0.261
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.045
+      Good:	1.000
+ 48   0   0   0
+ 24   0   0   0
+ 15   0   0   0
+ 42   0   0   2
+Model saved in file: logmodel/exp450.ckpt
+**** EPOCH 007 ****
+2020-05-25 14:20:03.405526
+Train result:
+mean loss: 1.789
+accuracy: 0.127
+avg class acc: 0.098
+EM1_contact:	0.022
+EM3_radius:	0.026
+  EM4_hole:	0.133
+      Good:	0.210
+ 41  14  20 120
+ 70   2   1  17
+ 65   9   2   1
+ 75  35  27  21
+2020-05-25 14:20:14.873115
+Test result:
+mean loss: 1.345
+acc: 0.366
+avg class acc: 0.250
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.000
+      Good:	1.000
+ 48   0   0   0
+ 24   0   0   0
+ 15   0   0   0
+ 44   0   0   0
+Model saved in file: logmodel/exp450.ckpt
+**** EPOCH 008 ****
+2020-05-25 14:20:19.098051
+Train result:
+mean loss: 1.770
+accuracy: 0.154
+avg class acc: 0.116
+EM1_contact:	0.011
+EM3_radius:	0.039
+  EM4_hole:	0.133
+      Good:	0.282
+ 55  10  14 116
+ 67   1   3  19
+ 64   4   3   6
+ 79  40  18  21
+2020-05-25 14:20:30.731043
+Test result:
+mean loss: 1.343
+acc: 0.366
+avg class acc: 0.250
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.000
+      Good:	1.000
+ 48   0   0   0
+ 24   0   0   0
+ 15   0   0   0
+ 44   0   0   0
+Model saved in file: logmodel/exp450.ckpt
+**** EPOCH 009 ****
+2020-05-25 14:20:35.036879
+Train result:
+mean loss: 1.737
+accuracy: 0.119
+avg class acc: 0.089
+EM1_contact:	0.011
+EM3_radius:	0.026
+  EM4_hole:	0.095
+      Good:	0.226
+ 44   9  16 126
+ 75   1   3  11
+ 63   6   2   6
+ 88  27  28  15
+2020-05-25 14:20:46.830597
+Test result:
+mean loss: 1.346
+acc: 0.389
+avg class acc: 0.267
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.068
+      Good:	1.000
+ 48   0   0   0
+ 24   0   0   0
+ 15   0   0   0
+ 41   0   0   3
+Model saved in file: logmodel/exp450.ckpt
+**** EPOCH 010 ****
+2020-05-25 14:20:51.144383
+Train result:
+mean loss: 1.704
+accuracy: 0.154
+avg class acc: 0.112
+EM1_contact:	0.011
+EM3_radius:	0.000
+  EM4_hole:	0.165
+      Good:	0.272
+ 53  11  13 118
+ 74   1   0  15
+ 66   7   0   4
+ 81  42   9  26
+2020-05-25 14:21:02.867055
+Test result:
+mean loss: 1.357
+acc: 0.389
+avg class acc: 0.268
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.091
+      Good:	0.979
+ 47   0   0   1
+ 24   0   0   0
+ 15   0   0   0
+ 40   0   0   4
+Model saved in file: logmodel/exp450.ckpt
+**** EPOCH 011 ****
+2020-05-25 14:21:07.394383
+Train result:
+mean loss: 1.659
+accuracy: 0.190
+avg class acc: 0.139
+EM1_contact:	0.033
+EM3_radius:	0.000
+  EM4_hole:	0.158
+      Good:	0.364
+ 71   7  12 105
+ 76   3   1  10
+ 69   2   0   6
+ 97  19  17  25
+2020-05-25 14:21:18.994322
+Test result:
+mean loss: 1.355
+acc: 0.366
+avg class acc: 0.250
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.000
+      Good:	1.000
+ 48   0   0   0
+ 24   0   0   0
+ 15   0   0   0
+ 44   0   0   0
+Model saved in file: logmodel/exp450.ckpt
+**** EPOCH 012 ****
+2020-05-25 14:21:23.232667
+Train result:
+mean loss: 1.639
+accuracy: 0.150
+avg class acc: 0.108
+EM1_contact:	0.011
+EM3_radius:	0.000
+  EM4_hole:	0.146
+      Good:	0.277
+ 54   5   7 129
+ 77   1   1  11
+ 71   4   0   2
+113  16   6  23
+2020-05-25 14:21:34.619806
+Test result:
+mean loss: 1.340
+acc: 0.366
+avg class acc: 0.250
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.000
+      Good:	1.000
+ 48   0   0   0
+ 24   0   0   0
+ 15   0   0   0
+ 44   0   0   0
+Model saved in file: logmodel/exp450.ckpt
+**** EPOCH 013 ****
+2020-05-25 14:21:39.000257
+Train result:
+mean loss: 1.609
+accuracy: 0.165
+avg class acc: 0.123
+EM1_contact:	0.000
+EM3_radius:	0.026
+  EM4_hole:	0.196
+      Good:	0.272
+ 53   3  10 129
+ 68   0   0  22
+ 66   3   2   6
+ 90  23  14  31
+2020-05-25 14:21:50.534276
+Test result:
+mean loss: 1.339
+acc: 0.366
+avg class acc: 0.250
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.000
+      Good:	1.000
+ 48   0   0   0
+ 24   0   0   0
+ 15   0   0   0
+ 44   0   0   0
+Model saved in file: logmodel/exp450.ckpt
+**** EPOCH 014 ****
+2020-05-25 14:21:54.732992
+Train result:
+mean loss: 1.592
+accuracy: 0.144
+avg class acc: 0.106
+EM1_contact:	0.000
+EM3_radius:	0.013
+  EM4_hole:	0.165
+      Good:	0.246
+ 48   6   6 135
+ 74   0   0  16
+ 72   1   1   3
+109  12  11  26
+2020-05-25 14:22:06.149413
+Test result:
+mean loss: 1.346
+acc: 0.382
+avg class acc: 0.261
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.045
+      Good:	1.000
+ 48   0   0   0
+ 24   0   0   0
+ 15   0   0   0
+ 42   0   0   2
+Model saved in file: logmodel/exp450.ckpt
+**** EPOCH 015 ****
+2020-05-25 14:22:10.348454
+Train result:
+mean loss: 1.576
+accuracy: 0.169
+avg class acc: 0.121
+EM1_contact:	0.011
+EM3_radius:	0.000
+  EM4_hole:	0.133
+      Good:	0.338
+ 66   3   5 121
+ 77   1   0  12
+ 73   1   0   3
+108  20   9  21
+2020-05-25 14:22:21.858560
+Test result:
+mean loss: 1.330
+acc: 0.366
+avg class acc: 0.250
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.000
+      Good:	1.000
+ 48   0   0   0
+ 24   0   0   0
+ 15   0   0   0
+ 44   0   0   0
+Model saved in file: logmodel/exp450.ckpt
+**** EPOCH 016 ****
+2020-05-25 14:22:26.085975
+Train result:
+mean loss: 1.578
+accuracy: 0.133
+avg class acc: 0.094
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.114
+      Good:	0.262
+ 51   3   8 133
+ 72   0   0  18
+ 72   2   0   3
+112  17  11  18
+2020-05-25 14:22:37.500326
+Test result:
+mean loss: 1.332
+acc: 0.366
+avg class acc: 0.250
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.000
+      Good:	1.000
+ 48   0   0   0
+ 24   0   0   0
+ 15   0   0   0
+ 44   0   0   0
+**** EPOCH 017 ****
+2020-05-25 14:22:41.551158
+Train result:
+mean loss: 1.561
+accuracy: 0.181
+avg class acc: 0.128
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.152
+      Good:	0.359
+ 70   8   5 112
+ 80   0   1   9
+ 74   1   0   2
+111  14   9  24
+2020-05-25 14:22:52.932548
+Test result:
+mean loss: 1.332
+acc: 0.366
+avg class acc: 0.250
+EM1_contact:	0.000
+EM3_radius:	0.000
+  EM4_hole:	0.000
+      Good:	1.000
+ 48   0   0   0
+ 24   0   0   0
+ 15   0   0   0
+ 44   0   0   0
+Model saved in file: logmodel/exp450.ckpt
+**** EPOCH 018 ****
+2020-05-25 14:22:57.170895
