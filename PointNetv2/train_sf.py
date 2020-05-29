@@ -533,7 +533,8 @@ class Training_cv:
         self.dataset = trainset
         self.split_no = split_no
         self.min_loss = np.inf
-        self.max_acc = 0
+        self.test_loss = None
+        self.test_acc = None
         self.prediction = None
         self.label = None
 
@@ -618,15 +619,15 @@ class Training_cv:
                     save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}_{i}.ckpt"))
                     log_string("Model saved in file: %s" % save_path)
                     self.min_loss = loss
-                    self.max_acc = acc
                     # log evaluation if the loss is better
-                    self.eval_one_epoch(sess, ops, test_writer)
+                    self.test_loss, self.test_acc = self.eval_one_epoch(sess, ops, test_writer)
                     self.dataset.reset(train=False)
             # print out the final result for this validation split
             log_string('Final Result')
-            log_string(f'Loss {self.min_loss}\n')
-            log_string(f'Accuracy {self.max_acc}\n')
-            log_string(classification_report(self.label, self.prediction, target_names=['Good', 'Contact', 'Radius', 'Hole']))
+            log_string(f'Loss {self.test_loss}\n')
+            log_string(f'Accuracy {self.test_acc}\n')
+            log_string(classification_report(self.label, self.prediction,
+                                             target_names=['Good', 'Contact', 'Radius', 'Hole'], digits=3))
             log_string(confusion_matrix(self.label, self.prediction))
 
     def train_one_epoch(self, sess, ops, train_writer):
@@ -732,7 +733,6 @@ class Training_cv:
                 total_seen_class[l] += 1
                 total_correct_class[l] += (pred_val[i] == l)
             pred_label.extend(pred_val[0:bsize])
-        # TODO: update evaluation prediction self.prediction
         self.prediction = pred_label
         self.label = self.dataset.valid_label[:len(pred_label)]
         log_string('Test result:')
@@ -744,6 +744,7 @@ class Training_cv:
         for i, name in para.classes.items():
             log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
         log_string(confusion_matrix(self.dataset.valid_label[:len(pred_label)], pred_label))
+        return loss_sum / float(total_seen), total_correct / float(total_seen)
 
 
 if __name__ == "__main__":
