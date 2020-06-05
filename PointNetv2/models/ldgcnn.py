@@ -16,6 +16,11 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 para = Parameters()
 
+fine_coarse_mapping = [[1, 0],
+                       [0, 1],
+                       [0, 1],
+                       [0, 1]]
+
 
 # Add input placeholder
 def placeholder_inputs_other(batch_size, num_point):
@@ -156,17 +161,23 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
 def get_loss_weight(pred, label, end_points, classweight):
     """ pred: B*NUM_CLASSES,
         label: B, """
+    loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=pred, labels=label)
+    loss = tf.multiply(loss, classweight)  # multiply class weight with loss for each object
+    mean_classify_loss = tf.reduce_mean(input_tensor=loss)
+    tf.compat.v1.summary.scalar('classify loss', mean_classify_loss)
+
     # Change the label from an integer to the one_hot vector.
     labels = tf.one_hot(indices=label, depth=para.outputClassN)
+    coarse_label = tf.transpose(tf.segment_sum(tf.transpose(labels), tf.constant([0, 1, 1, 1])))
+    print('coarse size ', coarse_label.size())
 
-    # Calculate the loss based on cross entropy method.
-    loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=labels, logits=pred, label_smoothing=0.2)
-    loss = tf.multiply(loss, classweight)  # multiply class weight with loss for each object
+    pred_prob = tf.nn.softmax(pred)
+    coarse_prob = tf.matmul(pred_prob, fine_coarse_mapping)
+    coarse_loss = tf.compat.v1.nn.softmax_cross_entropy_with_logits_v2(labels=coarse_label, logits=coarse_prob)
+    mean_coarse_loss = tf.reduce_mean(input_tensor=coarse_loss)
+    tf.compat.v1.summary.scalar('coarse loss', mean_coarse_loss)
 
-    # Calculate the mean loss of a batch input.
-    mean_classify_loss = tf.reduce_mean(loss)
-    tf.compat.v1.summary.scalar('classify loss', mean_classify_loss)
-    return mean_classify_loss
+    return mean_classify_loss + mean_coarse_loss
 
 
 def get_para_num():
