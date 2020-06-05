@@ -170,7 +170,7 @@ def get_loss_weight(pred, label, end_points, classweight):
     labels = tf.one_hot(indices=label, depth=para.outputClassN)
     print('labels one hot', labels.get_shape())
     print('transpose ', tf.transpose(labels).get_shape())
-    print(tf.math.segment_sum(tf.transpose(labels)))
+    print(tf.math.segment_sum(tf.transpose(labels), tf.constant([0, 1, 1, 1])))
     coarse_label = tf.transpose(tf.math.segment_sum(tf.transpose(labels), tf.constant([0, 1, 1, 1])))
     print('coarse size ', coarse_label.get_shape())
 
