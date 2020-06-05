@@ -168,18 +168,14 @@ def get_loss_weight(pred, label, end_points, classweight):
 
     # Change the label from an integer to the one_hot vector.
     labels = tf.one_hot(indices=label, depth=para.outputClassN)
-    print('labels one hot', labels.get_shape())
-    print('transpose ', tf.transpose(labels).get_shape())
-    print(tf.math.unsorted_segment_sum(tf.transpose(labels), tf.constant([0, 1, 1, 1]), num_segments=2))
     coarse_label = tf.transpose(tf.math.unsorted_segment_sum(tf.transpose(labels),
                                                              tf.constant([0, 1, 1, 1]), num_segments=2))
-    print('coarse size ', coarse_label.get_shape())
-
     pred_prob = tf.nn.softmax(pred)
     coarse_prob = tf.matmul(pred_prob, fine_coarse_mapping)
     coarse_loss = tf.compat.v1.nn.softmax_cross_entropy_with_logits_v2(labels=coarse_label, logits=coarse_prob)
     mean_coarse_loss = tf.reduce_mean(input_tensor=coarse_loss)
     tf.compat.v1.summary.scalar('coarse loss', mean_coarse_loss)
+    tf.compat.v1.summary.scalar('all loss', mean_classify_loss+mean_coarse_loss)
 
     return mean_classify_loss + mean_coarse_loss
 
