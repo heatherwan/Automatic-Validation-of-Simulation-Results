@@ -168,7 +168,7 @@ def get_loss_weight(pred, label, end_points, classweight):
 
     # Change the label from an integer to the one_hot vector.
     labels = tf.one_hot(indices=label, depth=para.outputClassN)
-    coarse_label = tf.transpose(tf.segment_sum(tf.transpose(labels), tf.constant([0, 1, 1, 1])))
+    coarse_label = tf.transpose(tf.math.segment_sum(tf.transpose(labels), tf.constant([0, 1, 1, 1])))
     print('coarse size ', coarse_label.size())
 
     pred_prob = tf.nn.softmax(pred)
