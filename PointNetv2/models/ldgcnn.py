@@ -171,7 +171,8 @@ def get_loss_weight(pred, label, end_points, classweight):
     print('labels one hot', labels.get_shape())
     print('transpose ', tf.transpose(labels).get_shape())
     print(tf.math.unsorted_segment_sum(tf.transpose(labels), tf.constant([0, 1, 1, 1]), num_segments=2))
-    coarse_label = tf.transpose(tf.math.segment_sum(tf.transpose(labels), tf.constant([0, 1, 1, 1])))
+    coarse_label = tf.transpose(tf.math.unsorted_segment_sum(tf.transpose(labels),
+                                                             tf.constant([0, 1, 1, 1]), num_segments=2))
     print('coarse size ', coarse_label.get_shape())
 
     pred_prob = tf.nn.softmax(pred)
