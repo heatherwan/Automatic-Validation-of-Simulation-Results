@@ -16,10 +16,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 para = Parameters()
 
-fine_coarse_mapping = [[1, 0],
-                       [0, 1],
-                       [0, 1],
-                       [0, 1]]
+fine_coarse_mapping = [[1.0, 0.0],
+                       [0.0, 1.0],
+                       [0.0, 1.0],
+                       [0.0, 1.0]]
 
 
 # Add input placeholder
@@ -168,6 +168,9 @@ def get_loss_weight(pred, label, end_points, classweight):
 
     # Change the label from an integer to the one_hot vector.
     labels = tf.one_hot(indices=label, depth=para.outputClassN)
+    print('labels one hot', labels.get_shape())
+    print('transpose ', tf.transpose(labels).get_shape())
+    print(tf.math.segment_sum(tf.transpose(labels)))
     coarse_label = tf.transpose(tf.math.segment_sum(tf.transpose(labels), tf.constant([0, 1, 1, 1])))
     print('coarse size ', coarse_label.get_shape())
 
