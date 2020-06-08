@@ -762,18 +762,18 @@ if __name__ == "__main__":
             tr = Training_cv(trainDataset, i)
             start_time = time.time()
             tr.train()
-            print('test loss: ', tr.test_loss)
+            log_string(f'test loss: {tr.test_loss}')
             all_loss.append(tr.test_loss)
-            print('test acc: ', tr.test_acc)
+            log_string(f'test acc: {tr.test_acc}')
             all_acc.append(tr.test_acc)
-            print('test acgacc: ',tr.result_avgacc)
+            log_string(f'test acgacc: {tr.result_avgacc}')
             all_avgacc.append(tr.result_avgacc)
             end_time = time.time()
             run_time = (end_time - start_time) / 60
             log_string(f'running time:\t{run_time} mins')
-        print('loss: ', np.mean(all_loss))
-        print('acc: ', np.mean(all_acc))
-        print('avgacc: ', np.mean(all_avgacc, axis=0))
+        log_string(f'loss: {np.mean(all_loss)}')
+        log_string(f'acc: {np.mean(all_acc)}')
+        log_string(f'avgacc: {np.mean(all_avgacc, axis=0)}')
 
     else:
         trainDataset = DatasetHDF5(para.TRAIN_FILES, batch_size=para.batchSize,
