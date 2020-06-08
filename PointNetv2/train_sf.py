@@ -773,7 +773,7 @@ if __name__ == "__main__":
             log_string(f'running time:\t{run_time} mins')
         print('loss: ', np.mean(all_loss))
         print('acc: ', np.mean(all_acc))
-        print('avgacc: ', np.mean(all_avgacc, axis=1))
+        print('avgacc: ', np.mean(all_avgacc, axis=0))
 
     else:
         trainDataset = DatasetHDF5(para.TRAIN_FILES, batch_size=para.batchSize,
