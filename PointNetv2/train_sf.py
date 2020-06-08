@@ -536,6 +536,7 @@ class Training_cv:
         self.test_acc = None
         self.prediction = None
         self.label = None
+        self.result_avgacc = None
 
     def train(self):
         with tf.Graph().as_default():
@@ -625,9 +626,11 @@ class Training_cv:
             log_string('Final Result')
             log_string(f'Loss {self.test_loss}\n')
             log_string(f'Accuracy {self.test_acc}\n')
+            matrix = confusion_matrix(self.label, self.prediction)
+            self.result_avgacc = matrix.diagonal() / matrix.sum(axis=1)
             log_string(classification_report(self.label, self.prediction,
                                              target_names=['Good', 'Contact', 'Radius', 'Hole'], digits=3))
-            log_string(confusion_matrix(self.label, self.prediction))
+            log_string(matrix)
 
     def train_one_epoch(self, sess, ops, train_writer):
         """ ops: dict mapping from string to tf ops """
@@ -748,19 +751,30 @@ class Training_cv:
 
 if __name__ == "__main__":
     if para.validation:
-        # TODO implement cross validation split
         trainDataset = DatasetHDF5_Kfold(para.TRAIN_FILES, batch_size=para.batchSize,
                                          npoints=para.pointNumber, dim=para.dim, shuffle=True)
-
+        all_loss = []
+        all_acc = []
+        all_avgacc = []
         for i in range(para.split_num):
             log_string(f'split {i} result: \n')
             trainDataset.set_data(i)
             tr = Training_cv(trainDataset, i)
             start_time = time.time()
             tr.train()
+            print(tr.test_loss)
+            all_loss.append(tr.test_loss)
+            print(tr.test_acc)
+            all_acc.append(tr.test_acc)
+            print(tr.result_avgacc)
+            all_avgacc.append(tr.result_avgacc)
             end_time = time.time()
             run_time = (end_time - start_time) / 60
             log_string(f'running time:\t{run_time} mins')
+        print('loss: ', np.mean(all_loss))
+        print('acc ', np.mean(all_acc))
+        print('avgacc: ', np.mean(all_avgacc))
+        
     else:
         trainDataset = DatasetHDF5(para.TRAIN_FILES, batch_size=para.batchSize,
                                    npoints=para.pointNumber, dim=para.dim, shuffle=True)

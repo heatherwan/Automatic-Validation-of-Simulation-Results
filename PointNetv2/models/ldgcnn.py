@@ -180,7 +180,7 @@ def get_loss_weight(pred, label, end_points, classweight):
         return mean_classify_loss + mean_coarse_loss
     else:
         return mean_classify_loss
-    
+
 
 def get_para_num():
     total_parameters = 0
