@@ -176,9 +176,11 @@ def get_loss_weight(pred, label, end_points, classweight):
     mean_coarse_loss = tf.reduce_mean(input_tensor=coarse_loss)
     tf.compat.v1.summary.scalar('coarse loss', mean_coarse_loss)
     tf.compat.v1.summary.scalar('all loss', mean_classify_loss+mean_coarse_loss)
-
-    return mean_classify_loss + mean_coarse_loss
-
+    if para.binary_loss:
+        return mean_classify_loss + mean_coarse_loss
+    else:
+        return mean_classify_loss
+    
 
 def get_para_num():
     total_parameters = 0

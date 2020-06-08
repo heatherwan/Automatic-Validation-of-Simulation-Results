@@ -166,7 +166,7 @@ class Training:
                     min_loss = loss
                     self.eval_one_epoch(sess, ops, test_writer)
                     self.testDataset.reset()
-                    
+
             # Save the extracted global feature
             if para.model == 'ldgcnn_cls':
                 self.save_global_feature(sess, ops, saver, end_points)
