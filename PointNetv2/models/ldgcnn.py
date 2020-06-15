@@ -45,11 +45,12 @@ def calc_ldgcnn_feature(point_cloud, is_training, bn_decay=None):
 
     point_cloud = tf_util.batch_norm_for_conv2d(point_cloud_wo_SF, is_training=is_training,
                                                 scope='BNConcat', bn_decay=bn_decay)
-
+    print(point_cloud.get_shape)
     # # 1. graph for first EdgeConv B N C=6
-    adj_matrix = tf_util.pairwise_distance(point_cloud[:, :, :para.dim])  # B N C=6 => B*N*N
+    adj_matrix = tf_util.pairwise_distance(point_cloud)  # B N C=6 => B*N*N
     nn_idx = tf_util.knn(adj_matrix, k=para.k)
-
+    print(adj_matrix.get_shape)
+    print(minSF.get_shape)
     # get the distance to minSF of 1024 points
     allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
     end_points['knn1'] = allSF_dist
