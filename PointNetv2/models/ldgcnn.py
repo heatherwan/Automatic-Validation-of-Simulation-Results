@@ -41,8 +41,9 @@ def calc_ldgcnn_feature(point_cloud, is_training, bn_decay=None):
 
     end_points = {}
     minSF = tf.reshape(tf.math.argmin(point_cloud[:, :, 3], axis=1), (-1, 1))
+    point_cloud_wo_SF = tf.concat([point_cloud[:, :, :3], point_cloud[:, :, 4:]], axis=-1)
 
-    point_cloud = tf_util.batch_norm_for_conv2d(point_cloud, is_training=is_training,
+    point_cloud = tf_util.batch_norm_for_conv2d(point_cloud_wo_SF, is_training=is_training,
                                                 scope='BNConcat', bn_decay=bn_decay)
 
     # # 1. graph for first EdgeConv B N C=6
@@ -184,7 +185,7 @@ def get_loss_weight(pred, label, end_points, classweight):
     coarse_loss = tf.compat.v1.nn.softmax_cross_entropy_with_logits_v2(labels=coarse_label, logits=coarse_prob)
     mean_coarse_loss = tf.reduce_mean(input_tensor=coarse_loss)
     tf.compat.v1.summary.scalar('coarse loss', mean_coarse_loss)
-    tf.compat.v1.summary.scalar('all loss', mean_classify_loss+mean_coarse_loss)
+    tf.compat.v1.summary.scalar('all loss', mean_classify_loss + mean_coarse_loss)
 
     if para.binary_loss:
         return mean_classify_loss + mean_coarse_loss
