@@ -143,4 +143,5 @@ def get_para_num():
         for dim in shape:
             variable_parametes *= dim
         total_parameters += variable_parametes
-    print(f'Total parameters number is {total_parameters}')
+        # print(f'Total parameters number is {total_parameters}')
+        return total_parameters
