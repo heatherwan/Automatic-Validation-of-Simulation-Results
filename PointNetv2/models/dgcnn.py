@@ -40,8 +40,6 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
 
     # # 2. graph for first EdgeConv with transform(x,y,z), SF, distance, minSF
     point_cloud_all = tf.concat(axis=2, values=[point_cloud_transform, point_cloud[:, :, 3:para.dim]])
-    point_cloud_all = tf_util.batch_norm_for_conv2d(point_cloud_all, is_training=is_training,
-                                                    scope='BNConcat', bn_decay=bn_decay)
 
     adj_matrix = tf_util.pairwise_distance(point_cloud_all)  # B N C=6
     nn_idx = tf_util.knn(adj_matrix, k=para.k)
@@ -125,7 +123,7 @@ def get_loss_weight(pred, label, end_points, classweight):
     """ pred: B*NUM_CLASSES,
       label: B, """
     labels = tf.one_hot(indices=label, depth=para.outputClassN)
-    loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=labels, logits=pred, label_smoothing=0.2)
+    loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=labels, logits=pred, label_smoothing=0.25)
     loss = tf.multiply(loss, classweight)  # multiply class weight with loss for each object
 
     mean_classify_loss = tf.reduce_mean(input_tensor=loss)
