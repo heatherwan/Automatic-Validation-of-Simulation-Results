@@ -53,16 +53,16 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
                                                 group_num=para.group_num,
                                                 scope=f'PConv1_{i + 1}')
 
-    # second stage: 2 PPool, 3 EnhancedPConv
-    all_xyz, all_points = densepoint_module(all_xyz, all_points, is_training, bn_decay,
-                                            npoint=128, radius=0.32, nsample=64, mlp=para.k_add * 4 - 3,
-                                            scope='PPool3', ppool=True)
-
-    for i in range(4):  # B 128 1 93 -> 24
-        all_xyz, all_points = densepoint_module(all_xyz, all_points, is_training, bn_decay,
-                                                npoint=128, radius=0.39, nsample=16, mlp=para.k_add * 4,
-                                                group_num=para.group_num,
-                                                scope=f'PConv2_{i + 1}')
+    # # second stage: 2 PPool, 3 EnhancedPConv
+    # all_xyz, all_points = densepoint_module(all_xyz, all_points, is_training, bn_decay,
+    #                                         npoint=128, radius=0.32, nsample=64, mlp=para.k_add * 4 - 3,
+    #                                         scope='PPool3', ppool=True)
+    #
+    # for i in range(4):  # B 128 1 93 -> 24
+    #     all_xyz, all_points = densepoint_module(all_xyz, all_points, is_training, bn_decay,
+    #                                             npoint=128, radius=0.39, nsample=16, mlp=para.k_add * 4,
+    #                                             group_num=para.group_num,
+    #                                             scope=f'PConv2_{i + 1}')
 
     l3_points = densepoint_module(all_xyz, all_points, is_training, bn_decay,
                                   mlp=512, scope='GloPool')
