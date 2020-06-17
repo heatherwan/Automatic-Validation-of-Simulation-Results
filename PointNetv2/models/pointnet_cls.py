@@ -79,12 +79,11 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     return net, end_points
 
 
-def get_loss_weight(pred, label, end_points, classweight, reg_weight=0.001):
+def get_loss(pred, label, end_points, reg_weight=0.001):
     """ pred:   Batchsize*NUM_CLASSES,   probabilities for each class for B objects
         label:  Batchsize,               real label for B object
     """
     loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=pred, labels=label)
-    loss = tf.multiply(loss, classweight)  # multiply class weight with loss for each object
     mean_classify_loss = tf.reduce_mean(input_tensor=loss)
     tf.compat.v1.summary.scalar('classify loss', mean_classify_loss)
 
@@ -114,5 +113,5 @@ def get_para_num():
 if __name__ == '__main__':
     with tf.Graph().as_default():
         inputs = tf.zeros((32, 1024, 3))
-        outputs = get_model(inputs, tf.constant(True))
+        outputs = get_model_other(inputs, tf.constant(True))
         print(outputs)

@@ -82,17 +82,37 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     return net, end_points
 
 
-def get_loss_weight(pred, label, end_points, classweight):
+def get_loss(pred, label, end_points):
     """ pred: B*NUM_CLASSES,
-      label: B, """
+        label: B, """
+    # Change the label from an integer to the one_hot vector.
     labels = tf.one_hot(indices=label, depth=para.outputClassN)
-    loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=labels, logits=pred, label_smoothing=0.2)
-    loss = tf.multiply(loss, classweight)  # multiply class weight with loss for each object
+
+    # # without smoothing
+    # loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=pred, labels=label)
+
+    # with smoothing
+    loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=labels, logits=pred,
+                                                     label_smoothing=para.loss_smoothing)
 
     mean_classify_loss = tf.reduce_mean(input_tensor=loss)
     tf.compat.v1.summary.scalar('classify loss', mean_classify_loss)
 
-    return mean_classify_loss
+    # make coarse label
+    coarse_label = tf.transpose(tf.math.unsorted_segment_sum(tf.transpose(labels),
+                                                             tf.constant([0, 1, 1, 1]), num_segments=2))
+    pred_prob = tf.nn.softmax(pred)
+    coarse_prob = tf.matmul(pred_prob, para.fine_coarse_mapping)
+    coarse_loss = tf.compat.v1.nn.softmax_cross_entropy_with_logits_v2(labels=coarse_label, logits=coarse_prob)
+    mean_coarse_loss = tf.reduce_mean(input_tensor=coarse_loss)
+    tf.compat.v1.summary.scalar('coarse loss', mean_coarse_loss)
+
+    tf.compat.v1.summary.scalar('all loss', mean_classify_loss + mean_coarse_loss)
+
+    if para.binary_loss:
+        return mean_classify_loss + mean_coarse_loss
+    else:
+        return mean_classify_loss
 
 
 def get_para_num():
@@ -104,4 +124,5 @@ def get_para_num():
         for dim in shape:
             variable_parametes *= dim
         total_parameters += variable_parametes
+    # print(f'Total parameters number is {total_parameters}')
     return total_parameters

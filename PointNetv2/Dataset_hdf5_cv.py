@@ -43,8 +43,6 @@ class DatasetHDF5_Kfold(object):
     def init_data(self, filename):
         self.current_data, self.current_label = provider.load_h5_other(filename)
         self.current_label = np.squeeze(self.current_label)
-        # get weight for each class
-        self.weight_dict = provider.weight_dict_fc(self.current_label)
 
     def set_data(self, split):
         self.train_data = self.current_data[self.trainvalid_index[split][0]]

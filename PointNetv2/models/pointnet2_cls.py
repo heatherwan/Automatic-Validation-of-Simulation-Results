@@ -1,15 +1,16 @@
 """
-This is a tensorflow implementation of densepoint
-Reference code: https://github.com/Yochengliu/DensePoint
+This is a modified for more features implementation of pointnet2
+Reference code: https://github.com/charlesq34/pointnet2/
 @author: Wanting Lin
 
 """
-import tensorflow as tf
-import numpy as np
-import sys
 import os
-from utils import tf_util
+import sys
+
+import tensorflow as tf
+
 from Parameters import Parameters
+from utils import tf_util
 from utils.pointnet_tf_util import pointnet_sa_module, pointnet_sa_module_msg
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -28,17 +29,8 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     """
         PointNet2 with multi-scale grouping
         Semantic segmentation network that uses feature propogation layers
+    """
 
-        Parameters
-        ----------
-        num_classes: int
-            Number of semantics classes to predict over -- size of softmax classifier that run for each point
-        input_channels: int = 6
-            Number of input channels in the feature descriptor for each point.  If the point cloud is Nx9, this
-            value should be 6 as in an Nx9 point cloud, 3 of the channels are xyz, and 6 are feature descriptors
-        use_xyz: bool = True
-            Whether or not to use the xyz position of a point as a feature
-        """
     batch_size = point_cloud.get_shape()[0]  # .value
     end_points = {}
 
@@ -74,17 +66,37 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     return net, end_points
 
 
-def get_loss_weight(pred, label, end_points, classweight):
+def get_loss(pred, label, end_points):
     """ pred: B*NUM_CLASSES,
-      label: B, """
+        label: B, """
+    # Change the label from an integer to the one_hot vector.
     labels = tf.one_hot(indices=label, depth=para.outputClassN)
-    loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=labels, logits=pred, label_smoothing=0.2)
-    loss = tf.multiply(loss, classweight)  # multiply class weight with loss for each object
+
+    # # without smoothing
+    # loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=pred, labels=label)
+
+    # with smoothing
+    loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=labels, logits=pred,
+                                                     label_smoothing=para.loss_smoothing)
 
     mean_classify_loss = tf.reduce_mean(input_tensor=loss)
     tf.compat.v1.summary.scalar('classify loss', mean_classify_loss)
 
-    return mean_classify_loss
+    # make coarse label
+    coarse_label = tf.transpose(tf.math.unsorted_segment_sum(tf.transpose(labels),
+                                                             tf.constant([0, 1, 1, 1]), num_segments=2))
+    pred_prob = tf.nn.softmax(pred)
+    coarse_prob = tf.matmul(pred_prob, para.fine_coarse_mapping)
+    coarse_loss = tf.compat.v1.nn.softmax_cross_entropy_with_logits_v2(labels=coarse_label, logits=coarse_prob)
+    mean_coarse_loss = tf.reduce_mean(input_tensor=coarse_loss)
+    tf.compat.v1.summary.scalar('coarse loss', mean_coarse_loss)
+
+    tf.compat.v1.summary.scalar('all loss', mean_classify_loss + mean_coarse_loss)
+
+    if para.binary_loss:
+        return mean_classify_loss + mean_coarse_loss
+    else:
+        return mean_classify_loss
 
 
 def get_para_num():
@@ -96,4 +108,5 @@ def get_para_num():
         for dim in shape:
             variable_parametes *= dim
         total_parameters += variable_parametes
-    print(f'Total parameters number is {total_parameters}')
+    # print(f'Total parameters number is {total_parameters}')
+    return total_parameters
