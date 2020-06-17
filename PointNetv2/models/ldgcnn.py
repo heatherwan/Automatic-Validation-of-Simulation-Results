@@ -26,7 +26,7 @@ def placeholder_inputs_other(batch_size, num_point):
 
 
 # Input point cloud and output the global feature
-def calc_ldgcnn_feature(point_cloud, is_training, bn_decay=None):
+def get_model_other(point_cloud, is_training, bn_decay=None):
     """
       B: batch size;
       N: number of points,
