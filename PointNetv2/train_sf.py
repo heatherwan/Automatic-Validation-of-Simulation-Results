@@ -358,7 +358,7 @@ class Training_cv:
 
                 loss, acc = self.train_one_epoch(sess, ops, train_writer)
                 self.dataset.reset()
-                self.test_loss, self.test_acc = self.eval_one_epoch(sess, ops, test_writer)
+                test_loss, test_acc = self.eval_one_epoch(sess, ops, test_writer)
                 self.dataset.reset(train=False)
 
                 if loss < self.min_loss:  # save the min loss model
@@ -366,6 +366,7 @@ class Training_cv:
                     log_string("Model saved in file: %s" % save_path)
                     self.min_loss = loss
                     # log evaluation if the loss is better
+                    self.test_loss, self.test_acc = test_loss, test_acc
                     # self.test_loss, self.test_acc = self.eval_one_epoch(sess, ops, test_writer)
                     # self.dataset.reset(train=False)
             # print out the final result for this validation split
