@@ -163,10 +163,6 @@ class Training:
                     self.eval_one_epoch(sess, ops, test_writer)
                     self.testDataset.reset()
 
-            # Save the extracted global feature
-            if para.model == 'ldgcnn_cls':
-                self.save_global_feature(sess, ops, saver, end_points)
-
     def train_one_epoch(self, sess, ops, train_writer):
         """ ops: dict mapping from string to tf ops """
         is_training = True
@@ -362,14 +358,16 @@ class Training_cv:
 
                 loss, acc = self.train_one_epoch(sess, ops, train_writer)
                 self.dataset.reset()
+                self.test_loss, self.test_acc = self.eval_one_epoch(sess, ops, test_writer)
+                self.dataset.reset(train=False)
 
                 if loss < self.min_loss:  # save the min loss model
                     save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}_{i}.ckpt"))
                     log_string("Model saved in file: %s" % save_path)
                     self.min_loss = loss
                     # log evaluation if the loss is better
-                    self.test_loss, self.test_acc = self.eval_one_epoch(sess, ops, test_writer)
-                    self.dataset.reset(train=False)
+                    # self.test_loss, self.test_acc = self.eval_one_epoch(sess, ops, test_writer)
+                    # self.dataset.reset(train=False)
             # print out the final result for this validation split
             log_string('Final Result')
             log_string(f'Loss {self.test_loss}\n')
