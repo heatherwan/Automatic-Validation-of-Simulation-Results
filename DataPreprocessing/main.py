@@ -164,7 +164,7 @@ def readfilestoh5(export_filename, train_test_folder, NNeighbors=1024, dim=5, mi
 
                 # set minSF
                 minP = np.zeros(NNeighbors)
-                minP[0] = 10
+                minP[0] = minSF_importance
 
                 # get normals
                 if dim == 8 or dim == 10:
@@ -208,6 +208,105 @@ def readfilestoh5(export_filename, train_test_folder, NNeighbors=1024, dim=5, mi
                                             m_curvature.reshape(-1, 1)), axis=1)
                 all_data.append(other)
             print(f'total find time = {time.time() - now}')
+        data = f.create_dataset("data", data=all_data)
+        label = f.create_dataset("label", data=all_label)
+
+
+def normalize_coordinate(coordinate, distance):
+    mean_coor = np.mean(coordinate[:, :3], axis=0)
+    translate_coor = coordinate[:, :3] - mean_coor
+    max_dist = np.max(np.linalg.norm(translate_coor))
+    normal_coor = translate_coor / max_dist
+
+    mean_SF = np.mean(coordinate[:, 3])
+    translate_SF = coordinate[:, 3] - mean_SF
+    max_SF = np.max(translate_SF)
+    normal_SF = translate_SF / max_SF
+    normal_nearpoint = np.concatenate((normal_coor, normal_SF.reshape(-1, 1)), axis=1)
+
+    mean_dist = np.mean(distance)
+    translate_dist = distance - mean_dist
+    max_distance = np.max(translate_dist)
+    normal_distance = translate_SF/max_distance
+    return normal_nearpoint, normal_distance
+
+
+def readfilestoh5_normal(export_filename, train_test_folder, NNeighbors=1024, dim=5, minSF_importance=10):
+    """
+
+    :param NNeighbors:
+    :param export_filename: .hdf5 filename
+    :param train_test_folder: .vtp files to read
+    :param dim: features output: 5-distance, 6-normal, 7-curvature, 10 normal+curvature
+    :return:
+    """
+
+    export_filename = f'{export_filename}_{NNeighbors}_dim{dim}_normal.hdf5'
+
+    with h5py.File(export_filename, "w") as f:
+        all_data = []
+        all_label = []
+        for num, cat in classes.items():
+            print(cat)
+            now = time.time()
+            files = get_files(train_test_folder, cat)
+            all_label.extend([num] * len(files))
+            print(len(files))
+            for i, filename in enumerate(files):
+                # get points near MinSF point
+                poly, data = readVTP(filename)
+                MinSF = get_MinSF(data)
+                distance, indexes, nearpoints = get_Nearpoints(data, MinSF, NNeighbors)
+
+                normal_nearpoints, normal_distance = normalize_coordinate(nearpoints, distance)
+
+                # set minSF
+                minP = np.zeros(NNeighbors)
+                minP[0] = minSF_importance
+
+                # get normals
+                if dim == 8 or dim == 10:
+                    normals = get_normals(data)[indexes]
+
+                # get gaussian and mean curvature
+                if dim == 7 or dim == 10:
+                    neighborpolys, connected_points = get_neighborpolys(indexes, poly)
+                    mesh = trimesh.Trimesh(vertices=nearpoints[:, 1:], faces=neighborpolys)
+                    k_curvature, m_curvature = get_curvatures(mesh)
+                    # sometimes the selected point is not connected to mesh
+                    if NNeighbors > len(connected_points):
+                        print(f'not connected {NNeighbors - len(connected_points)}')
+                        no_curvature = set(range(1024)) - connected_points
+                        for idx in no_curvature:
+                            k_curvature = np.insert(k_curvature, idx, 0)
+                            m_curvature = np.insert(m_curvature, idx, 0)
+
+                # gather data into hdf5 format
+                if dim == 5:
+                    other = np.concatenate((normal_nearpoints,
+                                            normal_distance.reshape(-1, 1)), axis=1)
+                elif dim == 6:
+                    other = np.concatenate((normal_nearpoints,
+                                            normal_distance.reshape(-1, 1),
+                                            minP.reshape(-1, 1)), axis=1)
+                elif dim == 8:
+                    other = np.concatenate((nearpoints.reshape(NNeighbors, 4),
+                                            distance.reshape(-1, 1),
+                                            normals), axis=1)
+                elif dim == 7:
+                    other = np.concatenate((nearpoints.reshape(NNeighbors, 4),
+                                            distance.reshape(-1, 1),
+                                            k_curvature.reshape(-1, 1),
+                                            m_curvature.reshape(-1, 1)), axis=1)
+                elif dim == 10:
+                    other = np.concatenate((nearpoints.reshape(NNeighbors, 4),
+                                            distance.reshape(-1, 1),
+                                            normals,
+                                            k_curvature.reshape(-1, 1),
+                                            m_curvature.reshape(-1, 1)), axis=1)
+                all_data.append(other)
+            print(f'total find time = {time.time() - now}')
+
         data = f.create_dataset("data", data=all_data)
         label = f.create_dataset("label", data=all_label)
 
@@ -277,14 +376,14 @@ def get_wrong_filename(filenamepath, wrongpath):
 
 
 def get_allfilename(datafolder, type='Train'):
-    data = []
+    alldata = []
     for cls in os.listdir(f'{datafolder}/{type}'):
         for data in os.listdir(os.path.join(f'{datafolder}/{type}', cls)):
-            data.append(os.path.join(f'{datafolder}/{type}', cls, data))
+            alldata.append(os.path.join(f'{datafolder}/{type}', cls, data))
 
     fout = open(os.path.join(resultDir, f'{datafolder}_{type}.txt'), 'w')
     fout.write(f'no\tfilepath\n')
-    for i, train in enumerate(data):
+    for i, train in enumerate(alldata):
         fout.write(f'{i}\t{train}\n')
 
 
@@ -350,7 +449,7 @@ def get_min_SF_graph(knn, ls, NNeighbors=1024):
                                      point_size=5., render_points_as_spheres=True, interpolate_before_map=True)
                 else:
                     point_cloud = pv.PolyData(nearpoints1000[:, 1:])
-                    plotter.add_mesh(point_cloud, scalars=knn[j - 2][i], stitle=f'knn{j-1}',
+                    plotter.add_mesh(point_cloud, scalars=knn[j - 2][i], stitle=f'knn{j - 1}',
                                      point_size=5., render_points_as_spheres=True, interpolate_before_map=True)
 
                 minpoint = pv.PolyData(MinSF[1:])
@@ -363,11 +462,11 @@ def get_min_SF_graph(knn, ls, NNeighbors=1024):
 
 def main():
     # =============generate h5df dataset=========================================
-    export_filename = f"outputdataset/traindataset_651"
-    readfilestoh5(export_filename, 'Fourth_new_data/Train', NNeighbors=1024, dim=6)
-
-    export_filename = f"outputdataset/testdataset_163"
-    readfilestoh5(export_filename, 'Fourth_new_data/Test', NNeighbors=1024, dim=6)
+    # export_filename = f"outputdataset/traindataset_651"
+    # readfilestoh5_normal(export_filename, 'Fourth_new_data/Train', NNeighbors=1024, dim=6, minSF_importance=1)
+    #
+    # export_filename = f"outputdataset/testdataset_fifth_new"
+    # readfilestoh5_normal(export_filename, 'Fifth_new_data/Test_onlynew', NNeighbors=1024, dim=6, minSF_importance=1)
     # ===========================================================================
 
     # ============get visulaization with files in test_same folder===========================
@@ -383,24 +482,36 @@ def main():
 
     # ============get visulaization in dgcnn graph============================
     # sample_num = 163
-    # expname = '428'
+    # expname = '505'
     # knn1 = np.fromfile(f'result_folder/exp{expname}_knn1.txt', sep=" ").reshape(sample_num, 1024)
     # knn2 = np.fromfile(f'result_folder/exp{expname}_knn2.txt', sep=" ").reshape(sample_num, 1024)
     # knn3 = np.fromfile(f'result_folder/exp{expname}_knn3.txt', sep=" ").reshape(sample_num, 1024)
     # knn4 = np.fromfile(f'result_folder/exp{expname}_knn4.txt', sep=" ").reshape(sample_num, 1024)
-    # # knn5 = np.fromfile(f'result_folder/exp{expname}_knn5.txt', sep=" ").reshape(sample_num, 1024)
-    # list = [49, 50, 51, 96, 108, 111, 121]  # 1, 3, 4, 13, 18, 22, 31, 17,30,35,
+    # # # knn5 = np.fromfile(f'result_folder/exp{expname}_knn5.txt', sep=" ").reshape(sample_num, 1024)
+    # # list = [49, 50, 51, 96, 108, 111, 121]  # 1, 3, 4, 13, 18, 22, 31, 17,30,35,
     # list422 = [17, 28, 29, 44, 45, 48, 49, 55, 61, 97, 98, 131, 158, 159, 160]
     # list423 = [21, 44, 55, 57, 97, 98, 112]
     # list424 = [4, 17, 36, 43, 55, 57, 153, 158]
     # list425 = [21, 28, 45, 48, 61, 97, 112, 119, 120, 141]
     # list428 = [17, 55, 97, 98, 158, 159]
-    # get_min_SF_graph([knn1, knn2, knn3, knn4], list428)
+    # list438 = [29, 43, 44, 45, 48, 49, 58, 61, 94, 100, 122, 123, 124, 131, 158, 159]
+    # list505 = [61]#, 61, 62, 63, 64, 65]  # [17, 35, 50, 29, 31, 48, 49, 45, 61]
+    # get_min_SF_graph([knn1, knn2, knn3, knn4], list505)
 
     # =======================================================================================
-    datafolder = 'Fourth_new_data'
-    get_allfilename(datafolder, 'Train')
-    get_allfilename(datafolder, 'Test')
+    # =====================get filename of all train/test folder=============================
+    datafolder = 'Fifth_new_data'
+    # get_allfilename(datafolder, 'Train')
+    get_allfilename(datafolder, 'Test_onlynew')
+
+    # =======================================================================================
+    # filename = 'Fourth_new_data/Test/EM1_contact/10000001_FF_A01751982_2_DFPD-40-S-Stossbelastung_Fv_Max_BREAK.odb__P3701636_REV_2_DECKEL_80-1.vtu.vtp'
+    # poly, data = readVTP(filename)
+    # MinSF = get_MinSF(data)
+    # _, indexes, points512 = get_Nearpoints(data, MinSF, 512)
+    # coord = points512[:, 1:]
+    # dd = spatial.cKDTree(coord).query_ball_point(MinSF[1:], 0.25)
+    # print(len(dd))
 
 
 if __name__ == '__main__':

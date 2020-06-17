@@ -12,6 +12,8 @@ train
 train_3cat
 test_same
 Fourth_new_data
+Fifth_new_data
+UNKNOWN
 # Ignore all STL files
 *.STL
 *.txt
