@@ -523,7 +523,7 @@ if __name__ == "__main__":
         trainDataset = DatasetHDF5(para.TRAIN_FILES, batch_size=para.batchSize,
                                    npoints=para.pointNumber, dim=para.dim, shuffle=True)
         testDataset = DatasetHDF5(para.TEST_FILES, batch_size=para.testBatchSize,
-                                  npoints=para.pointNumber, dim=para.dim, shuffle=False)
+                                  npoints=para.pointNumber, dim=para.dim, shuffle=False, train=False)
         tr = Training(trainDataset, testDataset)
         start_time = time.time()
         tr.train()

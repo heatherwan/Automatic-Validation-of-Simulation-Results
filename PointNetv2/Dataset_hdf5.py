@@ -7,6 +7,7 @@ import os
 import sys
 import numpy as np
 import provider
+from imblearn.over_sampling import RandomOverSampler
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
@@ -20,12 +21,13 @@ class DatasetHDF5(object):
     filename: .hdf5 file
     """
 
-    def __init__(self, filename, batch_size=32, npoints=1024, dim=5, shuffle=True):
+    def __init__(self, filename, batch_size=32, npoints=1024, dim=5, shuffle=True, train=True):
         self.h5_file = filename
         self.batch_size = batch_size
         self.npoints = npoints
         self.shuffle = shuffle
         self.dim = dim
+        self.train = train
 
         self.current_data = None
         self.current_label = None
@@ -50,9 +52,23 @@ class DatasetHDF5(object):
         batch_data[:, :, :3] = jittered_data
         return provider.shuffle_points(batch_data)
 
+    def oversampling(self):
+        ros = RandomOverSampler(random_state=42)
+        reshape_data = self.current_data.reshape(len(self.current_data), -1)
+        print(reshape_data.shape)
+        return ros.fit_resample(reshape_data, self.current_label)
+
     def _load_data_file(self, filename):
         self.current_data, self.current_label = provider.load_h5_other(filename)
         self.current_label = np.squeeze(self.current_label)
+
+        # oversampling less sample class
+        if self.train:
+            self.current_data, self.current_label = self.oversampling()
+            self.current_data = self.current_data.reshape(len(self.current_data), self.npoints, self.dim)
+            unique, counts = np.unique(self.current_label, return_counts=True)
+            class_count = dict(zip(unique, counts))
+            print(f'oversampled class: {class_count}')
         self.batch_idx = 0
         if self.shuffle:
             self.current_data, self.current_label, _ = provider.shuffle_data_other(
@@ -111,11 +127,10 @@ class DatasetHDF5(object):
 
 
 if __name__ == '__main__':
-    d = DatasetHDF5([os.path.join(DATADIR, 'testdataset_154_1024_dim5.hdf5')])
+    d = DatasetHDF5(os.path.join(DATADIR, 'testdataset_163_1024_dim6_normal.hdf5'), dim=6)
     # print(d.shuffle)
     # print(d.has_next_batch())
     while d.has_next_batch():
-        ps_batch, oth_batch, cls_batch = d.next_batch(True)
+        ps_batch, cls_batch = d.next_batch()
         print(ps_batch.shape)
-        print(oth_batch.shape)
         print(cls_batch.shape)
