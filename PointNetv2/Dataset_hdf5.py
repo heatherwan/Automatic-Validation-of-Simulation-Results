@@ -55,7 +55,6 @@ class DatasetHDF5(object):
     def oversampling(self):
         ros = RandomOverSampler(random_state=42)
         reshape_data = self.current_data.reshape(len(self.current_data), -1)
-        print(reshape_data.shape)
         return ros.fit_resample(reshape_data, self.current_label)
 
     def _load_data_file(self, filename):

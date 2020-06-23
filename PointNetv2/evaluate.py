@@ -42,7 +42,7 @@ HOSTNAME = socket.gethostname()
 
 # get dataset
 testDataset = DatasetHDF5(para.TEST_FILES, batch_size=para.testBatchSize,
-                          npoints=para.pointNumber, dim=para.dim, shuffle=False)
+                          npoints=para.pointNumber, dim=para.dim, shuffle=False, train=False)
 
 
 def log_string(out_str):
