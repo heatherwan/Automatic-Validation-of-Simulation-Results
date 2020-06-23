@@ -8,6 +8,7 @@ import sys
 import numpy as np
 import provider
 from sklearn.model_selection import KFold
+from imblearn.over_sampling import RandomOverSampler
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -40,9 +41,21 @@ class DatasetHDF5_Kfold(object):
         self.train_label = None
         self.valid_label = None
 
+    def oversampling(self):
+        ros = RandomOverSampler(random_state=42)
+        reshape_data = self.current_data.reshape(len(self.current_data), -1)
+        return ros.fit_resample(reshape_data, self.current_label)
+
     def init_data(self, filename):
         self.current_data, self.current_label = provider.load_h5_other(filename)
         self.current_label = np.squeeze(self.current_label)
+        # oversampling less sample class
+
+        self.current_data, self.current_label = self.oversampling()
+        self.current_data = self.current_data.reshape(len(self.current_data), self.npoints, self.dim)
+        unique, counts = np.unique(self.current_label, return_counts=True)
+        class_count = dict(zip(unique, counts))
+        print(f'oversampled class: {class_count}')
 
     def set_data(self, split):
         self.train_data = self.current_data[self.trainvalid_index[split][0]]
