@@ -141,12 +141,12 @@ def eval_one_epoch(sess, ops):
             total_correct_class[l] += (pred_val[i] == l)
 
             fout.write(f'{batch_idx * para.testBatchSize + i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t')
-            for num in para.outputClassN:
+            for num in range(para.outputClassN):
                 fout.write(f'{pred_prob2[i][num]:.3f}\t')
             fout.write('\n')
             if pred_val[i] != l:
                 fout2.write(f'{batch_idx * para.testBatchSize + i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t')
-                for num in para.outputClassN:
+                for num in range(para.outputClassN):
                     fout2.write(f'{pred_prob2[i][num]:.3f}\t')
                 fout2.write('\n')
         pred_label.extend(pred_val[0:bsize])
