@@ -22,6 +22,7 @@ class Parameters:
         self.optimizer = 'adam'  # or momentum
         self.decay_step = 20000  # 20000/#sample = around 30 epoch update once
         self.decay_rate = 0.7
+        self.num_votes = 5
 
         # parameters for loss setting
         self.binary_loss = True
