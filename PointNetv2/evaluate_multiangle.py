@@ -117,6 +117,7 @@ def eval_one_epoch(sess, ops):
         cur_batch_label[0:bsize] = batch_label
 
         all_pred_prob = np.zeros((cur_batch_data.shape[0], para.outputClassN))
+
         for vote_idx in range(para.num_votes):
             cur_batch_data[:, :, :3] = provider.rotate_point_cloud_by_angle(cur_batch_data[:, :, :3],
                                                                             vote_idx / float(
@@ -131,6 +132,8 @@ def eval_one_epoch(sess, ops):
             # record result for a batch
             pred_val = np.argmax(logits, 1)  # get the predict class number
             for i in range(bsize):
+                l = batch_label[i]
+                total_seen_class[l] += 1
                 fout.write(f'{batch_idx * para.testBatchSize + i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t')
                 for num in range(para.outputClassN):
                     fout.write(f'{pred_prob[i][num]:.3f}\t')
