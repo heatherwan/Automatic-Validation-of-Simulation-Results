@@ -129,7 +129,7 @@ def eval_one_epoch(sess, ops):
             loss_val, logits, knn_idx = sess.run([ops['loss'], ops['pred'], ops['knn']], feed_dict=feed_dict)
             pred_prob = np.exp(logits) / np.sum(np.exp(logits), axis=1).reshape(para.batchSize, 1)
             print(pred_prob)
-            all_pred_prob += pred_prob
+            all_pred_prob = np.add(all_pred_prob, pred_prob)
             print(all_pred_prob)
             # record result for a batch
             pred_val = np.argmax(logits, 1)  # get the predict class number
