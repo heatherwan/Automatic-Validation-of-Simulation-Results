@@ -142,7 +142,7 @@ def eval_one_epoch(sess, ops):
                 fout.write('\n')
 
         # mean pred and count the class accuracy
-        mean_pred_prob = np.mean(all_pred_prob)
+        mean_pred_prob = all_pred_prob/para.num_votes
         pred_val = np.argmax(mean_pred_prob, 1)  # get the predict class number
         for i in range(bsize):
             l = batch_label[i]
