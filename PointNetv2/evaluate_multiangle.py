@@ -36,7 +36,7 @@ LOG_MODEL = para.logmodelDir
 EVAL = para.evallog
 
 # log file
-LOG_FOUT = open(os.path.join(EVAL, f'{para.expName}_testresult.txt'), 'w')
+LOG_FOUT = open(os.path.join(EVAL, f'{para.expName}_testresult_vote{para.num_votes}.txt'), 'w')
 LOG_FOUT.write(str(para.__dict__) + '\n')
 
 HOSTNAME = socket.gethostname()
@@ -103,11 +103,11 @@ def eval_one_epoch(sess, ops):
     pred_label = []
     batch_idx = 0
 
-    fout = open(os.path.join(EVAL, f'{para.expName[:6]}_all_pred_label.txt'), 'w')
+    fout = open(os.path.join(EVAL, f'{para.expName[:6]}_all_pred_label_vote{para.num_votes}.txt'), 'w')
     fout.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
-    fout2 = open(os.path.join(EVAL, f'{para.expName[:6]}_wrong_pred_prob.txt'), 'w')
-    fout2.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
-    all_knn_idx = {}
+    # fout2 = open(os.path.join(EVAL, f'{para.expName[:6]}_wrong_pred_prob.txt'), 'w')
+    # fout2.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
+    # all_knn_idx = {}
     while testDataset.has_next_batch():
         batch_data, batch_label = testDataset.next_batch(augment=False)
         bsize = batch_data.shape[0]
@@ -152,9 +152,9 @@ def eval_one_epoch(sess, ops):
                                      target_names=['Good', 'Contact', 'Radius', 'Hole'], digits=3))
     log_string(confusion_matrix(testDataset.current_label[:len(pred_label)], pred_label))
 
-    if para.model == "dgcnn" or para.model == 'ldgcnn' or para.model == 'ldgcnn_2layer':
-        for k, v in all_knn_idx.items():
-            v.tofile(f'evallog/{para.expName[:6]}_{k}.txt', sep=" ", format="%.3f")
+    # if para.model == "dgcnn" or para.model == 'ldgcnn' or para.model == 'ldgcnn_2layer':
+    #     for k, v in all_knn_idx.items():
+    #         v.tofile(f'evallog/{para.expName[:6]}_{k}.txt', sep=" ", format="%.3f")
 
 
 if __name__ == '__main__':
