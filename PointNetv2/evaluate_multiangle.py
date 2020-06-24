@@ -7,6 +7,7 @@ import time
 import numpy as np
 import tensorflow as tf
 from sklearn.metrics import confusion_matrix
+from sklearn.metrics import classification_report
 from datetime import datetime
 
 import provider
@@ -100,10 +101,7 @@ def eval_one_epoch(sess, ops):
     total_correct = 0
     total_seen = 0
     pred_label = []
-    loss_sum = 0
     batch_idx = 0
-    total_seen_class = [0 for _ in range(para.outputClassN)]
-    total_correct_class = [0 for _ in range(para.outputClassN)]
 
     fout = open(os.path.join(EVAL, f'{para.expName[:6]}_all_pred_label.txt'), 'w')
     fout.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
@@ -128,39 +126,30 @@ def eval_one_epoch(sess, ops):
 
             loss_val, logits, knn_idx = sess.run([ops['loss'], ops['pred'], ops['knn']], feed_dict=feed_dict)
             pred_prob = np.exp(logits) / np.sum(np.exp(logits), axis=1).reshape(para.batchSize, 1)
-            print(pred_prob)
             all_pred_prob = np.add(all_pred_prob, pred_prob)
-            print(all_pred_prob)
             # record result for a batch
             pred_val = np.argmax(logits, 1)  # get the predict class number
             for i in range(bsize):
-                l = batch_label[i]
-                total_seen_class[l] += 1
-                fout.write(f'{batch_idx * para.testBatchSize + i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t')
+                fout.write(f'{batch_idx * para.testBatchSize + i:^5d}\t{pred_val[i]:^5d}\t{batch_label[i]:^5d}\t')
                 for num in range(para.outputClassN):
                     fout.write(f'{pred_prob[i][num]:.3f}\t')
                 fout.write('\n')
 
         # mean pred and count the class accuracy
         mean_pred_prob = all_pred_prob/para.num_votes
-        pred_val = np.argmax(mean_pred_prob, 1)  # get the predict class number
-        for i in range(bsize):
-            l = batch_label[i]
-            total_seen_class[l] += 1
-            total_correct_class[l] += (pred_val[i] == l)
-        correct_count = np.sum(pred_val[0:bsize] == batch_label[0:bsize])
+        mean_pred_val = np.argmax(mean_pred_prob, 1)  # get the predict class number
+
+        pred_label.extend(mean_pred_val[0:bsize])
+        batch_idx += 1
+        correct_count = np.sum(mean_pred_val[0:bsize] == batch_label[0:bsize])
         total_correct += correct_count
         total_seen += bsize
-        pred_label.extend(pred_val[0:bsize])
-        batch_idx += 1
 
     log_string('Test result:')
     log_string(f'acc: {(total_correct / float(total_seen)):.3f}')
-    class_accuracies = np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float)
-    avg_class_acc = np.mean(class_accuracies)
-    log_string(f'avg class acc: {avg_class_acc:.3f}')
-    for i, name in para.classes.items():
-        log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
+    log_string(f'avg class acc: \n')
+    log_string(classification_report(testDataset.current_label[:len(pred_label)], pred_label,
+                                     target_names=['Good', 'Contact', 'Radius', 'Hole'], digits=3))
     log_string(confusion_matrix(testDataset.current_label[:len(pred_label)], pred_label))
 
     if para.model == "dgcnn" or para.model == 'ldgcnn' or para.model == 'ldgcnn_2layer':
