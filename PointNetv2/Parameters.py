@@ -11,12 +11,12 @@ class Parameters:
         # ==============Network setting===========================
         self.gpu = True
         self.model = 'dgcnn'  # 'pointnet_cls'# 'dgcnn' # 'lgdcnn' # 'lgdcnn_cls' #'densepoint_tf'
-        self.outputClassN = 4
+        self.outputClassN = 3
         self.pointNumber = 1024
         self.dim = 6  # 3 coordinate, 1 safety factor, 1 distance from Min SF, 1 minSF, 3 normals, 2 curcatures
         self.batchSize = 25
         self.testBatchSize = 25
-        self.max_epoch = 200
+        self.max_epoch = 60
         self.learningRate = 2e-3
         self.momentum = 0.9
         self.optimizer = 'adam'  # or momentum
@@ -64,8 +64,8 @@ class Parameters:
                 os.mkdir(self.evallog)
 
         self.dataDir = os.path.join(BASE_DIR, 'datasets')
-        self.TRAIN_FILES = [os.path.join(self.dataDir, 'traindataset_814_3class_1024_dim6_normal.hdf5')]
-        self.TEST_FILES = [os.path.join(self.dataDir, 'testdataset_855_3class_1024_dim6_normal.hdf5')]
+        self.TRAIN_FILES = os.path.join(self.dataDir, 'traindataset_814_3class_1024_dim6_normal.hdf5')
+        self.TEST_FILES = os.path.join(self.dataDir, 'testdataset_855_3class_1024_dim6_normal.hdf5')
 
         if self.outputClassN == 4:
             self.classes = {1: 'EM1_contact', 2: 'EM3_radius', 3: 'EM4_hole', 0: 'Good'}
