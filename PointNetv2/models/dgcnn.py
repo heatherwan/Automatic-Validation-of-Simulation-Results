@@ -143,8 +143,12 @@ def get_loss(pred, label, end_points):
     tf.compat.v1.summary.scalar('classify loss', mean_classify_loss)
 
     # make coarse label
-    coarse_label = tf.transpose(tf.math.unsorted_segment_sum(tf.transpose(labels),
-                                                             tf.constant([0, 1, 1, 1]), num_segments=2))
+    if para.outputClassN == 4:
+        coarse_label = tf.transpose(tf.math.unsorted_segment_sum(tf.transpose(labels),
+                                                                 tf.constant([0, 1, 1, 1]), num_segments=2))
+    else:
+        coarse_label = tf.transpose(tf.math.unsorted_segment_sum(tf.transpose(labels),
+                                                                 tf.constant([0, 1, 1]), num_segments=2))
     pred_prob = tf.nn.softmax(pred)
     coarse_prob = tf.matmul(pred_prob, para.fine_coarse_mapping)
     coarse_loss = tf.compat.v1.nn.softmax_cross_entropy_with_logits_v2(labels=coarse_label, logits=coarse_prob)
