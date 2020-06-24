@@ -116,6 +116,7 @@ def eval_one_epoch(sess, ops):
         cur_batch_data[0:bsize, ...] = batch_data[:, :, :para.dim]
         cur_batch_label[0:bsize] = batch_label
 
+        all_pred_prob = np.zeros((cur_batch_data.shape[0], para.outputClassN))
         for vote_idx in range(para.num_votes):
             cur_batch_data[:, :, :3] = provider.rotate_point_cloud_by_angle(cur_batch_data[:, :, :3],
                                                                             vote_idx / float(
@@ -124,50 +125,42 @@ def eval_one_epoch(sess, ops):
                          ops['labels_pl']: cur_batch_label,
                          ops['is_training_pl']: is_training}
 
-            loss_val, pred_prob, knn_idx = sess.run([ops['loss'], ops['pred'], ops['knn']], feed_dict=feed_dict)
-
-            pred_prob2 = np.exp(pred_prob) / np.sum(np.exp(pred_prob), axis=1).reshape(para.batchSize, 1)
-            pred_val = np.argmax(pred_prob, 1)  # get the predict class number
-            correct_count = np.sum(pred_val[0:bsize] == batch_label[0:bsize])
-            total_correct += correct_count
-            total_seen += bsize
-            loss_sum += (loss_val * bsize)
-
-            if batch_idx == 0:
-                all_knn_idx = knn_idx
-            else:
-                for key, value in all_knn_idx.items():
-                    all_knn_idx[key] = np.append(all_knn_idx[key], knn_idx[key][0:bsize], axis=0)
-
+            loss_val, logits, knn_idx = sess.run([ops['loss'], ops['pred'], ops['knn']], feed_dict=feed_dict)
+            pred_prob = np.exp(logits) / np.sum(np.exp(logits), axis=1).reshape(para.batchSize, 1)
+            all_pred_prob += pred_prob
+            # record result for a batch
+            pred_val = np.argmax(logits, 1)  # get the predict class number
             for i in range(bsize):
-                l = batch_label[i]
-                total_seen_class[l] += 1
-                total_correct_class[l] += (pred_val[i] == l)
-
                 fout.write(f'{batch_idx * para.testBatchSize + i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t')
                 for num in range(para.outputClassN):
-                    fout.write(f'{pred_prob2[i][num]:.3f}\t')
+                    fout.write(f'{pred_prob[i][num]:.3f}\t')
                 fout.write('\n')
-                if pred_val[i] != l:
-                    fout2.write(f'{batch_idx * para.testBatchSize + i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t')
-                    for num in range(para.outputClassN):
-                        fout2.write(f'{pred_prob2[i][num]:.3f}\t')
-                    fout2.write('\n')
-            pred_label.extend(pred_val[0:bsize])
-            batch_idx += 1
-        log_string('Test result:')
-        log_string(f'mean loss: {(loss_sum / float(total_seen)):.3f}')
-        log_string(f'acc: {(total_correct / float(total_seen)):.3f}')
-        class_accuracies = np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float)
-        avg_class_acc = np.mean(class_accuracies)
-        log_string(f'avg class acc: {avg_class_acc:.3f}')
-        for i, name in para.classes.items():
-            log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
-        log_string(confusion_matrix(testDataset.current_label[:len(pred_label)], pred_label))
 
-        if para.model == "dgcnn" or para.model == 'ldgcnn' or para.model == 'ldgcnn_2layer':
-            for k, v in all_knn_idx.items():
-                v.tofile(f'evallog/{para.expName[:6]}_{k}.txt', sep=" ", format="%.3f")
+        # mean pred and count the class accuracy
+        mean_pred_prob = np.mean(all_pred_prob)
+        pred_val = np.argmax(mean_pred_prob, 1)  # get the predict class number
+        for i in range(bsize):
+            l = batch_label[i]
+            total_seen_class[l] += 1
+            total_correct_class[l] += (pred_val[i] == l)
+        correct_count = np.sum(pred_val[0:bsize] == batch_label[0:bsize])
+        total_correct += correct_count
+        total_seen += bsize
+        pred_label.extend(pred_val[0:bsize])
+        batch_idx += 1
+
+    log_string('Test result:')
+    log_string(f'acc: {(total_correct / float(total_seen)):.3f}')
+    class_accuracies = np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float)
+    avg_class_acc = np.mean(class_accuracies)
+    log_string(f'avg class acc: {avg_class_acc:.3f}')
+    for i, name in para.classes.items():
+        log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
+    log_string(confusion_matrix(testDataset.current_label[:len(pred_label)], pred_label))
+
+    if para.model == "dgcnn" or para.model == 'ldgcnn' or para.model == 'ldgcnn_2layer':
+        for k, v in all_knn_idx.items():
+            v.tofile(f'evallog/{para.expName[:6]}_{k}.txt', sep=" ", format="%.3f")
 
 
 if __name__ == '__main__':
