@@ -44,12 +44,12 @@ class DatasetHDF5(object):
         self.batch_idx = 0
 
     def _augment_batch_data(self, batch_data):
-        rotated_data = provider.rotate_point_cloud(batch_data[:, :, 1:])
+        rotated_data = provider.rotate_point_cloud(batch_data[:, :, 1:4])
         rotated_data = provider.rotate_perturbation_point_cloud(rotated_data)
         jittered_data = provider.random_scale_point_cloud(rotated_data)
         jittered_data = provider.shift_point_cloud(jittered_data)
         jittered_data = provider.jitter_point_cloud(jittered_data)
-        batch_data[:, :, 1:] = jittered_data
+        batch_data[:, :, 1:4] = jittered_data
         return provider.shuffle_points(batch_data)
 
     def oversampling(self):

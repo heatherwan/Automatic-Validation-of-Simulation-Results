@@ -34,12 +34,12 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     minSF = tf.reshape(tf.math.argmin(point_cloud[:, :, 0], axis=1), (-1, 1))
 
     # # 1. graph for transform net with only x,y,z
-    adj_matrix = tf_util.pairwise_distance(point_cloud[:, :, 1:])  # B N C=3 => B N N
+    adj_matrix = tf_util.pairwise_distance(point_cloud[:, :, 1:4])  # B N C=3 => B N N
     nn_idx = tf_util.knn(adj_matrix, k=para.k)
-    edge_feature = tf_util.get_edge_feature(point_cloud[:, :, 1:], nn_idx=nn_idx, k=para.k)
+    edge_feature = tf_util.get_edge_feature(point_cloud[:, :, 1:4], nn_idx=nn_idx, k=para.k)
     with tf.compat.v1.variable_scope('transform_net1') as sc:
         transform = input_transform_net_dgcnn(edge_feature, is_training, bn_decay, K=3)
-    point_cloud_transform = tf.matmul(point_cloud[:, :, 1:], transform)
+    point_cloud_transform = tf.matmul(point_cloud[:, :, 1:4], transform)
 
     # get the distance to minSF of 1024 points
     allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)  # B N 1
