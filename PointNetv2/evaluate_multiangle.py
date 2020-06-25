@@ -117,7 +117,7 @@ def eval_one_epoch(sess, ops):
         all_pred_prob = np.zeros((cur_batch_data.shape[0], para.outputClassN))
 
         for vote_idx in range(para.num_votes):
-            cur_batch_data[:, :, :3] = provider.rotate_point_cloud_by_angle(cur_batch_data[:, :, :3],
+            cur_batch_data[:, :, 1:] = provider.rotate_point_cloud_by_angle(cur_batch_data[:, :, 1:],
                                                                             vote_idx / float(
                                                                                 para.num_votes) * np.pi * 2)
             feed_dict = {ops['pointclouds_pl']: cur_batch_data,

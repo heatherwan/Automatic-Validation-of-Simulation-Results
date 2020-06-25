@@ -36,7 +36,7 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     """
 
     end_points = {}
-    minSF = tf.reshape(tf.math.argmin(point_cloud[:, :, 3], axis=1), (-1, 1))
+    minSF = tf.reshape(tf.math.argmin(point_cloud[:, :, 0], axis=1), (-1, 1))
     batch_size = point_cloud.get_shape()[0]  # .value
 
     # # 1. graph for first EdgeConv B N C=6
