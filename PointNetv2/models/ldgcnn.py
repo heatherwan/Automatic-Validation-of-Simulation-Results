@@ -49,7 +49,7 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
     end_points['knn1'] = allSF_dist
 
-    point_cloud = tf.expand_dims(point_cloud, axis=-2)
+    point_cloud = tf.expand_dims(point_cloud[:, :, 1:para.dim], axis=-2)
     edge_feature = tf_util.get_edge_feature(point_cloud, nn_idx=nn_idx, k=para.k)
     net = tf_util.conv2d(edge_feature, 64, [1, 1],
                          padding='VALID', stride=[1, 1],
