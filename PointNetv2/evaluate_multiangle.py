@@ -148,8 +148,13 @@ def eval_one_epoch(sess, ops):
     log_string('Test result:')
     log_string(f'acc: {(total_correct / float(total_seen)):.3f}')
     log_string(f'avg class acc: \n')
-    log_string(classification_report(testDataset.current_label[:len(pred_label)], pred_label,
-                                     target_names=['Good', 'Contact', 'Radius', 'Hole'], digits=3))
+    if len(np.unique(testDataset.current_label)) == 4:
+        log_string(classification_report(testDataset.current_label[:len(pred_label)], pred_label,
+                                         target_names=['Good', 'Contact', 'Radius', 'Hole'], digits=3))
+    elif len(np.unique(testDataset.current_label)) == 3:
+        log_string(classification_report(testDataset.current_label[:len(pred_label)], pred_label,
+                                         target_names=['Good', 'Contact', 'Hole'], digits=3))
+
     log_string(confusion_matrix(testDataset.current_label[:len(pred_label)], pred_label))
 
     # if para.model == "dgcnn" or para.model == 'ldgcnn' or para.model == 'ldgcnn_2layer':
