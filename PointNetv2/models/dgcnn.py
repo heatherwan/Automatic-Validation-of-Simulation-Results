@@ -45,8 +45,9 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)  # B N 1
     end_points['knn1'] = allSF_dist
 
+    point_cloud_SF = tf.expand_dims(point_cloud[:, :, 0], axis=-1)
     # # 2. graph for first EdgeConv with transform(x,y,z), SF, distance, minSF
-    point_cloud_all = tf.concat(axis=2, values=[point_cloud[:, :, 0],
+    point_cloud_all = tf.concat(axis=2, values=[point_cloud_SF,
                                                 point_cloud_transform,
                                                 point_cloud[:, :, 4:para.dim]])
 
