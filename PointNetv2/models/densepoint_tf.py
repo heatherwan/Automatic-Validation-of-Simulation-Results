@@ -34,8 +34,9 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     end_points = {}
 
     # concatenate all features together SF,x,y,z, distance minSF
+    point_cloud_SF = tf.expand_dims(point_cloud[:, :, 0], axis=-1)
     l0_xyz = point_cloud[:, :, 1:4]
-    l0_points = tf.concat(axis=2, values=[point_cloud[:, :, 0], point_cloud[:, :, 4:para.dim]])
+    l0_points = tf.concat(axis=2, values=[point_cloud_SF, point_cloud[:, :, 4:para.dim]])
 
     # first stage: 1 PPool, 3 EnhancedPConv
     all_xyz, all_points = densepoint_module(l0_xyz, l0_points, is_training, bn_decay,
