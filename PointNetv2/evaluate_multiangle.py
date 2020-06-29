@@ -129,15 +129,22 @@ def eval_one_epoch(sess, ops):
             all_pred_prob = np.add(all_pred_prob, pred_prob)
             # record result for a batch
             pred_val = np.argmax(logits, 1)  # get the predict class number
-            for i in range(bsize):
-                fout.write(f'{batch_idx * para.testBatchSize + i:^5d}\t{pred_val[i]:^5d}\t{batch_label[i]:^5d}\t')
-                for num in range(para.outputClassN):
-                    fout.write(f'{pred_prob[i][num]:.3f}\t')
-                fout.write('\n')
+            # for i in range(bsize):
+            #     fout.write(f'{batch_idx * para.testBatchSize + i:^5d}\t{pred_val[i]:^5d}\t{batch_label[i]:^5d}\t')
+            #     for num in range(para.outputClassN):
+            #         fout.write(f'{pred_prob[i][num]:.3f}\t')
+            #     fout.write('\n')
 
         # mean pred and count the class accuracy
         mean_pred_prob = all_pred_prob/para.num_votes
         mean_pred_val = np.argmax(mean_pred_prob, 1)  # get the predict class number
+
+        # log average result
+        for i in range(bsize):
+            fout.write(f'{batch_idx * para.testBatchSize + i:^5d}\t{mean_pred_val[i]:^5d}\t{batch_label[i]:^5d}\t')
+            for num in range(para.outputClassN):
+                fout.write(f'{mean_pred_prob[i][num]:.3f}\t')
+            fout.write('\n')
 
         pred_label.extend(mean_pred_val[0:bsize])
         batch_idx += 1
