@@ -77,25 +77,25 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     net = tf.reduce_max(net, axis=-2, keepdims=True)
     net2 = net
 
-    # # 3. graph for third EdgeConv B N C=64
-    adj_matrix = tf_util.pairwise_distance(net)
-    nn_idx = tf_util.knn(adj_matrix, k=para.k)
-
-    # get the distance to minSF of 1024 points
-    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
-    end_points['knn3'] = allSF_dist
-
-    # net: B*N*1*6+64+64=134
-    net = tf.concat([point_cloud, net1, net2], axis=-1)
-
-    # edge_feature: B*N*k*268
-    edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=para.k)
-    net = tf_util.conv2d(edge_feature, 64, [1, 1],
-                         padding='VALID', stride=[1, 1],
-                         bn=True, is_training=is_training,
-                         scope='dgcnn3', bn_decay=bn_decay)
-    net = tf.reduce_max(net, axis=-2, keepdims=True)
-    net3 = net
+    # # # 3. graph for third EdgeConv B N C=64
+    # adj_matrix = tf_util.pairwise_distance(net)
+    # nn_idx = tf_util.knn(adj_matrix, k=para.k)
+    #
+    # # get the distance to minSF of 1024 points
+    # allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
+    # end_points['knn3'] = allSF_dist
+    #
+    # # net: B*N*1*6+64+64=134
+    # net = tf.concat([point_cloud, net1, net2], axis=-1)
+    #
+    # # edge_feature: B*N*k*268
+    # edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=para.k)
+    # net = tf_util.conv2d(edge_feature, 64, [1, 1],
+    #                      padding='VALID', stride=[1, 1],
+    #                      bn=True, is_training=is_training,
+    #                      scope='dgcnn3', bn_decay=bn_decay)
+    # net = tf.reduce_max(net, axis=-2, keepdims=True)
+    # net3 = net
 
     # # 4. graph for fourth EdgeConv B N C=64
     # adj_matrix = tf_util.pairwise_distance(net)
@@ -118,7 +118,7 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     # net4 = net
 
     # input: B*N*1*6+64+64+64+128 = 326  => net: B*N*1*1024
-    net = tf_util.conv2d(tf.concat([point_cloud, net1, net2, net3], axis=-1), 1024, [1, 1],
+    net = tf_util.conv2d(tf.concat([point_cloud, net1, net2], axis=-1), 1024, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
                          scope='agg', bn_decay=bn_decay)
