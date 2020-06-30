@@ -22,8 +22,8 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
 
     # transform net for input x,y,z
     with tf.compat.v1.variable_scope('transform_net1') as sc:
-        transform = input_transform_net(point_cloud[:, :, :3], is_training, bn_decay, K=3)
-    point_cloud_transformed = tf.matmul(point_cloud[:, :, :3], transform)
+        transform = input_transform_net(point_cloud[:, :, 1:4], is_training, bn_decay, K=3)
+    point_cloud_transformed = tf.matmul(point_cloud[:, :, 1:4], transform)
     input_image = tf.expand_dims(point_cloud_transformed, -1)
 
     # First MLP layers
@@ -44,8 +44,10 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     point_feat = tf.expand_dims(net_transformed, [2])
 
     # add the additional features to the second MLP layers
-    point_cloud_other = tf.expand_dims(point_cloud[:, :, 3:para.dim], [2])
-    concat_other = tf.concat(axis=3, values=[point_feat, point_cloud_other])
+    point_cloud_SF = tf.expand_dims(point_cloud[:, :, 0], axis=-1)
+    concat_other = tf.concat(axis=2, values=[point_cloud_SF,
+                                             point_feat,
+                                             point_cloud[:, :, 4:para.dim]])
 
     # second MLP layers
     net = tf_util.conv2d(concat_other, 64, [1, 1],  # 64 is the output #neuron
