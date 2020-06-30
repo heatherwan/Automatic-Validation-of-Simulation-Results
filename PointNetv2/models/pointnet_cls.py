@@ -44,8 +44,8 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     # point_feat = tf.expand_dims(net_transformed, [2])
 
     # add the additional features to the second MLP layers
-    point_cloud_SF = tf.expand_dims(point_cloud[:, :, 0:1], [2])
-    concat_other = tf.concat(axis=2, values=[point_cloud_SF, net_transformed, point_cloud[:, :, 4:para.dim]])
+    # point_cloud_SF = tf.expand_dims(point_cloud[:, :, 0:1], [2])
+    concat_other = tf.concat(axis=2, values=[point_cloud[:, :, 0:1], net_transformed, point_cloud[:, :, 4:para.dim]])
 
     # second MLP layers
     net = tf_util.conv2d(concat_other, 64, [1, 1],  # 64 is the output #neuron
