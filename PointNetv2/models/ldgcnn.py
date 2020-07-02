@@ -41,14 +41,16 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
 
     # # 1. graph for first EdgeConv B N C=6
 
-    adj_matrix = tf_util.pairwise_distance(point_cloud[:, :, :para.dim])  # B N C=6 => B*N*N
+    # adj_matrix = tf_util.pairwise_distance(point_cloud[:, :, :para.dim])  # B N C=6 => B*N*N
+    adj_matrix = tf_util.pairwise_distance(point_cloud[:, :, 1:4])  # B N C=6 => B*N*N
     nn_idx = tf_util.knn(adj_matrix, k=para.k)
 
     # get the distance to minSF of 1024 points
     allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
     end_points['knn1'] = allSF_dist
 
-    point_cloud = tf.expand_dims(point_cloud[:, :, :para.dim], axis=-2)
+    # point_cloud = tf.expand_dims(point_cloud[:, :, :para.dim], axis=-2)
+    point_cloud = tf.expand_dims(point_cloud[:, :, 1:4], axis=-2)
     edge_feature = tf_util.get_edge_feature(point_cloud, nn_idx=nn_idx, k=para.k)
     net = tf_util.conv2d(edge_feature, 64, [1, 1],
                          padding='VALID', stride=[1, 1],
@@ -77,59 +79,59 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     net = tf.reduce_max(net, axis=-2, keepdims=True)
     net2 = net
 
-    # # 3. graph for third EdgeConv B N C=64
-    # adj_matrix = tf_util.pairwise_distance(net)
-    # nn_idx = tf_util.knn(adj_matrix, k=para.k)
-    #
-    # # get the distance to minSF of 1024 points
-    # allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
-    # end_points['knn3'] = allSF_dist
-    #
-    # # net: B*N*1*6+64+64=134
-    # net = tf.concat([point_cloud, net1, net2], axis=-1)
-    #
-    # # edge_feature: B*N*k*268
-    # edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=para.k)
-    # net = tf_util.conv2d(edge_feature, 64, [1, 1],
-    #                      padding='VALID', stride=[1, 1],
-    #                      bn=True, is_training=is_training,
-    #                      scope='dgcnn3', bn_decay=bn_decay)
-    # net = tf.reduce_max(net, axis=-2, keepdims=True)
-    # net3 = net
-    #
-    # # 4. graph for fourth EdgeConv B N C=64
-    # adj_matrix = tf_util.pairwise_distance(net)
-    # nn_idx = tf_util.knn(adj_matrix, k=para.k)
-    #
-    # # get the distance to minSF of 1024 points
-    # allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
-    # end_points['knn4'] = allSF_dist
-    #
-    # # net: B*N*1*6+64+64+64=198
-    # net = tf.concat([point_cloud, net1, net2, net3], axis=-1)
-    #
-    # # edge_feature: B*N*k*396
-    # edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=para.k)
-    # net = tf_util.conv2d(edge_feature, 128, [1, 1],
-    #                      padding='VALID', stride=[1, 1],
-    #                      bn=True, is_training=is_training,
-    #                      scope='dgcnn4', bn_decay=bn_decay)
-    # net = tf.reduce_max(net, axis=-2, keepdims=True)
-    # net4 = net
+    # 3. graph for third EdgeConv B N C=64
+    adj_matrix = tf_util.pairwise_distance(net)
+    nn_idx = tf_util.knn(adj_matrix, k=para.k)
+
+    # get the distance to minSF of 1024 points
+    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
+    end_points['knn3'] = allSF_dist
+
+    # net: B*N*1*6+64+64=134
+    net = tf.concat([point_cloud, net1, net2], axis=-1)
+
+    # edge_feature: B*N*k*268
+    edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=para.k)
+    net = tf_util.conv2d(edge_feature, 64, [1, 1],
+                         padding='VALID', stride=[1, 1],
+                         bn=True, is_training=is_training,
+                         scope='dgcnn3', bn_decay=bn_decay)
+    net = tf.reduce_max(net, axis=-2, keepdims=True)
+    net3 = net
+
+    # 4. graph for fourth EdgeConv B N C=64
+    adj_matrix = tf_util.pairwise_distance(net)
+    nn_idx = tf_util.knn(adj_matrix, k=para.k)
+
+    # get the distance to minSF of 1024 points
+    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
+    end_points['knn4'] = allSF_dist
+
+    # net: B*N*1*6+64+64+64=198
+    net = tf.concat([point_cloud, net1, net2, net3], axis=-1)
+
+    # edge_feature: B*N*k*396
+    edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=para.k)
+    net = tf_util.conv2d(edge_feature, 128, [1, 1],
+                         padding='VALID', stride=[1, 1],
+                         bn=True, is_training=is_training,
+                         scope='dgcnn4', bn_decay=bn_decay)
+    net = tf.reduce_max(net, axis=-2, keepdims=True)
+    net4 = net
 
     # input: B*N*1*6+64+64+64+128 = 326  => net: B*N*1*1024
-    net = tf_util.conv2d(tf.concat([point_cloud, net1, net2], axis=-1), 1024, [1, 1],
+    net = tf_util.conv2d(tf.concat([point_cloud, net1, net2, net3, net4], axis=-1), 1024, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
                          scope='agg', bn_decay=bn_decay)
     # net: B*1*1*1024
     # net = tf.reduce_max(net, axis=1, keepdims=True)
+    SF_features = tf.gather(net, indices=minSF, axis=1, batch_dims=1)
+
     # net: B*1024
     # net = tf.squeeze(net)
-    SF_features = tf.gather(net, indices=minSF, axis=1, batch_dims=1)
-    print(SF_features.get_shape())
     net = tf.squeeze(SF_features)
-    print(net.get_shape())
+
     # MLP on global point cloud vector
     net = tf.reshape(net, [batch_size, -1])
     print(net.get_shape())
