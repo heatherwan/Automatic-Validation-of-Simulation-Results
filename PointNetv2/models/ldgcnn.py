@@ -126,11 +126,11 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     # net = tf.reduce_max(net, axis=1, keepdims=True)
     # net: B*1024
     # net = tf.squeeze(net)
-    SF_features = tf.gather(net, indices=minSF, axis=1, batch_dims=0)
+    SF_features = tf.gather(net, indices=minSF, axis=1, batch_dims=1)
     print(SF_features.get_shape())
     # MLP on global point cloud vector
     # net = tf.reshape(net, [batch_size, -1])
-    net = tf.reshape(SF_features, [batch_size, -1])
+    net = tf.reshape(SF_features, [batch_size, -2])
     print(net.get_shape())
     end_points['global_feature'] = net
 
