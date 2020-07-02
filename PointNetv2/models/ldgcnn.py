@@ -43,7 +43,7 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
 
     adj_matrix = tf_util.pairwise_distance(point_cloud[:, :, :para.dim])  # B N C=6 => B*N*N
     # adj_matrix = tf_util.pairwise_distance(point_cloud[:, :, 1:4])  # B N C=6 => B*N*N
-    nn_idx = tf_util.knn(adj_matrix, k=para.k)
+    nn_idx = tf_util.knn(adj_matrix, k=10)
 
     # get the distance to minSF of 1024 points
     allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
@@ -61,7 +61,7 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
 
     # # 2. graph for second EdgeConv B N C=64
     adj_matrix = tf_util.pairwise_distance(net)
-    nn_idx = tf_util.knn(adj_matrix, k=para.k)
+    nn_idx = tf_util.knn(adj_matrix, k=20)
 
     # get the distance to minSF of 1024 points
     allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
@@ -81,7 +81,7 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
 
     # 3. graph for third EdgeConv B N C=64
     adj_matrix = tf_util.pairwise_distance(net)
-    nn_idx = tf_util.knn(adj_matrix, k=para.k)
+    nn_idx = tf_util.knn(adj_matrix, k=30)
 
     # get the distance to minSF of 1024 points
     allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
@@ -101,7 +101,7 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
 
     # 4. graph for fourth EdgeConv B N C=64
     adj_matrix = tf_util.pairwise_distance(net)
-    nn_idx = tf_util.knn(adj_matrix, k=para.k)
+    nn_idx = tf_util.knn(adj_matrix, k=40)
 
     # get the distance to minSF of 1024 points
     allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
