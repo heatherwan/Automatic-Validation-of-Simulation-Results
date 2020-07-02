@@ -51,7 +51,7 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
 
     point_cloud = tf.expand_dims(point_cloud[:, :, :para.dim], axis=-2)
     # point_cloud = tf.expand_dims(point_cloud[:, :, 1:4], axis=-2)
-    edge_feature = tf_util.get_edge_feature(point_cloud, nn_idx=nn_idx, k=para.k)
+    edge_feature = tf_util.get_edge_feature(point_cloud, nn_idx=nn_idx, k=10)
     net = tf_util.conv2d(edge_feature, 64, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
@@ -71,7 +71,7 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     net = tf.concat([point_cloud, net1], axis=-1)
 
     # edge_feature: B*N*k*142
-    edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=para.k)
+    edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=20)
     net = tf_util.conv2d(edge_feature, 64, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
@@ -91,7 +91,7 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     net = tf.concat([point_cloud, net1, net2], axis=-1)
 
     # edge_feature: B*N*k*268
-    edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=para.k)
+    edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=30)
     net = tf_util.conv2d(edge_feature, 64, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
@@ -111,7 +111,7 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     net = tf.concat([point_cloud, net1, net2, net3], axis=-1)
 
     # edge_feature: B*N*k*396
-    edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=para.k)
+    edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=40)
     net = tf_util.conv2d(edge_feature, 128, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
@@ -125,12 +125,12 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
                          bn=True, is_training=is_training,
                          scope='agg', bn_decay=bn_decay)
     # net: B*1*1*1024
-    # net = tf.reduce_max(net, axis=1, keepdims=True)
-    SF_features = tf.gather(net, indices=minSF, axis=1, batch_dims=1)
+    net = tf.reduce_max(net, axis=1, keepdims=True)
+    # SF_features = tf.gather(net, indices=minSF, axis=1, batch_dims=1)
 
     # net: B*1024
-    # net = tf.squeeze(net)
-    net = tf.squeeze(SF_features)
+    net = tf.squeeze(net)
+    # net = tf.squeeze(SF_features)
 
     # MLP on global point cloud vector
     net = tf.reshape(net, [batch_size, -1])
