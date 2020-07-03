@@ -120,7 +120,7 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     # net4 = net
 
     # input: B*N*1*6+64+64+64+128 = 326  => net: B*N*1*1024
-    net = tf_util.conv2d(tf.concat([point_cloud, net1, net2, net3], axis=-1), 1024, [1, 1],
+    net = tf_util.conv2d(tf.concat([point_cloud, net1, net2], axis=-1), 1024, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
                          scope='agg', bn_decay=bn_decay)
