@@ -135,7 +135,7 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     net = tf_util.conv2d(edge_feature, 128, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
-                         scope='dgcnn4', bn_decay=bn_decay)
+                         scope='dgcnn5', bn_decay=bn_decay)
     net = tf.reduce_max(net, axis=-2, keepdims=True)
     net5 = net
 
