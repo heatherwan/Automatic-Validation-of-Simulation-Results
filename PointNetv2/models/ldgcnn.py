@@ -119,28 +119,28 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
     net = tf.reduce_max(net, axis=-2, keepdims=True)
     net4 = net
 
-    # 5. graph for fifth EdgeConv B N C=64
-    adj_matrix = tf_util.pairwise_distance(net)
-    nn_idx = tf_util.knn(adj_matrix, k=40)
-
-    # get the distance to minSF of 1024 points
-    allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
-    end_points['knn5'] = allSF_dist
-
-    # net: B*N*1*6+64+64+64=198
-    net = tf.concat([point_cloud, net1, net2, net3, net4], axis=-1)
-
-    # edge_feature: B*N*k*396
-    edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=40)
-    net = tf_util.conv2d(edge_feature, 128, [1, 1],
-                         padding='VALID', stride=[1, 1],
-                         bn=True, is_training=is_training,
-                         scope='dgcnn5', bn_decay=bn_decay)
-    net = tf.reduce_max(net, axis=-2, keepdims=True)
-    net5 = net
+    # # 5. graph for fifth EdgeConv B N C=64
+    # adj_matrix = tf_util.pairwise_distance(net)
+    # nn_idx = tf_util.knn(adj_matrix, k=40)
+    #
+    # # get the distance to minSF of 1024 points
+    # allSF_dist = tf.gather(adj_matrix, indices=minSF, axis=2, batch_dims=1)
+    # end_points['knn5'] = allSF_dist
+    #
+    # # net: B*N*1*6+64+64+64=198
+    # net = tf.concat([point_cloud, net1, net2, net3, net4], axis=-1)
+    #
+    # # edge_feature: B*N*k*396
+    # edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=40)
+    # net = tf_util.conv2d(edge_feature, 128, [1, 1],
+    #                      padding='VALID', stride=[1, 1],
+    #                      bn=True, is_training=is_training,
+    #                      scope='dgcnn5', bn_decay=bn_decay)
+    # net = tf.reduce_max(net, axis=-2, keepdims=True)
+    # net5 = net
 
     # input: B*N*1*6+64+64+64+128 = 326  => net: B*N*1*1024
-    net = tf_util.conv2d(tf.concat([point_cloud, net1, net2, net3, net4,net5], axis=-1), 1024, [1, 1],
+    net = tf_util.conv2d(tf.concat([point_cloud, net1, net2, net3, net4], axis=-1), 1024, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
                          scope='agg', bn_decay=bn_decay)
