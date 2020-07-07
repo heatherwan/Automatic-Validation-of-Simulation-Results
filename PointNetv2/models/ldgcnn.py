@@ -92,7 +92,7 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
 
     # edge_feature: B*N*k*268
     edge_feature = tf_util.get_edge_feature(net, nn_idx=nn_idx, k=30)
-    net = tf_util.conv2d(edge_feature, 128, [1, 1],
+    net = tf_util.conv2d(edge_feature, 64, [1, 1],
                          padding='VALID', stride=[1, 1],
                          bn=True, is_training=is_training,
                          scope='dgcnn3', bn_decay=bn_decay)
