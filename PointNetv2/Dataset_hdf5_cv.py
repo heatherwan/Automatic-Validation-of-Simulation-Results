@@ -48,6 +48,7 @@ class DatasetHDF5_Kfold(object):
 
     def init_data(self, filename):
         self.current_data, self.current_label = provider.load_h5_other(filename)
+        self.current_data = self.current_data[:, :, :self.dim]
         self.current_label = np.squeeze(self.current_label)
         # oversampling less sample class
 
