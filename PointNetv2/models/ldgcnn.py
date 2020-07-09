@@ -125,12 +125,13 @@ def get_model_other(point_cloud, is_training, bn_decay=None):
                          bn=True, is_training=is_training,
                          scope='agg', bn_decay=bn_decay)
     # net: B*1*1*1024
+    SF_features = tf.gather(net, indices=minSF, axis=1, batch_dims=1)
     net = tf.reduce_max(net, axis=1, keepdims=True)
-    # SF_features = tf.gather(net, indices=minSF, axis=1, batch_dims=1)
-
+    SF_all = tf.concat([SF_features,net], axis=-1)
     # net: B*1024
-    net = tf.squeeze(net)
-    # net = tf.squeeze(SF_features)
+    # net = tf.squeeze(net)
+    # net: B*2048
+    net = tf.squeeze(SF_all)
 
     # MLP on global point cloud vector
     net = tf.reshape(net, [batch_size, -1])
