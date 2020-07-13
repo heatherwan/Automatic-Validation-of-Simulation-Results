@@ -105,8 +105,10 @@ def eval_one_epoch(sess, ops):
     total_seen_class = [0 for _ in range(para.outputClassN)]
     total_correct_class = [0 for _ in range(para.outputClassN)]
 
-    fout = open(os.path.join(EVAL, f'{para.expName[:6]}_all_pred_label.txt'), 'w')
+    fout = open(os.path.join(EVAL, f'{para.expName[:6]}_all_pred_logit.txt'), 'w')
     fout.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
+    fout1 = open(os.path.join(EVAL, f'{para.expName[:6]}_all_pred_prob.txt'), 'w')
+    fout1.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
     fout2 = open(os.path.join(EVAL, f'{para.expName[:6]}_wrong_pred_prob.txt'), 'w')
     fout2.write('  no\tpred\treal\tGood\tContact\tRadius\tHole\n')
     all_knn_idx = {}
@@ -139,11 +141,17 @@ def eval_one_epoch(sess, ops):
             l = batch_label[i]
             total_seen_class[l] += 1
             total_correct_class[l] += (pred_val[i] == l)
-
+            # log predict logits
             fout.write(f'{batch_idx * para.testBatchSize + i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t')
             for num in range(para.outputClassN):
-                fout.write(f'{pred_prob2[i][num]:.3f}\t')
+                fout.write(f'{pred_prob[i][num]:.3f}\t')
             fout.write('\n')
+            # log predict probability
+            fout1.write(f'{batch_idx * para.testBatchSize + i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t')
+            for num in range(para.outputClassN):
+                fout1.write(f'{pred_prob2[i][num]:.3f}\t')
+            fout1.write('\n')
+            # log wrongly predict probability
             if pred_val[i] != l:
                 fout2.write(f'{batch_idx * para.testBatchSize + i:^5d}\t{pred_val[i]:^5d}\t{l:^5d}\t')
                 for num in range(para.outputClassN):
