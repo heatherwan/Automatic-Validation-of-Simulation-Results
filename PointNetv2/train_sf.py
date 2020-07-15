@@ -3,17 +3,16 @@ import os
 import socket
 import sys
 import time
+from datetime import datetime
 
 import numpy as np
 import tensorflow as tf
-from sklearn.metrics import confusion_matrix
 from sklearn.metrics import classification_report
-from datetime import datetime
+from sklearn.metrics import confusion_matrix
 
-import provider
-from Parameters import Parameters
 from Dataset_hdf5 import DatasetHDF5
 from Dataset_hdf5_cv import DatasetHDF5_Kfold
+from Parameters import Parameters
 
 # ===============get basic folder=====================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -126,6 +125,10 @@ class Training:
             config.allow_soft_placement = True
             config.log_device_placement = False
             sess = tf.compat.v1.Session(config=config)
+            # load pre-train model
+            if para.continue_train:
+                saver.restore(sess, f"{LOG_MODEL}/{para.expName[:6]}.ckpt")
+                log_string("Model restored.")
 
             # Add summary writers
             merged = tf.compat.v1.summary.merge_all()
