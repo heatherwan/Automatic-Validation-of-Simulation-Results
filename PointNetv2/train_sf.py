@@ -125,10 +125,7 @@ class Training:
             config.allow_soft_placement = True
             config.log_device_placement = False
             sess = tf.compat.v1.Session(config=config)
-            # load pre-train model
-            if para.continue_train:
-                saver.restore(sess, f"{LOG_MODEL}/{para.expName[:6]}.ckpt")
-                log_string("Model restored.")
+
 
             # Add summary writers
             merged = tf.compat.v1.summary.merge_all()
@@ -137,9 +134,13 @@ class Training:
             test_writer = tf.compat.v1.summary.FileWriter(os.path.join(LOG_DIR, para.expName[:6] + 'test'),
                                                           sess.graph)
             # Init variables
-            init = tf.compat.v1.global_variables_initializer()
-
-            sess.run(init, {is_training_pl: True})
+            # load pre-train model
+            if para.continue_train:
+                saver.restore(sess, f"{LOG_MODEL}/{para.expName[:6]}.ckpt")
+                log_string("Model restored.")
+            else:
+                init = tf.compat.v1.global_variables_initializer()
+                sess.run(init, {is_training_pl: True})
 
             ops = {'pointclouds_pl': pointclouds_pl,
                    'labels_pl': labels_pl,
