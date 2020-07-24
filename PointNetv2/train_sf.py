@@ -380,7 +380,7 @@ class Training_cv:
             matrix = confusion_matrix(self.label, self.prediction)
             self.result_avgacc = matrix.diagonal() / matrix.sum(axis=1)
             log_string(classification_report(self.label, self.prediction,
-                                             target_names=['Good', 'Contact', 'Radius', 'Hole'], digits=3))
+                                             target_names=para.classes.values(), digits=3))
             log_string(matrix)
 
     def train_one_epoch(self, sess, ops, train_writer):

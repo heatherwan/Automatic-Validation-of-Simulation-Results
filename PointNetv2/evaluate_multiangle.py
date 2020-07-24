@@ -118,8 +118,8 @@ def eval_one_epoch(sess, ops):
 
         for vote_idx in range(para.num_votes):
             cur_batch_data[:, :, 1:4] = provider.rotate_point_cloud_by_angle(cur_batch_data[:, :, 1:4],
-                                                                            vote_idx / float(
-                                                                                para.num_votes) * np.pi * 2)
+                                                                             vote_idx / float(
+                                                                                 para.num_votes) * np.pi * 2)
             feed_dict = {ops['pointclouds_pl']: cur_batch_data,
                          ops['labels_pl']: cur_batch_label,
                          ops['is_training_pl']: is_training}
@@ -136,7 +136,7 @@ def eval_one_epoch(sess, ops):
             #     fout.write('\n')
 
         # mean pred and count the class accuracy
-        mean_pred_prob = all_pred_prob/para.num_votes
+        mean_pred_prob = all_pred_prob / para.num_votes
         mean_pred_val = np.argmax(mean_pred_prob, 1)  # get the predict class number
 
         # log average result
