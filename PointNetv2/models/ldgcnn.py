@@ -20,7 +20,7 @@ para = Parameters()
 
 # Add input placeholder
 def placeholder_inputs_other(batch_size, num_point):
-    pointclouds_pl = tf.compat.v1.placeholder(tf.float32, shape=(None, num_point, para.dim))
+    pointclouds_pl = tf.compat.v1.placeholder(tf.float32, shape=(batch_size, num_point, para.dim))
     labels_pl = tf.compat.v1.placeholder(tf.int32, shape=batch_size)
     return pointclouds_pl, labels_pl
 
