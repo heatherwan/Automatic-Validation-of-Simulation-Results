@@ -1,0 +1,10 @@
+.DS_Store
+.idea/
+**/.idea/workspace.xml
+**/.idea/tasks.xml
+*.idea
+log
+logmodel
+evallog
+datasets
+utils/Parameters.py

@@ -1,0 +1,21 @@
+.DS_Store
+.idea/
+**/.idea/workspace.xml
+**/.idea/tasks.xml
+*.idea
+wanting_split
+outputdataset
+result_folder
+test
+test_3cat
+train
+train_3cat
+test_same
+Fourth_new_data
+Fifth_new_data
+Sixth_new_data
+Seventh_new_data
+UNKNOWN
+# Ignore all STL files
+*.STL
+*.txt

@@ -1,18 +1,16 @@
 # Automatic-Validation-of-Simulation-Results
-
-DataPreprocessing : 
+1. DataPreprocessing_Visualize:
+Tools for preprocess POint cloud data from vtp file and visualization  
 - Import vtp file, find minSF point and sample n points from each object 
 - create new features and export as hdf5 file (data, label) 
- 
-PointNet : Use x,y,z with additional features added
-Additional features: Safety Factor, distance to minSF, (normals, curvatures)
-Model:
-- PointNet
-- POintNet++
-- DGCNN
-- LDGCNN 
+- visualize generated feature graph with 3D point cloud in interactive mode
 
-using Parameter.py to change models and parameters
+2. AutoValidation
+Contain different deep learning neural networks eg. PointNet, PointNet++, DGCNN/LDGCNN, DensePoint
+tensorflow implementation with additional features added eg. Safety Factor, distance to minSF, (normals, curvatures)
 
-PointGCN : Use PointGCN (Global pooling) with Safety Factor added  (remove)
-
+3. Confidence_Calibration
+post-processing calibration of neural networks output logits (confidence) 
+- Temperature Scaling
+- Matrix-Scaling
+- Dirichlet Calibration

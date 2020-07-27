@@ -129,9 +129,5 @@ dmypy.json
 .pyre/
 
 # git Folder for reference
-pointnet2-tensorflow2/
-pointnet2_v2/
-DensePoint/
-PointGCNv2/
-Pointnet2_PyTorch/
 report*.txt
+PointGCNv2
