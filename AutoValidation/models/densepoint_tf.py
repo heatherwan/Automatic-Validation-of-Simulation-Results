@@ -9,7 +9,7 @@ import sys
 
 import tensorflow as tf
 
-from utils.Parameters import Parameters
+from Parameters import Parameters
 from utils import tf_util
 from utils.densepoint_tf_util import densepoint_module
 

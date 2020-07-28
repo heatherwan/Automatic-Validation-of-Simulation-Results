@@ -12,7 +12,7 @@ from sklearn.metrics import confusion_matrix
 
 from utils.Dataset_hdf5 import DatasetHDF5
 from utils.Dataset_hdf5_cv import DatasetHDF5_Kfold
-from utils.Parameters import Parameters
+from Parameters import Parameters
 
 # ===============get basic folder=====================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

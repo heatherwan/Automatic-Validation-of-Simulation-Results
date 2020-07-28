@@ -9,7 +9,7 @@ import sys
 
 import tensorflow as tf
 
-from utils.Parameters import Parameters
+from Parameters import Parameters
 from utils import tf_util
 from utils.pointnet_tf_util import pointnet_sa_module, pointnet_sa_module_msg
 

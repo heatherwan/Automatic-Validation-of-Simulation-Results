@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-from utils.Parameters import Parameters
+from Parameters import Parameters
 from models.transform_nets import input_transform_net, feature_transform_net
 from utils import tf_util
 
