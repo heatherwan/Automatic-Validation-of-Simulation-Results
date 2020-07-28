@@ -9,7 +9,7 @@ import tensorflow as tf
 
 from utils import tf_util
 from models.transform_nets import input_transform_net_dgcnn
-from Parameters import Parameters
+from utils.Parameters import Parameters
 
 para = Parameters()
 

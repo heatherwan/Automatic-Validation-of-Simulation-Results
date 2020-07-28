@@ -6,7 +6,7 @@
 import os
 import sys
 import numpy as np
-import provider
+from utils import provider
 from imblearn.over_sampling import RandomOverSampler
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

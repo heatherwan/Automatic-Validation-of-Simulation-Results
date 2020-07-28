@@ -10,7 +10,7 @@ import sys
 
 import tensorflow as tf
 
-from Parameters import Parameters
+from utils.Parameters import Parameters
 from utils import tf_util
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

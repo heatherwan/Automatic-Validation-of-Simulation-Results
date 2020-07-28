@@ -1,10 +1,6 @@
 import h5py
 import numpy as np
-from sklearn.preprocessing import label_binarize
 
-from Parameters import Parameters
-
-para = Parameters()
 h5py.get_config().default_file_mode = 'r'
 
 

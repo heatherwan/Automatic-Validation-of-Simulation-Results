@@ -6,7 +6,7 @@
 import os
 import sys
 import numpy as np
-import provider
+from utils import provider
 from sklearn.model_selection import KFold
 from imblearn.over_sampling import RandomOverSampler
 
