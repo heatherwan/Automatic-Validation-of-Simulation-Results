@@ -10,9 +10,9 @@ import tensorflow as tf
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 
-from Dataset_hdf5 import DatasetHDF5
-from Dataset_hdf5_cv import DatasetHDF5_Kfold
-from Parameters import Parameters
+from utils.Dataset_hdf5 import DatasetHDF5
+from utils.Dataset_hdf5_cv import DatasetHDF5_Kfold
+from utils.Parameters import Parameters
 
 # ===============get basic folder=====================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
