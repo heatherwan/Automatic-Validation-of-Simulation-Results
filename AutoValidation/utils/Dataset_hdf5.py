@@ -59,10 +59,11 @@ class DatasetHDF5(object):
 
     def _load_data_file(self, filename):
         all_data = None
-        
+        all_label = None
         for file in filename:
             if not all_data:
                 all_data, all_label = provider.load_h5_other(file)
+                print('finish')
             else:
                 data, label = provider.load_h5_other(file)
                 all_data = all_data.append(data)
