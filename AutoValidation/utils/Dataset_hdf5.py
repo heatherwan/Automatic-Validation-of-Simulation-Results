@@ -63,17 +63,11 @@ class DatasetHDF5(object):
         for i, file in enumerate(filename):
             if i == 0:
                 all_data, all_label = provider.load_h5_other(file)
-                print('finish')
             else:
                 data, label = provider.load_h5_other(file)
-                print(all_data.shape, all_label.shape)
-                print(data.shape, label.shape)
                 all_data = np.concatenate((all_data, data))
                 all_label = np.concatenate((all_label, label))
         self.current_data, self.current_label = all_data, all_label
-        print(self.current_data.shape)
-        print(self.current_label)
-
         self.current_data = self.current_data[:, :, :self.dim]
         self.current_label = np.squeeze(self.current_label)
 

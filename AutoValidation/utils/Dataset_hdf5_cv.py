@@ -47,7 +47,16 @@ class DatasetHDF5_Kfold(object):
         return ros.fit_resample(reshape_data, self.current_label)
 
     def init_data(self, filename):
-        self.current_data, self.current_label = provider.load_h5_other(filename)
+        all_data = None
+        all_label = None
+        for i, file in enumerate(filename):
+            if i == 0:
+                all_data, all_label = provider.load_h5_other(file)
+            else:
+                data, label = provider.load_h5_other(file)
+                all_data = np.concatenate((all_data, data))
+                all_label = np.concatenate((all_label, label))
+        self.current_data, self.current_label = all_data, all_label
         self.current_data = self.current_data[:, :, :self.dim]
         self.current_label = np.squeeze(self.current_label)
         # oversampling less sample class
