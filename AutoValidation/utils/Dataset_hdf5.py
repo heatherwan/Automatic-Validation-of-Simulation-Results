@@ -66,6 +66,7 @@ class DatasetHDF5(object):
                 print('finish')
             else:
                 data, label = provider.load_h5_other(file)
+                print(data.shape, label.shape)
                 all_data = np.concatenate(all_data, data)
                 all_label = np.concatenate(all_label, label)
         self.current_data, self.current_label = all_data, all_label
