@@ -58,8 +58,8 @@ class DatasetHDF5(object):
         return ros.fit_resample(reshape_data, self.current_label)
 
     def _load_data_file(self, filename):
-        all_data = []
-        all_label = []
+        all_data = None
+        
         for file in filename:
             if not all_data:
                 all_data, all_label = provider.load_h5_other(file)
