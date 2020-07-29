@@ -72,8 +72,9 @@ class Parameters:
                 os.mkdir(self.evallog)
 
         self.dataDir = os.path.join(BASE_DIR, 'datasets')
-        self.TRAIN_FILES = os.path.join(self.dataDir, 'traindataset_SF_2048.hdf5')
-        self.TEST_FILES = os.path.join(self.dataDir, 'validdataset_SF_2048.hdf5')
+        self.TRAIN_FILES = [os.path.join(self.dataDir, 'traindataset_SF_2048.hdf5'),
+                            os.path.join(self.dataDir, 'validdataset_SF_2048.hdf5')]
+        self.TEST_FILES = [os.path.join(self.dataDir, 'testdataset_SF_2048.hdf5')]
 
         if self.outputClassN == 5:
             self.classes = {1: 'EM1_contact', 2: 'EM2_inhole', 3: 'EM3_radius', 4: 'EM4_hole', 0: 'Good'}

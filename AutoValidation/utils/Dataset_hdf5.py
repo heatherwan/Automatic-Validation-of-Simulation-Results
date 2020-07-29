@@ -22,7 +22,7 @@ class DatasetHDF5(object):
     """
 
     def __init__(self, filename, batch_size=32, npoints=1024, dim=5, shuffle=True, train=True):
-        self.h5_file = filename
+        self.h5_files = filename
         self.batch_size = batch_size
         self.npoints = npoints
         self.shuffle = shuffle
@@ -58,7 +58,16 @@ class DatasetHDF5(object):
         return ros.fit_resample(reshape_data, self.current_label)
 
     def _load_data_file(self, filename):
-        self.current_data, self.current_label = provider.load_h5_other(filename)
+        all_data = []
+        all_label = []
+        for file in filename:
+            data, label = provider.load_h5_other(filename)
+            all_data = all_data.append(data)
+            all_label = all_data.append(label)
+        self.current_data, self.current_label = np.array(all_data), np.array(all_label)
+        print(self.current_data.shape)
+        print(self.current_label)
+
         self.current_data = self.current_data[:, :, :self.dim]
         self.current_label = np.squeeze(self.current_label)
 
@@ -82,7 +91,7 @@ class DatasetHDF5(object):
 
     def has_next_batch(self):
         if self.current_data is None:
-            self._load_data_file(self.h5_file)
+            self._load_data_file(self.h5_files)
             self.batch_idx = 0
         return self._has_next_batch_in_file()
 
