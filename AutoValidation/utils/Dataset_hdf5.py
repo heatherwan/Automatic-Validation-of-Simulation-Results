@@ -60,8 +60,8 @@ class DatasetHDF5(object):
     def _load_data_file(self, filename):
         all_data = None
         all_label = None
-        for file in filename:
-            if not all_data:
+        for i, file in enumerate(filename):
+            if i == 0:
                 all_data, all_label = provider.load_h5_other(file)
                 print('finish')
             else:
