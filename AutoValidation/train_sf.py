@@ -152,20 +152,22 @@ class Training:
                    'step': batch,
                    'knn': end_points}
 
-            min_loss = np.inf
+            # min_loss = np.inf
+            high_acc = 0
             for epoch in range(para.max_epoch):
                 log_string('**** EPOCH %03d ****' % epoch)
                 sys.stdout.flush()
 
                 loss = self.train_one_epoch(sess, ops, train_writer)
                 self.trainDataset.reset()
-                self.eval_one_epoch(sess, ops, test_writer)
+                acc = self.eval_one_epoch(sess, ops, test_writer)
                 self.testDataset.reset()
 
-                if loss < min_loss:  # save the min loss model
+                if acc > high_acc:  # save the min loss model
                     save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}.ckpt"))
-                    log_string("Model saved in file: %s" % save_path)
-                    min_loss = loss
+                    log_string(f"Model saved on {epoch} in file: {save_path}")
+                    # min_loss = loss
+                    high_acc = acc
 
     def train_one_epoch(self, sess, ops, train_writer):
         """ ops: dict mapping from string to tf ops """
@@ -275,6 +277,7 @@ class Training:
         for i, name in para.classes.items():
             log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
         log_string(confusion_matrix(self.testDataset.current_label[:len(pred_label)], pred_label))
+        return total_correct / float(total_seen)
 
 
 class Training_cv:
