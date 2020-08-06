@@ -69,7 +69,7 @@ class DatasetHDF5_Kfold(object):
         # oversampling less sample class
         self.train_data, self.train_label = self.oversampling()
         self.train_data = self.train_data.reshape(len(self.train_data), self.npoints, self.dim)
-        unique, counts = np.unique(self.current_label, return_counts=True)
+        unique, counts = np.unique(self.train_label, return_counts=True)
         class_count = dict(zip(unique, counts))
         print(f'oversampled class after split: {class_count}')
 

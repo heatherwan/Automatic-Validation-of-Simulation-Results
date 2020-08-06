@@ -363,22 +363,18 @@ class Training_cv:
                 log_string('**** EPOCH %03d ****' % epoch)
                 sys.stdout.flush()
 
-                loss, acc = self.train_one_epoch(sess, ops, train_writer)
+                self.train_one_epoch(sess, ops, train_writer)
                 self.dataset.reset()
-                test_loss, test_acc = self.eval_one_epoch(sess, ops, test_writer)
+                better = self.eval_one_epoch(sess, ops, test_writer)
                 self.dataset.reset(train=False)
 
-                if test_loss < self.min_loss:  # save the min loss model
+                if better:  # save the min valid loss model
                     save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}_{i}.ckpt"))
                     log_string("Model saved in file: %s" % save_path)
-                    self.min_loss = test_loss
-                    # log evaluation if the loss is better
-                    self.test_loss, self.test_acc = test_loss, test_acc
-                    # self.test_loss, self.test_acc = self.eval_one_epoch(sess, ops, test_writer)
-                    # self.dataset.reset(train=False)
+
             # print out the final result for this validation split
             log_string('Final Result')
-            log_string(f'Loss {self.test_loss}\n')
+            log_string(f'Loss {self.min_loss}\n')
             log_string(f'Accuracy {self.test_acc}\n')
             matrix = confusion_matrix(self.label, self.prediction)
             self.result_avgacc = matrix.diagonal() / matrix.sum(axis=1)
@@ -440,7 +436,7 @@ class Training_cv:
         for i, name in para.classes.items():
             log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
         log_string(confusion_matrix(self.dataset.train_label[:len(total_pred)], total_pred))
-        return loss_sum / float(total_seen), total_correct / float(total_seen)
+        # return loss_sum / float(total_seen), total_correct / float(total_seen)
 
     def eval_one_epoch(self, sess, ops, test_writer):
         """ ops: dict mapping from string to tf ops """
@@ -484,8 +480,7 @@ class Training_cv:
                 total_seen_class[l] += 1
                 total_correct_class[l] += (pred_val[i] == l)
             pred_label.extend(pred_val[0:bsize])
-        self.prediction = pred_label
-        self.label = self.dataset.valid_label[:len(pred_label)]
+
         log_string('Test result:')
         log_string(f'mean loss: {(loss_sum / float(total_seen)):.3f}')
         log_string(f'acc: {(total_correct / float(total_seen)):.3f}')
@@ -495,7 +490,16 @@ class Training_cv:
         for i, name in para.classes.items():
             log_string('%10s:\t%0.3f' % (name, class_accuracies[i]))
         log_string(confusion_matrix(self.dataset.valid_label[:len(pred_label)], pred_label))
-        return loss_sum / float(total_seen), total_correct / float(total_seen)
+
+        # if the validation loss is lower, than store in global for final presentation
+        if (loss_sum / float(total_seen)) < self.min_loss:
+            self.prediction = pred_label
+            self.label = self.dataset.valid_label[:len(pred_label)]
+            self.min_loss = (loss_sum / float(total_seen))
+            self.test_acc = total_correct / float(total_seen)
+            return True
+        else:
+            return False
 
 
 if __name__ == "__main__":
