@@ -495,8 +495,9 @@ class Training_cv:
         if (loss_sum / float(total_seen)) < self.min_loss:
             self.prediction = pred_label
             self.label = self.dataset.valid_label[:len(pred_label)]
-            self.min_loss = (loss_sum / float(total_seen))
+            self.test_loss = loss_sum / float(total_seen)
             self.test_acc = total_correct / float(total_seen)
+            self.min_loss = self.test_loss
             return True
         else:
             return False
