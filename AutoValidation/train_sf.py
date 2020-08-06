@@ -164,7 +164,7 @@ class Training:
                 self.testDataset.reset()
 
                 if min_loss > loss:  # save the min loss model
-                    save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}_{epoch}.ckpt"))
+                    save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}.ckpt"))
                     log_string(f"Model saved on {epoch} in file: {save_path}")
                     min_loss = loss
 
