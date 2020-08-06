@@ -41,11 +41,6 @@ class DatasetHDF5_Kfold(object):
         self.train_label = None
         self.valid_label = None
 
-    def oversampling(self):
-        ros = RandomOverSampler(random_state=42)
-        reshape_data = self.current_data.reshape(len(self.current_data), -1)
-        return ros.fit_resample(reshape_data, self.current_label)
-
     def init_data(self, filename):
         all_data = None
         all_label = None
@@ -59,6 +54,11 @@ class DatasetHDF5_Kfold(object):
         self.current_data, self.current_label = all_data, all_label
         self.current_data = self.current_data[:, :, :self.dim]
         self.current_label = np.squeeze(self.current_label)
+
+    def oversampling(self):
+        ros = RandomOverSampler(random_state=42)
+        reshape_data = self.train_data.reshape(len(self.train_data), -1)
+        return ros.fit_resample(reshape_data, self.train_label)
 
     def set_data(self, split):
         self.train_data = self.current_data[self.trainvalid_index[split][0]]
