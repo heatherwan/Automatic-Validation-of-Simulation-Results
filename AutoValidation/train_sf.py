@@ -368,10 +368,10 @@ class Training_cv:
                 test_loss, test_acc = self.eval_one_epoch(sess, ops, test_writer)
                 self.dataset.reset(train=False)
 
-                if loss < self.min_loss:  # save the min loss model
+                if test_loss < self.min_loss:  # save the min loss model
                     save_path = saver.save(sess, os.path.join(LOG_MODEL, f"{para.expName[:6]}_{i}.ckpt"))
                     log_string("Model saved in file: %s" % save_path)
-                    self.min_loss = loss
+                    self.min_loss = test_loss
                     # log evaluation if the loss is better
                     self.test_loss, self.test_acc = test_loss, test_acc
                     # self.test_loss, self.test_acc = self.eval_one_epoch(sess, ops, test_writer)

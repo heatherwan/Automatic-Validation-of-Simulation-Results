@@ -59,19 +59,19 @@ class DatasetHDF5_Kfold(object):
         self.current_data, self.current_label = all_data, all_label
         self.current_data = self.current_data[:, :, :self.dim]
         self.current_label = np.squeeze(self.current_label)
-        # oversampling less sample class
-
-        self.current_data, self.current_label = self.oversampling()
-        self.current_data = self.current_data.reshape(len(self.current_data), self.npoints, self.dim)
-        unique, counts = np.unique(self.current_label, return_counts=True)
-        class_count = dict(zip(unique, counts))
-        print(f'oversampled class: {class_count}')
 
     def set_data(self, split):
         self.train_data = self.current_data[self.trainvalid_index[split][0]]
         self.valid_data = self.current_data[self.trainvalid_index[split][1]]
         self.train_label = self.current_label[self.trainvalid_index[split][0]]
         self.valid_label = self.current_label[self.trainvalid_index[split][1]]
+
+        # oversampling less sample class
+        self.train_data, self.train_label = self.oversampling()
+        self.train_data = self.train_data.reshape(len(self.train_data), self.npoints, self.dim)
+        unique, counts = np.unique(self.current_label, return_counts=True)
+        class_count = dict(zip(unique, counts))
+        print(f'oversampled class after split: {class_count}')
 
     def reset(self, train=True):
         if train:
