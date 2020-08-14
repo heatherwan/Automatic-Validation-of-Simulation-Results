@@ -1,0 +1,30 @@
+# Build image for pointnet in Tensorflow
+
+FROM tensorflow/tensorflow:latest-gpu-py3
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    python3-dev \
+    python3-pip \
+    libhdf5-dev \
+    python3-h5py \
+    g++ \
+    build-essential \
+    cmake \
+    wget \
+    python3-tk \
+	git \
+	vim \
+	screen \
+	
+ && rm -rf /var/lib/apt/lists/*
+
+
+RUN pip3 install h5py
+RUN pip3 install sklearn
+RUN pip3 install imageio
+RUN pip3 install matplotlib
+RUN pip3 install trimesh
+RUN pip3 install pyglet
+RUN pip3 install imblearn
+
