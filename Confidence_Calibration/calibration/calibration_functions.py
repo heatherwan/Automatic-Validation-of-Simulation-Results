@@ -146,13 +146,13 @@ def tune_dir_nn_heather(name, method, files, lambdas, mus, k_folds=5, random_sta
 
     # Read in the data
 
-    val_df = pd.read_csv(files[0], sep='\t')
-    test_df = pd.read_csv(files[1], sep='\t')
+    val_df = pd.read_csv(files[0], sep='\t', index_col=False)
+    test_df = pd.read_csv(files[1], sep='\t', index_col=False)
 
-    logits_val = val_df.iloc[:, 2:6].to_numpy()
+    logits_val = val_df.iloc[:, 3:].to_numpy()
     y_val = val_df.iloc[:, 1:2].to_numpy().ravel()
 
-    logits_test = test_df.iloc[:, 2:6].to_numpy()
+    logits_test = test_df.iloc[:, 3:].to_numpy()
     y_test = test_df.iloc[:, 1:2].to_numpy().ravel()
 
     # Convert into probabilities
@@ -305,13 +305,13 @@ def cal_TS_results(name, method, files, m_kwargs={}, approach="all"):
 
     t1 = time.time()
 
-    val_df = pd.read_csv(files[0], sep='\t')
-    test_df = pd.read_csv(files[1], sep='\t')
+    val_df = pd.read_csv(files[0], sep='\t', index_col=False)
+    test_df = pd.read_csv(files[1], sep='\t', index_col=False)
 
-    logits_val = val_df.iloc[:, 2:6].to_numpy()
+    logits_val = val_df.iloc[:, 3:].to_numpy()
     y_val = val_df.iloc[:, 1:2].to_numpy()
 
-    logits_test = test_df.iloc[:, 2:6].to_numpy()
+    logits_test = test_df.iloc[:, 3:].to_numpy()
     y_test = test_df.iloc[:, 1:2].to_numpy()
 
     input_val = logits_val
@@ -321,7 +321,6 @@ def cal_TS_results(name, method, files, m_kwargs={}, approach="all"):
     if approach == "all":
 
         y_val_flat = y_val.flatten()
-
         model = TemperatureScaling(**m_kwargs)
 
         opt = model.fit(input_val, y_val_flat)

@@ -134,6 +134,7 @@ class TemperatureScaling():
     def _loss_fun(self, x, probs, true):
         # Calculates the loss using log-loss (cross-entropy loss)
         scaled_probs = self.predict(probs, x)
+        print(f'predicted prob: {scaled_probs}')
         loss = log_loss(y_true=true, y_pred=scaled_probs)
         return loss
 

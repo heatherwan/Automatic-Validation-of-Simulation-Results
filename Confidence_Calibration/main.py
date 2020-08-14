@@ -12,9 +12,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
     files = [f'Input_logit/{args.file_val}', f'Input_logit/{args.file_test}']
     name = args.file_val.split('_')[0]
-    print(name)
+    # name = 'exp120'
+    # files = [f'Input_logit/exp120_val_logit.txt', f'Input_logit/exp120_test_logit.txt']
+    # args.method = 'TS'
+    # print(name)
     if args.method == "TS":
-        df_guo = cal_TS_results(name, args.method, files, approach="all")
+        df_guo = cal_TS_results(name, args.method, files, approach="other")
         df_guo.to_csv(f'result/{name}_{args.method}_result')
     else:
         if 'DIR-ODIR' in name:
@@ -25,16 +28,18 @@ if __name__ == "__main__":
         # set parameters
         model_dir = 'model_weights'
         loss_fn = 'sparse_categorical_crossentropy'
-        k_folds = 5
+        k_folds = 3
         random_state = 15
         use_scipy = False
         comp_l2 = True
         double = True
 
         # Set regularisation parameters to check through
-        lambdas = np.array([10 ** i for i in np.arange(-2.0, -1.5)])
-        lambdas = sorted(np.concatenate([lambdas, lambdas * 0.25, lambdas * 0.5]))
-        mus = np.array([10 ** i for i in np.arange(-2.0, -1.5)])
+        # lambdas = np.array([10 ** i for i in np.arange(-2.0, -1.5)])
+        # lambdas = sorted(np.concatenate([lambdas, lambdas * 0.25, lambdas * 0.5]))
+        # mus = np.array([10 ** i for i in np.arange(-2.0, -1.5)])
+        lambdas = [0.0025]
+        mus = [0.01]
 
         # print out parameters
         print("Lambdas:", len(lambdas))
