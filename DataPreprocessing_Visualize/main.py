@@ -31,7 +31,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 
 resultDir = 'result_folder'
-classes = {1: 'EM1_contact', 2: 'EM2_inhole', 3: 'EM3_radius', 4: 'EM4_hole', 0: 'Good'}
+classes = {1: 'EM1_contact', 2: 'EM3_radius', 3: 'EM4_hole', 0: 'Good'}
+# classes = {1: 'EM1_contact', 2: 'EM2_inhole', 3: 'EM3_radius', 4: 'EM4_hole', 0: 'Good'}
 
 
 def readVTP(filename):
@@ -78,34 +79,34 @@ def get_Nearpoints(data, MinSF, NNeighbors):
     return dd, indexes, nearestpoints
 
 
-# def get_neighborpolys(indexes, polys):
-#     neighborpoly = []
-#     index = dict((y, x) for x, y in enumerate(indexes))
-#
-#     # get the extracted faces
-#     for p in np.asarray(polys).flatten():
-#         try:
-#             neighborpoly.append(index[p])
-#         except KeyError:
-#             neighborpoly.append(np.nan)
-#
-#     neighborpoly = np.asarray(neighborpoly)
-#     neighborpoly = neighborpoly.reshape(neighborpoly.shape[0] // 3, 3)
-#     mask = np.any(np.isnan(neighborpoly), axis=1)
-#     neighborpoly = neighborpoly[~mask]
-#     connected_points = set(neighborpoly.flatten())
-#     return neighborpoly, connected_points
+def get_neighborpolys(indexes, polys):
+    neighborpoly = []
+    index = dict((y, x) for x, y in enumerate(indexes))
+
+    # get the extracted faces
+    for p in np.asarray(polys).flatten():
+        try:
+            neighborpoly.append(index[p])
+        except KeyError:
+            neighborpoly.append(np.nan)
+
+    neighborpoly = np.asarray(neighborpoly)
+    neighborpoly = neighborpoly.reshape(neighborpoly.shape[0] // 3, 3)
+    mask = np.any(np.isnan(neighborpoly), axis=1)
+    neighborpoly = neighborpoly[~mask]
+    connected_points = set(neighborpoly.flatten())
+    return neighborpoly, connected_points
 
 
-# def get_curvatures(mesh):
-#     # Estimate curvatures by Rusinkiewicz method
-#     # "Estimating Curvatures and Their Derivatives on Triangle Meshes."
-#     # Symposium on 3D Data Processing, Visualization, and Transmission, September 2004.
-#
-#     PrincipalCurvatures = CC.GetCurvaturesAndDerivatives(mesh)
-#     gaussian_curv = PrincipalCurvatures[0, :] * PrincipalCurvatures[1, :]
-#     mean_curv = 0.5 * (PrincipalCurvatures[0, :] + PrincipalCurvatures[1, :])
-#     return gaussian_curv, mean_curv
+def get_curvatures(mesh):
+    # Estimate curvatures by Rusinkiewicz method
+    # "Estimating Curvatures and Their Derivatives on Triangle Meshes."
+    # Symposium on 3D Data Processing, Visualization, and Transmission, September 2004.
+
+    PrincipalCurvatures = CC.GetCurvaturesAndDerivatives(mesh)
+    gaussian_curv = PrincipalCurvatures[0, :] * PrincipalCurvatures[1, :]
+    mean_curv = 0.5 * (PrincipalCurvatures[0, :] + PrincipalCurvatures[1, :])
+    return gaussian_curv, mean_curv
 
 
 def get_files(folder, category):
@@ -143,9 +144,10 @@ def normalize_coordinate_pos(coordinate, distance, normals):
     min_distance = np.min(distance)
     normal_distance = (distance - min_distance) / (max_distance - min_distance)
 
-    max_normals = np.max(normals)
-    min_normals = np.min(normals)
-    normals = (normals - min_normals) / (max_normals - min_normals)
+    if normals is not None:
+        max_normals = np.max(normals)
+        min_normals = np.min(normals)
+        normals = (normals - min_normals) / (max_normals - min_normals)
 
     return normal_nearpoint, normal_distance, normals
 
@@ -163,16 +165,7 @@ def closest_node(node, nodes):
     return dist_2
 
 
-def readfilestoh5_normal(export_filename, train_test_folder, NNeighbors=1024, dim=5, minSF_importance=1):
-    """
-
-    :param NNeighbors:
-    :param export_filename: .hdf5 filename
-    :param train_test_folder: .vtp files to read
-    :param dim: features output: 5-distance, 6-normal, 7-curvature, 10 normal+curvature
-    :return:
-    """
-
+def readfilestoh5_normal(export_filename, train_test_folder, NNeighbors=1024, dim=5):
     export_filename = f'{export_filename}_{NNeighbors}.hdf5'
 
     with h5py.File(export_filename, "w") as f:
@@ -191,9 +184,11 @@ def readfilestoh5_normal(export_filename, train_test_folder, NNeighbors=1024, di
                 distance, indexes, nearpoints = get_Nearpoints(data, MinSF, NNeighbors)
 
                 # get normal_difference
-                if dim == 8 or dim == 10:
+                if dim == 6:
                     normal_difference = get_normals(data)[indexes]
                     normals_distance = closest_node(normal_difference[0], normal_difference)
+                else:
+                    normals_distance = None
 
                 # min-max normalize
                 normalized_nearpoints, normalized_distance, normal_difference = normalize_coordinate_pos(nearpoints,
@@ -209,7 +204,7 @@ def readfilestoh5_normal(export_filename, train_test_folder, NNeighbors=1024, di
                 #
                 # plotter.subplot(0, 1)
                 # point_cloud = pv.PolyData(nearpoints[:, 1:])
-                # plotter.add_mesh(point_cloud, scalars=normalized_nearpoints[:, 0], stitle='safety factor',
+                # plotter.add_mesh(point_cloud, scalars=nearpoints[:, 0], stitle='safety factor',
                 #                  point_size=5., render_points_as_spheres=True, interpolate_before_map=True)
                 # minpoint = pv.PolyData(MinSF[1:])
                 # plotter.add_mesh(minpoint, scalars=MinSF[0], point_size=8, render_points_as_spheres=True)
@@ -232,37 +227,33 @@ def readfilestoh5_normal(export_filename, train_test_folder, NNeighbors=1024, di
                 # plotter.show(title=f'{i}_{filename[19:]}')
 
                 # get gaussian and mean curvature
-                # if dim == 7 or dim == 10:
-                #     neighborpolys, connected_points = get_neighborpolys(indexes, poly)
-                #     mesh = trimesh.Trimesh(vertices=nearpoints[:, 1:], faces=neighborpolys)
-                #     k_curvature, m_curvature = get_curvatures(mesh)
-                #     # sometimes the selected point is not connected to mesh
-                #     if NNeighbors > len(connected_points):
-                #         print(f'not connected {NNeighbors - len(connected_points)}')
-                #         no_curvature = set(range(1024)) - connected_points
-                #         for idx in no_curvature:
-                #             k_curvature = np.insert(k_curvature, idx, 0)
-                #             m_curvature = np.insert(m_curvature, idx, 0)
+                if dim == 7:
+                    neighborpolys, connected_points = get_neighborpolys(indexes, poly)
+                    mesh = trimesh.Trimesh(vertices=nearpoints[:, 1:], faces=neighborpolys)
+                    k_curvature, m_curvature = get_curvatures(mesh)
+                    # sometimes the selected point is not connected to mesh
+                    if NNeighbors > len(connected_points):
+                        print(f'not connected {NNeighbors - len(connected_points)}')
+                        no_curvature = set(range(1024)) - connected_points
+                        for idx in no_curvature:
+                            k_curvature = np.insert(k_curvature, idx, 0)
+                            m_curvature = np.insert(m_curvature, idx, 0)
 
                 # gather data into hdf5 format
-                if dim == 5:
+                if dim == 4:
+                    other = normalized_nearpoints
+                elif dim == 5:
                     other = np.concatenate((normalized_nearpoints,
                                             normalized_distance.reshape(-1, 1)), axis=1)
-                elif dim == 8:
+                elif dim == 6:
                     other = np.concatenate((normalized_nearpoints,
                                             normalized_distance.reshape(-1, 1),
                                             normal_difference.reshape(-1, 1)), axis=1)
-                # elif dim == 7:
-                #     other = np.concatenate((nearpoints.reshape(NNeighbors, 4),
-                #                             normalized_distance.reshape(-1, 1),
-                #                             k_curvature.reshape(-1, 1),
-                #                             m_curvature.reshape(-1, 1)), axis=1)
-                # elif dim == 10:
-                #     other = np.concatenate((nearpoints.reshape(NNeighbors, 4),
-                #                             distance.reshape(-1, 1),
-                #                             normal_difference,
-                #                             k_curvature.reshape(-1, 1),
-                #                             m_curvature.reshape(-1, 1)), axis=1)
+                elif dim == 7:
+                    other = np.concatenate((normalized_nearpoints,
+                                            normalized_distance.reshape(-1, 1),
+                                            k_curvature.reshape(-1, 1),
+                                            m_curvature.reshape(-1, 1)), axis=1)
                 all_data.append(other)
             print(f'total find time = {time.time() - now}')
 
@@ -291,7 +282,7 @@ def get_allfilename(datafolder, type='Train'):
         fout.write(f'{i}\t{train}\n')
 
 
-def get_min_SF_graph(knn, ls, filename, NNeighbors=1024):
+def get_min_SF_graph(knn, ls, filename, NNeighbors=1024, last=False):
     for i, file in enumerate(filename.filepath):
         if i in ls:
             poly, data = readVTP(file)
@@ -308,7 +299,7 @@ def get_min_SF_graph(knn, ls, filename, NNeighbors=1024):
             normal_nearpoints, normal_distance, normals = normalize_coordinate_pos(nearpoints1000, distance,
                                                                                    normals_distance)
 
-            plotter = pv.Plotter(shape=(2, 3))
+            plotter = pv.BackgroundPlotter(shape=(2, 3))
 
             for j in range(len(knn) + 2):
                 plotter.subplot(j // 3, j % 3)
@@ -334,7 +325,9 @@ def get_min_SF_graph(knn, ls, filename, NNeighbors=1024):
                 # plotter.show_grid()
 
             plotter.link_views()
-            plotter.show(title=f'{i}_{file[19:]}')
+            plotter.show()
+    if last:
+        plotter.app.exec_()
 
 
 def get_min_SF_graph_compare(ls, knn1, filename, NNeighbors=1024, type='distance', last=False):
@@ -378,21 +371,79 @@ def get_min_SF_graph_compare(ls, knn1, filename, NNeighbors=1024, type='distance
         plotter.app.exec_()
 
 
-# def tSNE_plot(X, y):
-#     from matplotlib import pyplot as plt
-#     from sklearn.manifold import TSNE
-#     tsne = TSNE(n_components=2, random_state=0)
-#     X_2d = tsne.fit_transform(X)
-#     plt.figure(figsize=(6, 5))
-#     target_ids = np.unique(y)
-#     colors = 'r', 'g', 'b', 'c', 'm', 'y', 'k', 'w', 'orange', 'purple'
-#     for i, c in zip(target_ids, colors):
-#         plt.scatter(X_2d[y == i, 0], X_2d[y == i, 1], c=c, label=i)
-#     plt.legend()
-#     plt.show()
+def visualize_color_by_array(curvature, mesh):
+    # Plot mean curvature
+    vect_col_map = \
+        trimesh.visual.color.interpolate(curvature, color_map='bwr')
+    if curvature.shape[0] == mesh.vertices.shape[0]:
+        mesh.visual.vertex_colors = vect_col_map
+    elif curvature.shape[0] == mesh.faces.shape[0]:
+        mesh.visual.face_colors = vect_col_map
+    mesh.show(background=[0, 0, 0, 255])
 
 
 def main():
+    # ============== generate figure for thesis =============================================================
+    # filename = 'Sixth_new_data/EM1_contact/' \
+    #            '10000154_FF_P8120737_Rev5_DFPD10_Deckel_Fv_Max.odb__P8120737_REV5_DFPD10_DECKEL-1.vtu.vtp'
+    # NNeighbors = 1024
+    # now = time.time()
+    # poly, data = readVTP(filename)
+    # time1 = time.time()
+    # MinSF = get_MinSF(data)
+    # time2 = time.time()
+    # distance, indexes, nearpoints = get_Nearpoints(data, MinSF, NNeighbors)
+    # time3 = time.time()
+    # normals = get_normals(data)[indexes]
+    # time4 = time.time()
+    # normals_distance = closest_node(normals[0], normals)
+    # time5 = time.time()
+    #
+    # # min-max normalize
+    # normalized_nearpoints, normalized_distance, normal_difference = normalize_coordinate_pos(nearpoints,
+    #                                                                                          distance,
+    #                                                                                          normals_distance)
+    # time6 = time.time()
+    # neighborpolys, connected_points = get_neighborpolys(indexes, poly)
+    # mesh = trimesh.Trimesh(vertices=nearpoints[:, 1:], faces=neighborpolys)
+    # k_curvature, m_curvature = get_curvatures(mesh)
+    # # sometimes the selected point is not connected to mesh
+    # if NNeighbors > len(connected_points):
+    #     print(f'not connected {NNeighbors - len(connected_points)}')
+    #     no_curvature = set(range(1024)) - connected_points
+    #     for idx in no_curvature:
+    #         k_curvature = np.insert(k_curvature, idx, 0)
+    #         m_curvature = np.insert(m_curvature, idx, 0)
+    # # visualize_color_by_array(m_curvature, mesh)
+    # # visualize_color_by_array(k_curvature, mesh)
+    # time7 = time.time()
+    #
+    # print(f"time read: {time1-now}")
+    # print(f"time MinSF: {time2 - time1}")
+    # print(f"time subsampling: {time3 - time2}")
+    # print(f"time normal: {time4 - time3}")
+    # print(f"time normdiff: {time5 - time4}")
+    # print(f"time normalize: {time6 - time5}")
+    # print(f"time curvatures: {time7 - time6}")
+
+    # # check in plot
+    # plotter = pv.Plotter()
+
+    # point_cloudall = pv.PolyData(data[:, 1:])
+    # plotter.add_mesh(point_cloudall, color='white', point_size=3., render_points_as_spheres=True)
+    # point_cloudall = pv.PolyData(nearpoints[:, 1:])
+    # plotter.add_mesh(point_cloudall, color='blue', point_size=5., render_points_as_spheres=True)
+
+    # point_cloud = pv.PolyData(nearpoints[:, 1:])
+    # plotter.add_mesh(point_cloud, scalars=normal_difference, stitle='Normal to MinSF',
+    #                  point_size=5., render_points_as_spheres=True, interpolate_before_map=True)
+
+    # minpoint = pv.PolyData(MinSF[1:])
+    # plotter.add_mesh(minpoint, point_size=8, color='red', render_points_as_spheres=True)
+
+    # plotter.show(title=f'{filename[19:]}')
+    # =======================================================================================
+
     # =============generate h5df dataset=========================================
     # export_filename = f"outputdataset/traindataset_651_SF"
     # readfilestoh5_normal(export_filename, 'Fourth_new_data/Train', NNeighbors=2048, dim=8)
@@ -409,12 +460,19 @@ def main():
     # export_filename = f"outputdataset/testdataset_88_SF"
     # readfilestoh5_normal(export_filename, 'Sixth_new_data/UNKNOWN', NNeighbors=2048, dim=8)
 
-    export_filename = f"outputdataset/testdataset_SF"
-    readfilestoh5_normal(export_filename, 'Seventh_new_data/Test', NNeighbors=2048, dim=8)
-    export_filename = f"outputdataset/traindataset_SF"
-    readfilestoh5_normal(export_filename, 'Seventh_new_data/Train', NNeighbors=2048, dim=8)
-    export_filename = f"outputdataset/validdataset_SF"
-    readfilestoh5_normal(export_filename, 'Seventh_new_data/Validation', NNeighbors=2048, dim=8)
+    # export_filename = f"outputdataset/testdataset_geo_c4"
+    # readfilestoh5_normal(export_filename, 'Final_data/Test', NNeighbors=1024, dim=7)
+    # export_filename = f"outputdataset/traindataset_SF_c4"
+    # readfilestoh5_normal(export_filename, 'Final_data/Train', NNeighbors=512, dim=6)
+    # export_filename = f"outputdataset/validdataset_SF_c4"
+    # readfilestoh5_normal(export_filename, 'Final_data/Validation', NNeighbors=512, dim=6)
+
+    # export_filename = f"outputdataset/testdataset_SF_c5"
+    # readfilestoh5_normal(export_filename, 'Final_data/Test', NNeighbors=2048, dim=6)
+    # export_filename = f"outputdataset/traindataset_SF_c5"
+    # readfilestoh5_normal(export_filename, 'Final_data/Train', NNeighbors=2048, dim=6)
+    # export_filename = f"outputdataset/validdataset_SF_c5"
+    # readfilestoh5_normal(export_filename, 'Final_data/Validation', NNeighbors=2048, dim=6)
     # ===========================================================================
 
     # ============get visulaization with files in test_same folder===========================
@@ -429,28 +487,43 @@ def main():
     # =======================================================================================
 
     # ============get visulaization in dgcnn graph============================
-    sample_num = 71
-    expname = '607'
-    filename = pd.read_csv('result_folder/Fifth_new_data_Test_onlynew.txt', sep='\t')
-    knn1 = np.fromfile(f'result_folder/exp{expname}_knn1.txt', sep=" ").reshape(sample_num, 2048)
-    knn2 = np.fromfile(f'result_folder/exp{expname}_knn2.txt', sep=" ").reshape(sample_num, 2048)
-    knn3 = np.fromfile(f'result_folder/exp{expname}_knn3.txt', sep=" ").reshape(sample_num, 2048)
-    knn4 = np.fromfile(f'result_folder/exp{expname}_knn4.txt', sep=" ").reshape(sample_num, 2048)
-    # knn5 = np.fromfile(f'result_folder/exp{expname}_knn5.txt', sep=" ").reshape(sample_num, 1024)
+    sample_num = 149
+    expname = '141'
+    filename = pd.read_csv('result_folder/Final_data_validation.txt', sep='\t')
+    knn1 = np.fromfile(f'result_folder/exp{expname}_knn1.txt', sep=" ").reshape(sample_num, 1024)
+    knn2 = np.fromfile(f'result_folder/exp{expname}_knn2.txt', sep=" ").reshape(sample_num, 1024)
+    knn3 = np.fromfile(f'result_folder/exp{expname}_knn3.txt', sep=" ").reshape(sample_num, 1024)
+    knn4 = np.fromfile(f'result_folder/exp{expname}_knn4.txt', sep=" ").reshape(sample_num, 1024)
+    listall = [33]
+    # get_min_SF_graph([knn1, knn2, knn3, knn4], listall, filename, NNeighbors=1024)
 
-    listall = [7, 8, 9]
-    # get_min_SF_graph([knn1, knn2, knn3, knn4], listall, filename, NNeighbors=2048)
+    expname = '142'
+    filename = pd.read_csv('result_folder/Final_data_validation.txt', sep='\t')
+    knn1 = np.fromfile(f'result_folder/exp{expname}_knn1.txt', sep=" ").reshape(sample_num, 1024)
+    knn2 = np.fromfile(f'result_folder/exp{expname}_knn2.txt', sep=" ").reshape(sample_num, 1024)
+    knn3 = np.fromfile(f'result_folder/exp{expname}_knn3.txt', sep=" ").reshape(sample_num, 1024)
+    knn4 = np.fromfile(f'result_folder/exp{expname}_knn4.txt', sep=" ").reshape(sample_num, 1024)
+    get_min_SF_graph([knn1, knn2, knn3, knn4], listall, filename, NNeighbors=1024)
+
+    expname = '143'
+    filename = pd.read_csv('result_folder/Final_data_validation.txt', sep='\t')
+    knn1 = np.fromfile(f'result_folder/exp{expname}_knn1.txt', sep=" ").reshape(sample_num, 1024)
+    knn2 = np.fromfile(f'result_folder/exp{expname}_knn2.txt', sep=" ").reshape(sample_num, 1024)
+    knn3 = np.fromfile(f'result_folder/exp{expname}_knn3.txt', sep=" ").reshape(sample_num, 1024)
+    knn4 = np.fromfile(f'result_folder/exp{expname}_knn4.txt', sep=" ").reshape(sample_num, 1024)
+    get_min_SF_graph([knn1, knn2, knn3, knn4], listall, filename, NNeighbors=1024, last=True)
+
     # ==========get visualization of models graph comparison========================================
-    list_low1 = [138, 139, 140, 141, 142, 143, 144, 145]
-    list_low3 = [530, 531, 532, 533, 534, 535, 536, 537]
-    list_lowg = [846, 847, 848, 849, 850, 851, 852, 853]
+    # list_low1 = [138, 139, 140, 141, 142, 143, 144, 145]
+    # list_low3 = [530, 531, 532, 533, 534, 535, 536, 537]
+    # list_lowg = [846, 847, 848, 849, 850, 851, 852, 853]
     # get_min_SF_graph_compare(list_low1, knn4, filename, type='knn1', NNeighbors=2048)
     # get_min_SF_graph_compare(list_low3, knn4, filename, type='knn1', NNeighbors=2048)
     # get_min_SF_graph_compare(list_lowg, knn4, filename, type='knn1', last=True, NNeighbors=2048)
 
     # =======================================================================================
-    # datafolder = 'Fifth_new_data'
-    # get_allfilename(datafolder, 'Trainall')
+    # datafolder = 'Final_data'
+    # get_allfilename(datafolder, 'validation')
     # get_allfilename(datafolder, 'Test_all')
     # =======================================================================================
     # h5_filename = 'outputdataset/testdataset_163_1024_dim6_normal.hdf5'
