@@ -11,7 +11,7 @@ from scipy.stats import percentileofscore
 from sklearn.preprocessing import label_binarize
 
 
-def evaluate_model(model, weights_file, x_test, y_test, bins=15, verbose=True, pickle_file=None, x_val=None,
+def evaluate_model(model, weights_file, x_test, y_test, bins=10, verbose=True, pickle_file=None, x_val=None,
                    y_val=None):
     """
     Evaluates the model, in addition calculates the calibration errors and 
@@ -89,7 +89,7 @@ def evaluate_model(model, weights_file, x_test, y_test, bins=15, verbose=True, p
     return (accuracy, ece, ece_cw)
 
 
-def evaluate(probs, y_true, verbose=False, normalize=True, bins=15):
+def evaluate(probs, y_true, verbose=False, normalize=True, bins=10):
     """
     Evaluate model using various scoring measures: Error Rate, ECE, ece2, ece_cw, ece_cw2, ece_full, ece_full2, mce, mce2, NLL, Brier Score
     
@@ -145,7 +145,7 @@ def evaluate(probs, y_true, verbose=False, normalize=True, bins=15):
     return (error, ece, ece2, ece_cw, ece_cw2, ece_full, ece_full2, mce, mce2, loss, brier)
 
 
-def evaluate_rip(probs, y_true, verbose=False, normalize=True, bins=15):
+def evaluate_rip(probs, y_true, verbose=False, normalize=True, bins=10):
     """
     Evaluate model using various scoring measures: Error Rate, ECE, ece2, ece_cw, ece_cw2, ece_full, ece_full2, mce, mce2, NLL, Brier Score
     
@@ -201,7 +201,7 @@ def evaluate_rip(probs, y_true, verbose=False, normalize=True, bins=15):
     return (error, ece, ece2, ece_cw, ece_cw2, ece_full, ece_full2, mce, mce2, loss, brier)
 
 
-def evaluate_slim(probs, y_true, verbose=False, normalize=True, bins=15):
+def evaluate_slim(probs, y_true, verbose=False, normalize=True, bins=10):
     """
     Evaluate model using various scoring measures: Error Rate, ECE, ece2, ece_cw, ece_cw2, ece_full, ece_full2, mce, mce2, NLL, Brier Score
     
@@ -482,7 +482,7 @@ def get_bin_info(conf, pred, true, bin_size=0.1):
     return accuracies, confidences, bin_lengths
 
 
-def binary_ECE(probs, y_true, power=1, bins=15):
+def binary_ECE(probs, y_true, power=1, bins=10):
     idx = np.digitize(probs, np.linspace(0, 1, bins)) - 1
     bin_func = lambda p, y, idx: (np.abs(np.mean(p[idx]) - np.mean(y[idx])) ** power) * np.sum(idx) / len(probs)
 
@@ -492,7 +492,7 @@ def binary_ECE(probs, y_true, power=1, bins=15):
     return ece
 
 
-def classwise_ECE(probs, y_true, power=1, bins=15):
+def classwise_ECE(probs, y_true, power=1, bins=10):
     probs = np.array(probs)
     if not np.array_equal(probs.shape, y_true.shape):
         y_true = label_binarize(np.array(y_true), classes=range(probs.shape[1]))
@@ -508,7 +508,7 @@ def classwise_ECE(probs, y_true, power=1, bins=15):
     )
 
 
-def simplex_binning(probs, y_true, bins=15):
+def simplex_binning(probs, y_true, bins=10):
     probs = np.array(probs)
     if not np.array_equal(probs.shape, y_true.shape):
         y_true = label_binarize(np.array(y_true), classes=range(probs.shape[1]))
@@ -539,7 +539,7 @@ def simplex_binning(probs, y_true, bins=15):
     return bins
 
 
-def full_ECE(probs, y_true, bins=15, power=1):
+def full_ECE(probs, y_true, bins=10, power=1):
     n = len(probs)
 
     probs = np.array(probs)
