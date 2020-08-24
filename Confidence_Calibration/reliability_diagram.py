@@ -4,6 +4,7 @@ import pandas as pd
 from sklearn.calibration import calibration_curve
 import pickle
 
+
 def reliability(y, y_prob):
     nbin = 10
     # class0
@@ -43,20 +44,20 @@ def reliability(y, y_prob):
 
 def main():
 
-    # file = 'Input_logit/exp143_test_logit.txt'
-    # data = pd.read_csv(file, sep='\t', header=0, index_col=False)
-    # y_pred = np.array(data.iloc[:, 3:])
-    # y_prob = np.exp(y_pred) / np.sum(np.exp(y_pred), axis=1).reshape(149, 1)
-    # y_true = np.array(data.iloc[:, 2])
-    # reliability(y_true, y_prob)
-    #
-    # # import calibrated result
-    # # file = 'result/exp145_TS_test.txt'
-    # # data = pd.read_csv(file, header=None, sep=' ')
-    # # y_prob = np.array(data.iloc[149:])
-    # # print(y_prob)
-    # # reliability(y_true, y_prob)
-    #
+    file = 'Input_logit/exp143_test_logit.txt'
+    data = pd.read_csv(file, sep='\t', header=0, index_col=False)
+    y_pred = np.array(data.iloc[:, 3:])
+    y_prob = np.exp(y_pred) / np.sum(np.exp(y_pred), axis=1).reshape(149, 1)
+    y_true = np.array(data.iloc[:, 2])
+    reliability(y_true, y_prob)
+
+    # import calibrated result
+    file = 'result/exp143_DIR-ODIR_test_0.0025_0.01.txt'
+    data = pd.read_csv(file, header=None, sep=' ')
+    y_prob = np.array(data.iloc[149:])
+    print(y_prob)
+    reliability(y_true, y_prob)
+
     # # import calibrated result
     # file = 'result/exp145_DIR-ODIR_test_0.0025_0.01.txt'
     # data = pd.read_csv(file, header=None, sep=' ')
@@ -71,13 +72,13 @@ def main():
     # print(y_prob)
     # reliability(y_true, y_prob)
 
-    # get weight
-    filename = 'model_weights/model_MS-ODIR_exp144_l2=0.0025_mu=0.01.p'
-    file = open(filename, 'rb')
-    model = pickle.load(file)
-    W = model[0][-1][0]
-    b = model[0][-1][1]
-    print(W, b)
+    # # get weight
+    # filename = 'model_weights/model_MS-ODIR_exp144_l2=0.0025_mu=0.01.p'
+    # file = open(filename, 'rb')
+    # model = pickle.load(file)
+    # W = model[0][-1][0]
+    # b = model[0][-1][1]
+    # print(W, b)
 
 
 if __name__ == '__main__':
